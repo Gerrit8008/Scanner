@@ -126,8 +126,9 @@ def save_lead_data(lead_info):
         filename = "/tmp/leads.csv"
         file_exists = os.path.isfile(filename)
         
+        # Add the new fields to the fieldnames list
         with open(filename, "a", newline="") as csvfile:
-            fieldnames = ["name", "email", "company", "phone", "timestamp"]
+            fieldnames = ["name", "email", "company", "phone", "timestamp", "client_os", "client_browser", "windows_version"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             if not file_exists:
                 writer.writeheader()
@@ -912,48 +913,57 @@ def enhanced_scan():
     
     return render_template('enhanced_scan.html')
 
-@app.route('/start-enhanced-scan', methods=['POST'])
-def start_enhanced_scan():
-    """Process enhanced security scan request"""
-    target = request.form.get('target', '')
-    email = request.form.get('email', '')
-    name = request.form.get('name', '')
-    company = request.form.get('company', '')
+@app.route('/api/enhanced-scan-status/<scan_id>', methods=['GET'])
+@limiter.limit("300 per hour")
+def enhanced_scan_status(scan_id):
+    """API endpoint to check scan status and progress"""
+    # Get current timestamp to simulate progress
+    current_timestamp = datetime.datetime.now().timestamp()
     
-    if not target:
-        return render_template('enhanced_scan.html', 
-                                error="Please enter a target domain or IP address")
+    # If scan_start_time not in session, initialize it
+    if 'scan_start_time' not in session:
+        session['scan_start_time'] = current_timestamp
     
-    # Generate unique scan ID
-    scan_id = str(uuid.uuid4())
+    scan_start = session.get('scan_start_time')
     
-    # Store scan info in session
-    session['scan_id'] = scan_id
-    session['target'] = target
-    session['email'] = email
-    session['name'] = name
-    session['company'] = company
+    # Calculate simulated progress (0-100%)
+    elapsed_time = current_timestamp - scan_start
+    progress = min(int(elapsed_time * 10), 100)  # 10% per second, max 100%
     
-    # Store basic scan info in lead data
-    lead_data = {
-        'name': name,
-        'email': email,
-        'company': company,
-        'phone': request.form.get('phone', ''),
-        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        'client_os': request.form.get('client_os', 'Unknown'),
-        'client_browser': request.form.get('client_browser', 'Unknown')
-    }
+    # Create a status message based on progress
+    if progress < 20:
+        status_message = "Checking ports and network services..."
+    elif progress < 40:
+        status_message = "Analyzing SSL/TLS certificates..."
+    elif progress < 60:
+        status_message = "Checking web security headers and CMS..."
+    elif progress < 80:
+        status_message = "Scanning for sensitive content..."
+    elif progress < 100:
+        status_message = "Calculating risk scores and generating report..."
+    else:
+        status_message = "Scan completed! Preparing results..."
     
-    # Save lead data
-    try:
-        save_lead_data(lead_data)
-    except Exception as e:
-        logging.error(f"Error saving lead data: {e}")
+    # If scan is complete, prepare redirect to results
+    if progress >= 100:
+        # Clear the scan_start_time from session
+        if 'scan_start_time' in session:
+            del session['scan_start_time']
+        
+        return jsonify({
+            'status': 'complete',
+            'progress': 100,
+            'message': 'Scan completed successfully',
+            'redirect_url': url_for('enhanced_scan_results', scan_id=scan_id)
+        })
     
-    # Redirect to scan progress page
-    return redirect(url_for('enhanced_scan_progress', scan_id=scan_id))
-
+    # Otherwise return progress update
+    return jsonify({
+        'status': 'in_progress',
+        'progress': progress,
+        'message': status_message
+    })
+    
 @app.route('/enhanced-scan-progress/<scan_id>')
 def enhanced_scan_progress(scan_id):
     """Display scan progress and start background scanning"""
