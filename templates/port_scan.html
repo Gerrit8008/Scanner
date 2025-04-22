@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Port Scanner - Vulnerability Assessment Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+        .header {
+            background-color: #6c757d;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .port-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .high-risk {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .medium-risk {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+        .low-risk {
+            color: #198754;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 50px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="/static/images/logo.png" alt="Company Logo" class="logo">
+		<h1>Network Port Scanner</h1>
+        <p>Scan for open ports and detect potential vulnerabilities</p>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Scan Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form id="scanForm">
+                    <div class="mb-3">
+                        <label for="targetIP" class="form-label">Target IP Address</label>
+                        <input type="text" class="form-control" id="targetIP" value="127.0.0.1" required>
+                        <div class="form-text">For security reasons, only localhost and private networks can be scanned.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scanType" class="form-label">Scan Type</label>
+                        <select class="form-select" id="scanType">
+                            <option value="basic" selected>Basic (Common Ports)</option>
+                            <option value="full">Full Port Range</option>
+                            <option value="service">Service Detection</option>
+                        </select>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Start Scan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="errorContainer" class="alert alert-danger" style="display: none;"></div>
+
+        <div class="card" id="resultsCard" style="display: none;">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Scan Results</h5>
+            </div>
+            <div class="card-body">
+                <div id="scanSpinner" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Scanning in progress... This may take a few moments.</p>
+                </div>
+
+                <div id="scanResults">
+                    <h6>Target: <span id="targetAddress"></span></h6>
+                    <h6>Open Ports: <span id="openPortCount">0</span></h6>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-danger text-white">
+                            <h6 class="mb-0">High Risk Ports</h6>
+                        </div>
+                        <div class="card-body port-list" id="highRiskPorts">
+                            <p class="text-muted">No high risk ports detected</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">Medium Risk Ports</h6>
+                        </div>
+                        <div class="card-body port-list" id="mediumRiskPorts">
+                            <p class="text-muted">No medium risk ports detected</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">Low Risk Ports</h6>
+                        </div>
+                        <div class="card-body port-list" id="lowRiskPorts">
+                            <p class="text-muted">No low risk ports detected</p>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0">Recommendations</h6>
+                        </div>
+                        <div class="card-body" id="recommendations">
+                            <ul>
+                                <li>Restrict access to high-risk ports when not in use</li>
+                                <li>Configure your firewall to block unauthorized access</li>
+                                <li>Review and update your security policies regularly</li>
+                                <li>Implement network segmentation for critical services</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-4">All Open Ports:</h6>
+                    <div class="port-list">
+                        <pre id="allPorts"></pre>
+                    </div>
+
+                    <div class="mt-4">
+                        <h6>Raw Scan Data:</h6>
+                        <div class="port-list">
+                            <pre id="rawResponse" class="bg-light p-3 rounded"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>This port scanning tool is designed for security professionals to identify network vulnerabilities.</p>
+            <p>Use responsibly and only on systems you have permission to scan.</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('scanForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Hide any previous error messages
+            document.getElementById('errorContainer').style.display = 'none';
+            
+            // Show loading spinner
+            document.getElementById('resultsCard').style.display = 'block';
+            document.getElementById('scanResults').style.display = 'none';
+            document.getElementById('scanSpinner').style.display = 'block';
+            
+            const targetIP = document.getElementById('targetIP').value;
+            const scanType = document.getElementById('scanType').value;
+            
+            // Update target address in results
+            document.getElementById('targetAddress').textContent = targetIP;
+            
+            fetch('/api/port-scan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    target: targetIP,
+                    scan_type: scanType
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide spinner
+                document.getElementById('scanSpinner').style.display = 'none';
+                document.getElementById('scanResults').style.display = 'block';
+                
+                if (data.error) {
+                    showError('Error from server: ' + data.error);
+                    return;
+                }
+                
+                displayResults(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('scanSpinner').style.display = 'none';
+                document.getElementById('resultsCard').style.display = 'none';
+                showError('Error: ' + error.message);
+            });
+        });
+        
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.textContent = message;
+            errorContainer.style.display = 'block';
+        }
+        
+        function displayResults(data) {
+            // Display raw response for debugging
+            document.getElementById('rawResponse').textContent = JSON.stringify(data, null, 2);
+            
+            // Handle the case where results might be nested differently
+            let results = data.results;
+            if (!results && data.open_ports) {
+                results = data; // The results might be directly in the data object
+            }
+            
+            if (!results) {
+                showError('Invalid response format. See raw data below.');
+                return;
+            }
+            
+            const openPorts = results.open_ports || [];
+            const services = results.services || {};
+            
+            // Update open port count
+            document.getElementById('openPortCount').textContent = openPorts.length;
+            
+            // Clear previous results
+            document.getElementById('highRiskPorts').innerHTML = '';
+            document.getElementById('mediumRiskPorts').innerHTML = '';
+            document.getElementById('lowRiskPorts').innerHTML = '';
+            
+            // Define risk categories based on your GATEWAY_PORT_WARNINGS
+            const highRiskPorts = [21, 23, 3389, 5900, 1433, 3306, 445, 139];
+            const mediumRiskPorts = [80, 25, 110, 143, 8080];
+            
+            let highRiskHtml = '';
+            let mediumRiskHtml = '';
+            let lowRiskHtml = '';
+            
+            openPorts.forEach(port => {
+                // Convert port to number if it's a string
+                const portNum = typeof port === 'string' ? parseInt(port) : port;
+                const service = services[portNum] ? services[portNum].service : getDefaultServiceName(portNum);
+                
+                const portInfo = `<div class="mb-2 d-flex justify-content-between align-items-center">
+                    <span>Port ${portNum}: ${service}</span>
+                    <span class="badge ${getPortBadgeClass(portNum)}">${getPortRiskLevel(portNum)}</span>
+                </div>`;
+                
+                if (highRiskPorts.includes(portNum)) {
+                    highRiskHtml += portInfo;
+                } else if (mediumRiskPorts.includes(portNum)) {
+                    mediumRiskHtml += portInfo;
+                } else {
+                    lowRiskHtml += portInfo;
+                }
+            });
+            
+            document.getElementById('highRiskPorts').innerHTML = highRiskHtml || '<p class="text-muted">No high risk ports detected</p>';
+            document.getElementById('mediumRiskPorts').innerHTML = mediumRiskHtml || '<p class="text-muted">No medium risk ports detected</p>';
+            document.getElementById('lowRiskPorts').innerHTML = lowRiskHtml || '<p class="text-muted">No low risk ports detected</p>';
+            
+            // Display all ports as formatted JSON
+            const allPortsInfo = {};
+            openPorts.forEach(port => {
+                const portNum = typeof port === 'string' ? parseInt(port) : port;
+                allPortsInfo[portNum] = services[portNum] || { service: getDefaultServiceName(portNum) };
+            });
+            
+            document.getElementById('allPorts').textContent = JSON.stringify(allPortsInfo, null, 2);
+            
+            // Update recommendations based on findings
+            updateRecommendations(openPorts);
+        }
+        
+        function getDefaultServiceName(port) {
+            const commonPorts = {
+                21: "FTP",
+                22: "SSH",
+                23: "Telnet",
+                25: "SMTP",
+                53: "DNS",
+                80: "HTTP",
+                110: "POP3",
+                143: "IMAP",
+                443: "HTTPS",
+                445: "SMB",
+                3306: "MySQL",
+                3389: "RDP",
+                5900: "VNC",
+                8080: "HTTP Alternate"
+            };
+            
+            return commonPorts[port] || "Unknown";
+        }
+        
+        function getPortRiskLevel(port) {
+            const highRiskPorts = [21, 23, 3389, 5900, 1433, 3306, 445, 139];
+            const mediumRiskPorts = [80, 25, 110, 143, 8080];
+            
+            if (highRiskPorts.includes(port)) {
+                return "High Risk";
+            } else if (mediumRiskPorts.includes(port)) {
+                return "Medium Risk";
+            } else {
+                return "Low Risk";
+            }
+        }
+        
+        function getPortBadgeClass(port) {
+            const highRiskPorts = [21, 23, 3389, 5900, 1433, 3306, 445, 139];
+            const mediumRiskPorts = [80, 25, 110, 143, 8080];
+            
+            if (highRiskPorts.includes(port)) {
+                return "bg-danger";
+            } else if (mediumRiskPorts.includes(port)) {
+                return "bg-warning text-dark";
+            } else {
+                return "bg-success";
+            }
+        }
+        
+        function updateRecommendations(openPorts) {
+            const recommendations = document.getElementById('recommendations');
+            const highRiskPorts = [21, 23, 3389, 5900, 1433, 3306, 445, 139];
+            
+            let html = '<ul>';
+            
+            // Default recommendations
+            html += '<li>Restrict access to high-risk ports when not in use</li>';
+            html += '<li>Configure your firewall to block unauthorized access</li>';
+            
+            // Add specific recommendations based on detected ports
+            if (openPorts.includes(21) || openPorts.includes(23)) {
+                html += '<li class="text-danger"><strong>CRITICAL: FTP/Telnet ports detected. These services transmit data unencrypted and should be replaced with secure alternatives (SFTP/SSH)</strong></li>';
+            }
+            
+            if (openPorts.includes(3389)) {
+                html += '<li class="text-danger"><strong>CRITICAL: RDP port is open. Ensure it is properly secured with strong authentication and consider using a VPN</strong></li>';
+            }
+            
+            if (openPorts.includes(445) || openPorts.includes(139)) {
+                html += '<li class="text-danger"><strong>CRITICAL: SMB/NetBIOS ports are open. These are frequent targets for attacks and should be restricted</strong></li>';
+            }
+            
+            if (openPorts.includes(80) && !openPorts.includes(443)) {
+                html += '<li class="text-warning">HTTP without HTTPS detected. Consider implementing HTTPS for encrypted communications</li>';
+            }
+            
+            const highRiskCount = openPorts.filter(port => highRiskPorts.includes(port)).length;
+            if (highRiskCount > 3) {
+                html += '<li class="text-danger"><strong>Multiple high-risk ports detected. Consider a full security audit of your system</strong></li>';
+            }
+            
+            html += '<li>Review and update your security policies regularly</li>';
+            html += '<li>Implement network segmentation for critical services</li>';
+            html += '</ul>';
+            
+            recommendations.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
