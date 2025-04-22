@@ -913,6 +913,52 @@ def enhanced_scan():
     
     return render_template('enhanced_scan.html')
 
+@app.route('/start-enhanced-scan', methods=['POST'])
+def start_enhanced_scan():
+    """Process enhanced security scan request"""
+    target = request.form.get('target', '')
+    name = request.form.get('name', '')
+    email = request.form.get('email', '')
+    company = request.form.get('company', '')
+    phone = request.form.get('phone', '')
+    
+    if not target:
+        return render_template('enhanced_scan.html', 
+                               error="Please enter a target domain or IP address")
+    
+    # Store data in session for use during scan
+    session['target'] = target
+    session['email'] = email
+    session['name'] = name
+    session['company'] = company
+    
+    # Save lead data
+    lead_data = {
+        'name': name,
+        'email': email,
+        'company': company,
+        'phone': phone,
+        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'client_os': request.form.get('client_os', 'Unknown'),
+        'client_browser': request.form.get('client_browser', 'Unknown'),
+        'windows_version': request.form.get('windows_version', '')
+    }
+    
+    try:
+        save_lead_data(lead_data)
+    except Exception as e:
+        logging.error(f"Error saving lead data: {e}")
+    
+    # Generate unique scan ID
+    scan_id = str(uuid.uuid4())
+    
+    # Reset scan start time in session
+    session['scan_start_time'] = datetime.now().timestamp()
+    
+    # Redirect to scan progress page
+    return redirect(url_for('enhanced_scan_progress', scan_id=scan_id))
+
+
 @app.route('/api/enhanced-scan-status/<scan_id>', methods=['GET'])
 @limiter.limit("300 per hour")
 def enhanced_scan_status(scan_id):
