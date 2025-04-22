@@ -979,51 +979,6 @@ def enhanced_scan_progress(scan_id):
                            target=target,
                            email=email)
 
-@app.route('/api/enhanced-scan-status/<scan_id>', methods=['GET'])
-def enhanced_scan_status(scan_id):
-    """API endpoint to check scan status and progress"""
-    # In a production environment, you would check a database or queue
-    # For this example, we're just returning mock progress
-    
-    # Get current timestamp to simulate progress
-    current_timestamp = datetime.now().timestamp()
-
-    scan_start = session.get('scan_start_time', current_timestamp)
-    
-    # Calculate simulated progress (0-100%)
-    elapsed_time = current_timestamp - scan_start
-    progress = min(int(elapsed_time * 10), 100)  # 10% per second, max 100%
-    
-    # Create a status message based on progress
-    if progress < 20:
-        status_message = "Checking ports and network services..."
-    elif progress < 40:
-        status_message = "Analyzing SSL/TLS certificates..."
-    elif progress < 60:
-        status_message = "Checking web security headers and CMS..."
-    elif progress < 80:
-        status_message = "Scanning for sensitive content..."
-    elif progress < 100:
-        status_message = "Calculating risk scores and generating report..."
-    else:
-        status_message = "Scan completed! Preparing results..."
-    
-    # If scan is complete, prepare redirect to results
-    if progress >= 100:
-        return jsonify({
-            'status': 'complete',
-            'progress': 100,
-            'message': 'Scan completed successfully',
-            'redirect_url': url_for('enhanced_scan_results', scan_id=scan_id)
-        })
-    
-    # Otherwise return progress update
-    return jsonify({
-        'status': 'in_progress',
-        'progress': progress,
-        'message': status_message
-    })
-
 @app.route('/enhanced-scan-results/<scan_id>')
 def enhanced_scan_results(scan_id):
     """Display enhanced scan results"""
