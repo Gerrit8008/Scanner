@@ -964,7 +964,7 @@ def start_enhanced_scan():
 def enhanced_scan_status(scan_id):
     """API endpoint to check scan status and progress"""
     # Get current timestamp to simulate progress
-    current_timestamp = datetime.datetime.now().timestamp()
+    current_timestamp = datetime.now().timestamp()  # Fix: removed "datetime."
     
     # If scan_start_time not in session, initialize it
     if 'scan_start_time' not in session:
