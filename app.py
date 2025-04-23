@@ -1272,7 +1272,7 @@ def process_scan_request(lead_data):
     # Add recommendations
     full_report += recommendations
     
-    return full_report, target):
+    return full_report, target
                 return jsonify({
                     "status": "error",
                     "message": "Please enter a valid domain (e.g., example.com) or IP address."
