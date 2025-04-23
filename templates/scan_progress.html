@@ -143,15 +143,19 @@
 
     <div class="container">
         <div class="header">
-            <h1 id="scan-header">Security Scan in Progress</h1>
-            <p>Please wait while we analyze your target for security vulnerabilities</p>
+            <h1 id="scan-header">{{ scan_type|title }} Security Scan in Progress</h1>
+            <p>Please wait while we analyze your system for security vulnerabilities</p>
         </div>
 
         <div class="progress-container">
             <div class="scan-info">
-                <p><strong>Scan Type:</strong> <span id="scan-type">{{ scan_type|title }}</span></p>
-                <p><strong>Target:</strong> <span id="target-info">{{ target or "Your System" }}</span></p>
-                <p><strong>Scan ID:</strong> <span id="scan-id">{{ scan_id }}</span></p>
+                <p><strong>Scan Type:</strong> {{ scan_type|title }}</p>
+                {% if target %}
+                <p><strong>Target:</strong> {{ target }}</p>
+                {% else %}
+                <p><strong>Target:</strong> Your System</p>
+                {% endif %}
+                <p><strong>Scan ID:</strong> {{ scan_id }}</p>
                 {% if email %}
                 <p><strong>Results will be emailed to:</strong> {{ email }}</p>
                 {% endif %}
@@ -185,18 +189,6 @@
         const scanId = "{{ scan_id }}";
         let progressValue = 0;
         let checkInterval = null;
-        
-        // Update scan header based on scan type
-        document.addEventListener('DOMContentLoaded', function() {
-            const scanType = "{{ scan_type }}";
-            const scanHeader = document.getElementById('scan-header');
-            
-            if (scanType === 'comprehensive') {
-                scanHeader.textContent = 'Comprehensive Security Scan in Progress';
-            } else {
-                scanHeader.textContent = 'Basic Security Scan in Progress';
-            }
-        });
         
         // Start checking scan status when page loads
         window.onload = function() {
