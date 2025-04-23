@@ -821,7 +821,7 @@ def process_scan_request(lead_data):
         
     except Exception as e:
         logging.error(f"Error in process_scan_request: {e}")
-        return f"An error occurred during the scan: {str(e)}"")
+        return f"An error occurred during the scan: {str(e)}"
     
     # Create the lead section
     lead_section = (
