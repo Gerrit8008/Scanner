@@ -926,3 +926,35 @@ def calculate_risk_score(scan_results):
             'overall_score': 0,
             'risk_level': 'Unknown'
         }
+
+@app.route('/')
+def index():
+    """Render the home page"""
+    try:
+        # Log that we're attempting to render the template
+        logging.debug("Attempting to render index.html")
+        
+        # List available templates for debugging
+        template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+        if os.path.exists(template_dir):
+            templates = os.listdir(template_dir)
+            logging.debug(f"Available templates: {templates}")
+        else:
+            logging.error(f"Template directory not found: {template_dir}")
+        
+        return render_template('index.html')
+    except Exception as e:
+        error_message = f"Error rendering index page: {str(e)}"
+        logging.error(error_message)
+        
+        # Return a simple HTML response with the error
+        return f"""
+        <html>
+            <head><title>Error</title></head>
+            <body>
+                <h1>An error occurred</h1>
+                <p>{error_message}</p>
+                <p>Please contact support.</p>
+            </body>
+        </html>
+        """, 500
