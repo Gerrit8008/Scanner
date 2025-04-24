@@ -1,50 +1,4 @@
-import ssl
-import socket
-import dns.resolver
-import requests
-import re
-import json
-import datetime
-import urllib.parse
-from bs4 import BeautifulSoup
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
-import logging
-import warnings
-import urllib3
-import platform
-import psutil
-import random
-import dns.zone
-import dns.query
-import sys
-import os
-
-# Suppress InsecureRequestWarning warnings
-warnings.filterwarnings('ignore', message='.*InsecureRequestWarning.*')
-
-# Set up logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Define severity levels
-SEVERITY = {
-    "Critical": 10,
-    "High": 7,
-    "Medium": 5,
-    "Low": 2,
-    "Info": 1
-}
-
-# A function to calculate severity based on the issue type
-def get_severity_level(severity):
-    return SEVERITY.get(severity, SEVERITY["Info"])
-
-# Generate actionable recommendations based on severity
-def get_recommendations(vulnerability, severity):
-    if severity == "Critical":
-        return f"[CRITICAL]
-    
-    # SPF Record
+# SPF Record
         spf_status = email_data.get('spf', {}).get('status', 'Unknown')
         spf_severity = email_data.get('spf', {}).get('severity', 'Medium')
         spf_severity_class = 'high' if spf_severity == 'Low' else 'medium' if spf_severity == 'Medium' else 'low'
@@ -1989,3 +1943,49 @@ def analyze_cookies(url):
             'cookies': cookie"""
 Integrated security scanner module combining basic and enhanced vulnerability scanning.
 """
+
+import ssl
+import socket
+import dns.resolver
+import requests
+import re
+import json
+import datetime
+import urllib.parse
+from bs4 import BeautifulSoup
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+import logging
+import warnings
+import urllib3
+import platform
+import psutil
+import random
+import dns.zone
+import dns.query
+import sys
+import os
+
+# Suppress InsecureRequestWarning warnings
+warnings.filterwarnings('ignore', message='.*InsecureRequestWarning.*')
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Define severity levels
+SEVERITY = {
+    "Critical": 10,
+    "High": 7,
+    "Medium": 5,
+    "Low": 2,
+    "Info": 1
+}
+
+# A function to calculate severity based on the issue type
+def get_severity_level(severity):
+    return SEVERITY.get(severity, SEVERITY["Info"])
+
+# Generate actionable recommendations based on severity
+def get_recommendations(vulnerability, severity):
+    if severity == "Critical":
+        return f"[CRITICAL]
