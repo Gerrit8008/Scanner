@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Security Scan Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 2rem;
+            border-radius: 5px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .header h1 {
+            margin-top: 0;
+        }
+        .card {
+            background-color: #fff;
+            padding: 1.5rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .risk-score {
+            text-align: center;
+            padding: 2rem;
+        }
+        .score-value {
+            font-size: 4rem;
+            font-weight: bold;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        .score-label {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .score-low { color: #27ae60; }
+        .score-medium { color: #f39c12; }
+        .score-high { color: #e74c3c; }
+        .score-critical { color: #c0392b; }
+        .section {
+            margin-bottom: 1rem;
+        }
+        .section-title {
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
+            font-size: 1.5rem;
+            margin-top: 0;
+        }
+        .findings {
+            margin-bottom: 2rem;
+        }
+        .finding {
+            padding: 1rem;
+            border-left: 4px solid #3498db;
+            background-color: #f1f9ff;
+            margin-bottom: 1rem;
+        }
+        .finding.critical {
+            border-left-color: #c0392b;
+            background-color: #fadbd8;
+        }
+        .finding.high {
+            border-left-color: #e74c3c;
+            background-color: #fce5e1;
+        }
+        .finding.medium {
+            border-left-color: #f39c12;
+            background-color: #fef5e7;
+        }
+        .finding.low {
+            border-left-color: #27ae60;
+            background-color: #e9f7ef;
+        }
+        .finding .title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .severity {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #fff;
+            margin-left: 0.5rem;
+        }
+        .severity.critical { background-color: #c0392b; }
+        .severity.high { background-color: #e74c3c; }
+        .severity.medium { background-color: #f39c12; }
+        .severity.low { background-color: #27ae60; }
+        .recommendations {
+            background-color: #e8f4f8;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #3498db;
+            color: #fff;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 1rem;
+            margin-bottom: 1rem;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-primary {
+            background-color: #2c3e50;
+        }
+        .btn-primary:hover {
+            background-color: #1a252f;
+        }
+        .summary {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -1rem;
+        }
+        .summary-card {
+            flex: 1 1 250px;
+            margin: 1rem;
+            padding: 1.5rem;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .progress-bar {
+            height: 8px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        .table th, .table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .table tr:hover td {
+            background-color: #f1f9ff;
+        }
+        @media (max-width: 768px) {
+            .summary-card {
+                flex: 1 1 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Enhanced Security Scan Results</h1>
+            <p>Target: {{ scan.target }}</p>
+            <p>Scan completed: {{ scan.timestamp }}</p>
+        </div>
+
+        <!-- Overall Risk Score -->
+        <div class="card risk-score">
+            {% if scan.risk_assessment %}
+                {% set score = scan.risk_assessment.overall_score %}
+                {% set risk_level = scan.risk_assessment.risk_level %}
+                
+                {% if risk_level == "Low" %}
+                    <div class="score-value score-low">{{ score }}</div>
+                    <div class="score-label score-low">Low Risk</div>
+                {% elif risk_level == "Medium" %}
+                    <div class="score-value score-medium">{{ score }}</div>
+                    <div class="score-label score-medium">Medium Risk</div>
+                {% elif risk_level == "High" %}
+                    <div class="score-value score-high">{{ score }}</div>
+                    <div class="score-label score-high">High Risk</div>
+                {% else %}
+                    <div class="score-value score-critical">{{ score }}</div>
+                    <div class="score-label score-critical">Critical Risk</div>
+                {% endif %}
+            {% else %}
+                <div class="score-value">N/A</div>
+                <div class="score-label">Risk Score Not Available</div>
+            {% endif %}
+        </div>
+
+        <!-- Key Recommendations -->
+        {% if scan.risk_assessment and scan.risk_assessment.recommendations %}
+        <div class="card">
+            <h2 class="section-title">Key Recommendations</h2>
+            <ul>
+                {% for recommendation in scan.risk_assessment.recommendations %}
+                <li>{{ recommendation }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Security Score Summary -->
+        <div class="card">
+            <h2 class="section-title">Security Score by Category</h2>
+            
+            <div class="summary">
+                {% if scan.risk_assessment and scan.risk_assessment.category_scores %}
+                    {% for category, score in scan.risk_assessment.category_scores.items() %}
+                        <div class="summary-card">
+                            <h3>{{ category|replace('_', ' ')|title }}</h3>
+                            <div class="summary-value {% if score >= 80 %}score-low{% elif score >= 60 %}score-medium{% else %}score-high{% endif %}">
+                                {{ score }}
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill {% if score >= 80 %}score-low{% elif score >= 60 %}score-medium{% else %}score-high{% endif %}" 
+                                     style="width: {{ score }}%; background-color: {% if score >= 80 %}#27ae60{% elif score >= 60 %}#f39c12{% else %}#e74c3c{% endif %};">
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No category scores available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- SSL/TLS Certificate Results -->
+        {% if scan.ssl_certificate and scan.ssl_certificate.status != 'error' %}
+        <div class="card">
+            <h2 class="section-title">SSL/TLS Certificate</h2>
+            
+            <table class="table">
+                <tr>
+                    <th>Issuer</th>
+                    <td>{{ scan.ssl_certificate.issuer }}</td>
+                </tr>
+                <tr>
+                    <th>Status</th>
+                    <td>
+                        {% if scan.ssl_certificate.status == 'valid' %}
+                            <span class="severity low">Valid</span>
+                        {% else %}
+                            <span class="severity high">Expired</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Valid Until</th>
+                    <td>{{ scan.ssl_certificate.valid_until }}</td>
+                </tr>
+                <tr>
+                    <th>Days to Expiry</th>
+                    <td>{{ scan.ssl_certificate.days_to_expiry }}</td>
+                </tr>
+                <tr>
+                    <th>Protocol</th>
+                    <td>{{ scan.ssl_certificate.protocol }}</td>
+                </tr>
+                <tr>
+                    <th>Weak Protocol</th>
+                    <td>
+                        {% if scan.ssl_certificate.weak_protocol %}
+                            <span class="severity high">Yes</span>
+                        {% else %}
+                            <span class="severity low">No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+            
+            <div class="findings">
+                {% if scan.ssl_certificate.is_expired %}
+                <div class="finding critical">
+                    <div class="title">Certificate is expired <span class="severity critical">Critical</span></div>
+                    <p>Your SSL certificate has expired and needs to be renewed immediately. Visitors will see security warnings when accessing your site.</p>
+                </div>
+                {% elif scan.ssl_certificate.expiring_soon %}
+                <div class="finding medium">
+                    <div class="title">Certificate expiring soon <span class="severity medium">Medium</span></div>
+                    <p>Your SSL certificate will expire in {{ scan.ssl_certificate.days_to_expiry }} days. Plan to renew it before expiration.</p>
+                </div>
+                {% endif %}
+                
+                {% if scan.ssl_certificate.weak_protocol %}
+                <div class="finding high">
+                    <div class="title">Weak SSL/TLS protocol detected <span class="severity high">High</span></div>
+                    <p>Your server is using {{ scan.ssl_certificate.protocol }}, which is considered insecure. Upgrade to TLS 1.2 or higher.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Security Headers Results -->
+        {% if scan.security_headers and scan.security_headers.score is defined %}
+        <div class="card">
+            <h2 class="section-title">HTTP Security Headers</h2>
+            
+            <div class="summary-card">
+                <h3>Security Headers Score</h3>
+                <div class="summary-value {% if scan.security_headers.score >= 80 %}score-low{% elif scan.security_headers.score >= 60 %}score-medium{% else %}score-high{% endif %}">
+                    {{ scan.security_headers.score }}
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" 
+                         style="width: {{ scan.security_headers.score }}%; background-color: {% if scan.security_headers.score >= 80 %}#27ae60{% elif scan.security_headers.score >= 60 %}#f39c12{% else %}#e74c3c{% endif %};">
+                    </div>
+                </div>
+            </div>
+            
+            {% if scan.security_headers.missing_headers %}
+                <h3>Missing Security Headers</h3>
+                <div class="findings">
+                    {% for header in scan.security_headers.missing_headers %}
+                    <div class="finding medium">
+                        <div class="title">{{ header }} <span class="severity medium">Missing</span></div>
+                        <p>{{ scan.security_headers.headers[header].description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            {% if scan.security_headers.present_headers > 0 %}
+                <h3>Implemented Headers</h3>
+                <table class="table">
+                    <tr>
+                        <th>Header</th>
+                        <th>Value</th>
+                    </tr>
+                    {% for header, details in scan.security_headers.headers.items() %}
+                        {% if details.present %}
+                        <tr>
+                            <td>{{ header }}</td>
+                            <td><code>{{ details.value }}</code></td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                </table>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- CMS Detection Results -->
+        {% if scan.cms and scan.cms.cms_detected %}
+        <div class="card">
+            <h2 class="section-title">Content Management System (CMS)</h2>
+            
+            <div class="summary-card">
+                <h3>{{ scan.cms.cms_name }}</h3>
+                <p>Version: {{ scan.cms.version if scan.cms.version else 'Unknown' }}</p>
+                <p>Detection Confidence: {{ scan.cms.confidence }}</p>
+            </div>
+            
+            {% if scan.cms.potential_vulnerabilities %}
+                <h3>Potential Vulnerabilities</h3>
+                <div class="findings">
+                    {% for vuln in scan.cms.potential_vulnerabilities %}
+                    <div class="finding high">
+                        <div class="title">{{ vuln.name }} <span class="severity high">Vulnerability</span></div>
+                        <p>{{ vuln.description }}</p>
+                        <div class="recommendations">
+                            <strong>Recommendation:</strong> {{ vuln.recommendation }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>No known vulnerabilities detected for this CMS configuration.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Email Security Results -->
+        {% if scan.email_security %}
+        <div class="card">
+            <h2 class="section-title">Email Security</h2>
+            
+            <table class="table">
+                <tr>
+                    <th>Check</th>
+                    <th>Status</th>
+                    <th>Severity</th>
+                </tr>
+                <tr>
+                    <td>SPF Record</td>
+                    <td>{{ scan.email_security.spf.status }}</td>
+                    <td>
+                        <span class="severity {% if scan.email_security.spf.severity == 'Low' %}low{% elif scan.email_security.spf.severity == 'Medium' %}medium{% else %}high{% endif %}">
+                            {{ scan.email_security.spf.severity }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>DMARC Record</td>
+                    <td>{{ scan.email_security.dmarc.status }}</td>
+                    <td>
+                        <span class="severity {% if scan.email_security.dmarc.severity == 'Low' %}low{% elif scan.email_security.dmarc.severity == 'Medium' %}medium{% else %}high{% endif %}">
+                            {{ scan.email_security.dmarc.severity }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>DKIM Record</td>
+                    <td>{{ scan.email_security.dkim.status }}</td>
+                    <td>
+                        <span class="severity {% if scan.email_security.dkim.severity == 'Low' %}low{% elif scan.email_security.dkim.severity == 'Medium' %}medium{% else %}high{% endif %}">
+                            {{ scan.email_security.dkim.severity }}
+                        </span>
+                    </td>
+                </tr>
+            </table>
+            
+            <div class="recommendations">
+                <strong>Recommendation:</strong> Implement SPF, DKIM, and DMARC records to protect against email spoofing and phishing attacks.
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Cookie Security Results -->
+        {% if scan.cookies and scan.cookies.total_cookies > 0 %}
+        <div class="card">
+            <h2 class="section-title">Cookie Security</h2>
+            
+            <div class="summary-card">
+                <h3>Cookie Security Score</h3>
+                <div class="summary-value {% if scan.cookies.score >= 80 %}score-low{% elif scan.cookies.score >= 60 %}score-medium{% else %}score-high{% endif %}">
+                    {{ scan.cookies.score }}
+                </div>
+                <p>{{ scan.cookies.total_cookies }} cookies analyzed with {{ scan.cookies.total_issues }} security issues found</p>
+            </div>
+            
+            {% if scan.cookies.cookies %}
+                <h3>Cookie Analysis</h3>
+                <table class="table">
+                    <tr>
+                        <th>Cookie Name</th>
+                        <th>Secure</th>
+                        <th>HttpOnly</th>
+                        <th>SameSite</th>
+                        <th>Issues</th>
+                    </tr>
+                    {% for cookie in scan.cookies.cookies %}
+                    <tr>
+                        <td>{{ cookie.name }}</td>
+                        <td>
+                            {% if cookie.secure %}
+                                <span class="severity low">Yes</span>
+                            {% else %}
+                                <span class="severity high">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cookie.http_only %}
+                                <span class="severity low">Yes</span>
+                            {% else %}
+                                <span class="severity high">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cookie.same_site %}
+                                <span class="severity low">{{ cookie.same_site }}</span>
+                            {% else %}
+                                <span class="severity high">Not Set</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ cookie.security_issues|length }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                
+                {% if scan.cookies.total_issues > 0 %}
+                    <h3>Cookie Security Issues</h3>
+                    <div class="findings">
+                        {% set issues_shown = 0 %}
+                        {% for cookie in scan.cookies.cookies %}
+                            {% if cookie.security_issues %}
+                                {% for issue in cookie.security_issues %}
+                                    {% if issues_shown < 5 %}  <!-- Limit the number of issues shown -->
+                                        <div class="finding high">
+                                            <div class="title">{{ cookie.name }}: {{ issue.issue }}</div>
+                                            <p>{{ issue.description }}</p>
+                                            <div class="recommendations">
+                                                <strong>Recommendation:</strong> {{ issue.recommendation }}
+                                            </div>
+                                        </div>
+                                        {% set issues_shown = issues_shown + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if scan.cookies.total_issues > 5 %}
+                            <p>{{ scan.cookies.total_issues - 5 }} more issues not shown. Download the complete report for details.</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Web Framework Detection Results -->
+        {% if scan.frameworks and scan.frameworks.frameworks %}
+        <div class="card">
+            <h2 class="section-title">Web Technologies</h2>
+            
+            <table class="table">
+                <tr>
+                    <th>Technology</th>
+                    <th>Version</th>
+                    <th>Type</th>
+                    <th>Confidence</th>
+                </tr>
+                {% for framework in scan.frameworks.frameworks %}
+                <tr>
+                    <td>{{ framework.name }}</td>
+                    <td>{{ framework.value }}</td>
+                    <td>{{ framework.type }}</td>
+                    <td>{{ framework.confidence }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            
+            {% if scan.frameworks.known_vulnerabilities %}
+                <h3>Known Vulnerabilities</h3>
+                <div class="findings">
+                    {% for vuln in scan.frameworks.known_vulnerabilities %}
+                    <div class="finding high">
+                        <div class="title">{{ vuln.framework }} {{ vuln.version }} <span class="severity high">Vulnerability</span></div>
+                        <p>{{ vuln.description }}</p>
+                        <div class="recommendations">
+                            <strong>Recommendation:</strong> {{ vuln.recommendation }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Sensitive Content Results -->
+        {% if scan.sensitive_content and scan.sensitive_content.sensitive_paths_found > 0 %}
+        <div class="card">
+            <h2 class="section-title">Sensitive Content Exposure</h2>
+            
+            <div class="summary-card">
+                <h3>Sensitive Paths Found</h3>
+                <div class="summary-value score-high">{{ scan.sensitive_content.sensitive_paths_found }}</div>
+                <p>Risk Level: <span class="severity {% if scan.sensitive_content.risk_level == 'low' %}low{% elif scan.sensitive_content.risk_level == 'medium' %}medium{% else %}high{% endif %}">
+                    {{ scan.sensitive_content.risk_level|upper }}
+                </span></p>
+            </div>
+            
+            {% if scan.sensitive_content.findings %}
+                <h3>Exposed Sensitive Content</h3>
+                <table class="table">
+                    <tr>
+                        <th>URL</th>
+                        <th>Status</th>
+                        <th>Source</th>
+                        <th>Severity</th>
+                    </tr>
+                    {% for finding in scan.sensitive_content.findings[:10] %}  <!-- Limit to 10 findings -->
+                    <tr>
+                        <td>{{ finding.url }}</td>
+                        <td>{{ finding.status_code }}</td>
+                        <td>{{ finding.source }}</td>
+                        <td>
+                            <span class="severity {% if finding.severity == 'low' %}low{% elif finding.severity == 'medium' %}medium{% else %}high{% endif %}">
+                                {{ finding.severity|upper }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    
+                    {% if scan.sensitive_content.findings|length > 10 %}
+                        <tr>
+                            <td colspan="4">
+                                {{ scan.sensitive_content.findings|length - 10 }} more paths not shown. Download the complete report for details.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </table>
+                
+                <div class="recommendations">
+                    <strong>Recommendation:</strong> {{ scan.sensitive_content.recommendation }}
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Open Ports Results -->
+        {% if scan.open_ports %}
+        <div class="card">
+            <h2 class="section-title">Open Ports</h2>
+            
+            {% set open_ports = scan.open_ports.open_ports %}
+            <div class="summary-card">
+                <h3>Open Ports Found</h3>
+                <div class="summary-value {% if open_ports|length <= 5 %}score-low{% elif open_ports|length <= 15 %}score-medium{% else %}score-high{% endif %}">
+                    {{ open_ports|length }}
+                </div>
+            </div>
+            
+            {% if open_ports|length > 0 %}
+                <h3>Open Ports List</h3>
+                <table class="table">
+                    <tr>
+                        <th>Port</th>
+                        <th>Service</th>
+                        <th>Protocol</th>
+                        <th>Risk</th>
+                    </tr>
+                    
+                    {% set high_risk_ports = [21, 23, 3389, 5900, 139, 445, 1433, 3306] %}
+                    {% set medium_risk_ports = [22, 25, 110, 143, 8080] %}
+                    
+                    {% for port in open_ports|sort %}
+                        {% set service = scan.open_ports.services[port|string].service if port|string in scan.open_ports.services else "Unknown" %}
+                        {% set protocol = scan.open_ports.services[port|string].protocol if port|string in scan.open_ports.services else "tcp" %}
+                        
+                        {% if port in high_risk_ports %}
+                            {% set risk = "High" %}
+                            {% set risk_class = "high" %}
+                        {% elif port in medium_risk_ports %}
+                            {% set risk = "Medium" %}
+                            {% set risk_class = "medium" %}
+                        {% else %}
+                            {% set risk = "Low" %}
+                            {% set risk_class = "low" %}
+                        {% endif %}
+                        
+                        <tr>
+                            <td>{{ port }}</td>
+                            <td>{{ service }}</td>
+                            <td>{{ protocol }}</td>
+                            <td><span class="severity {{ risk_class }}">{{ risk }}</span></td>
+                        </tr>
+                    {% endfor %}
+                </table>
+                
+                <div class="recommendations">
+                    <strong>Recommendation:</strong> Close unnecessary ports, especially those marked as high risk. For required services, ensure they are properly secured and updated.
+                </div>
+            {% else %}
+                <p>No open ports detected or port scanning was limited.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Actions Buttons -->
+        <div class="card">
+            <h2 class="section-title">Actions</h2>
+            
+            <a href="/api/enhanced-scan-report/{{ scan.scan_id }}" class="btn btn-primary" target="_blank">View Full HTML Report</a>
+            <a href="/enhanced-scan" class="btn">Start New Scan</a>
+            
+            <div class="recommendations">
+                <p><strong>Need help addressing these vulnerabilities?</strong> Our security experts can help you implement the recommendations from this report. Contact us for professional assistance.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>d-color: #fce5e1;
+        }
+        .finding.medium {
+            border-left-color: #f39c12;
+            background-color: #fef5e7;
+        }
+        .finding.low {
+            border-left-color: #27ae60;
+            background-color: #e9f7ef;
+        }
+        .finding .title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .severity {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #fff;
+            margin-left: 0.5rem;
+        }
+        .severity.critical { background-color: #c0392b; }
+        .severity.high { background-color: #e74c3c; }
+        .severity.medium { background-color: #f39c12; }
+        .severity.low { background-color: #27ae60; }
+        .recommendations {
+            background-color: #e8f4f8;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #3498db;
+            color: #fff;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 1rem;
+            margin-bottom: 1rem;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-primary {
+            background-color: #2c3e50;
+        }
+        .btn-primary:hover {
+            background-color: #1a252f;
+        }
+        .summary {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -1rem;
+        }
+        .summary-card {
+            flex: 1 1 250px;
+            margin: 1rem;
+            padding: 1.5rem;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .progress-bar {
+            height: 8px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        .table th, .table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .table tr:hover td {
+            background-color: #f1f9ff;
+        }
+        @media (max-width: 768px) {
+            .summary-card {
+                flex: 1 1 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Enhanced Security Scan Results</h1>
+            <p>Target: {{ scan.target }}</p>
+            <p>Scan completed: {{ scan.timestamp }}</p>
+        </div>
+
+        <!-- Overall Risk Score -->
+        <div class="card risk-score">
+            {% if scan.risk_assessment %}
+                {% set score = scan.risk_assessment.overall_score %}
+                {% set risk_level = scan.risk_assessment.risk_level %}
+                
+                {% if risk_level == "Low" %}
+                    <div class="score-value score-low">{{ score }}</div>
+                    <div class="score-label score-low">Low Risk</div>
+                {% elif risk_level == "Medium" %}
+                    <div class="score-value score-medium">{{ score }}</div>
+                    <div class="score-label score-medium">Medium Risk</div>
+                {% elif risk_level == "High" %}
+                    <div class="score-value score-high">{{ score }}</div>
+                    <div class="score-label score-high">High Risk</div>
+                {% else %}
+                    <div class="score-value score-critical">{{ score }}</div>
+                    <div class="score-label score-critical">Critical Risk</div>
+                {% endif %}
+            {% else %}
+                <div class="score-value">N/A</div>
+                <div class="score-label">Risk Score Not Available</div>
+            {% endif %}
+        </div>
+
+        <!-- Key Recommendations -->
+        {% if scan.risk_assessment and scan.risk_assessment.recommendations %}
+        <div class="card">
+            <h2 class="section-title">Key Recommendations</h2>
+            <ul>
+                {% for recommendation in scan.risk_assessment.recommendations %}
+                <li>{{ recommendation }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Security Score Summary -->
+        <div class="card">
+            <h2 class="section-title">Security Score by Category</h2>
+            
+            <div class="summary">
+                {% if scan.risk_assessment and scan.risk_assessment.category_scores %}
+                    {% for category, score in scan.risk_assessment.category_scores.items() %}
+                        <div class="summary-card">
+                            <h3>{{ category|replace('_', ' ')|title }}</h3>
+                            <div class="summary-value {% if score >= 80 %}score-low{% elif score >= 60 %}score-medium{% else %}score-high{% endif %}">
+                                {{ score }}
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill {% if score >= 80 %}score-low{% elif score >= 60 %}score-medium{% else %}score-high{% endif %}" 
+                                     style="width: {{ score }}%; background-color: {% if score >= 80 %}#27ae60{% elif score >= 60 %}#f39c12{% else %}#e74c3c{% endif %};">
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No category scores available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- SSL/TLS Certificate Results -->
+        {% if scan.ssl_certificate and scan.ssl_certificate.status != 'error' %}
+        <div class="card">
+            <h2 class="section-title">SSL/TLS Certificate</h2>
+            
+            <table class="table">
+                <tr>
+                    <th>Issuer</th>
+                    <td>{{ scan.ssl_certificate.issuer }}</td>
+                </tr>
+                <tr>
+                    <th>Status</th>
+                    <td>
+                        {% if scan.ssl_certificate.status == 'valid' %}
+                            <span class="severity low">Valid</span>
+                        {% else %}
+                            <span class="severity high">Expired</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Valid Until</th>
+                    <td>{{ scan.ssl_certificate.valid_until }}</td>
+                </tr>
+                <tr>
+                    <th>Days to Expiry</th>
+                    <td>{{ scan.ssl_certificate.days_to_expiry }}</td>
+                </tr>
+                <tr>
+                    <th>Protocol</th>
+                    <td>{{ scan.ssl_certificate.protocol }}</td>
+                </tr>
+                <tr>
+                    <th>Weak Protocol</th>
+                    <td>
+                        {% if scan.ssl_certificate.weak_protocol %}
+                            <span class="severity high">Yes</span>
+                        {% else %}
+                            <span class="severity low">No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+            
+            <div class="findings">
+                {% if scan.ssl_certificate.is_expired %}
+                <div class="finding critical">
+                    <div class="title">Certificate is expired <span class="severity critical">Critical</span></div>
+                    <p>Your SSL certificate has expired and needs to be renewed immediately. Visitors will see security warnings when accessing your site.</p>
+                </div>
+                {% elif scan.ssl_certificate.expiring_soon %}
+                <div class="finding medium">
+                    <div class="title">Certificate expiring soon <span class="severity medium">Medium</span></div>
+                    <p>Your SSL certificate will expire in {{ scan.ssl_certificate.days_to_expiry }} days. Plan to renew it before expiration.</p>
+                </div>
+                {% endif %}
+                
+                {% if scan.ssl_certificate.weak_protocol %}
+                <div class="finding high">
+                    <div class="title">Weak SSL/TLS protocol detected <span class="severity high">High</span></div>
+                    <p>Your server is using {{ scan.ssl_certificate.protocol }}, which is considered insecure. Upgrade to TLS 1.2 or higher.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Security Headers Results -->
+        {% if scan.security_headers and scan.security_headers.score is defined %}
+        <div class="card">
+            <h2
