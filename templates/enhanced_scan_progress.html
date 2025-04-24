@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanning in Progress</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        .container {
+            width: 80%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .header {
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            color: #2c3e50;
+        }
+        .progress-container {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .progress-bar {
+            height: 30px;
+            background-color: #ecf0f1;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%; /* Will be updated by JavaScript */
+            border-radius: 15px;
+            transition: width 0.5s ease-in-out;
+        }
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+        .status-message {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .scan-info {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: #f1f9ff;
+            border-radius: 5px;
+            text-align: left;
+        }
+        .pulse {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e74c3c;
+            margin-right: 10px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+        }
+        .security-scan-tips {
+            background-color: #fff;
+            padding: 1.5rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+        .security-scan-tips h3 {
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
+        }
+        .security-scan-tips ul {
+            padding-left: 1.5rem;
+        }
+        .security-scan-tips li {
+            margin-bottom: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Enhanced Security Scan in Progress</h1>
+            <p>Please wait while we analyze your target for security vulnerabilities</p>
+        </div>
+
+        <div class="progress-container">
+            <div class="scan-info">
+                <p><strong>Target:</strong> <span id="target-info">{{ target }}</span></p>
+                <p><strong>Scan ID:</strong> <span id="scan-id">{{ scan_id }}</span></p>
+                {% if email %}
+                <p><strong>Results will be emailed to:</strong> {{ email }}</p>
+                {% endif %}
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+                <div class="progress-text" id="progress-text">0%</div>
+            </div>
+
+            <div class="status-message">
+                <span class="pulse"></span>
+                <span id="status-message">Initializing scan...</span>
+            </div>
+        </div>
+
+        <div class="security-scan-tips">
+            <h3>While You Wait: Security Best Practices</h3>
+            <ul>
+                <li><strong>Keep software updated</strong> - Regularly update your operating system, web servers, CMS, and all software to patch security vulnerabilities.</li>
+                <li><strong>Use strong authentication</strong> - Implement multi-factor authentication and strong password policies.</li>
+                <li><strong>Secure your email</strong> - Configure SPF, DKIM, and DMARC to prevent email spoofing and phishing attacks.</li>
+                <li><strong>Monitor your website</strong> - Regular security scanning helps identify vulnerabilities before attackers do.</li>
+                <li><strong>Implement proper backups</strong> - Having reliable backups is essential for recovery from security incidents.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Variables to store scan information
+        const scanId = "{{ scan_id }}";
+        let progressValue = 0;
+        let checkInterval = null;
+        
+        // Start checking scan status when page loads
+        window.onload = function() {
+            // Store scan start time in session storage
+            const startTime = new Date().getTime() / 1000;
+            
+            // Set initial progress
+            updateProgress(0, "Initializing scan...");
+            
+            // Start polling for updates
+            checkInterval = setInterval(checkScanStatus, 2000);
+        };
+        
+        // Function to update progress bar
+        function updateProgress(progress, message) {
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const statusMessage = document.getElementById('status-message');
+            
+            // Update progress bar
+            progressFill.style.width = progress + '%';
+            progressText.textContent = progress + '%';
+            
+            // Update status message
+            statusMessage.textContent = message;
+            
+            // Store current progress
+            progressValue = progress;
+        }
+        
+        // Function to check scan status
+        function checkScanStatus() {
+            fetch('/api/enhanced-scan-status/' + scanId)
+                .then(response => response.json())
+                .then(data => {
+                    // Update progress
+                    updateProgress(data.progress, data.message);
+                    
+                    // If scan is complete, redirect to results page
+                    if (data.status === 'complete') {
+                        clearInterval(checkInterval);
+                        
+                        // Show completed message before redirect
+                        updateProgress(100, "Scan completed! Redirecting to results...");
+                        
+                        // Redirect after a short delay
+                        setTimeout(function() {
+                            window.location.href = data.redirect_url;
+                        }, 1500);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking scan status:', error);
+                    updateProgress(progressValue, "Error checking scan status. Retrying...");
+                });
+        }
+    </script>
+</body>
+</html>
