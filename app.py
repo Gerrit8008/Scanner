@@ -2180,29 +2180,6 @@ def results():
         logging.error(f"Error loading scan results: {e}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
 
-@app.route('/results')
-def results():
-    """Display scan results"""
-    scan_id = session.get('scan_id')
-    
-    if not scan_id:
-        return redirect(url_for('scan_page'))
-    
-    try:
-        # Load scan results from file
-        results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
-        
-        if not os.path.exists(results_file):
-            return render_template('error.html', error="Scan results not found. Please try scanning again.")
-        
-        with open(results_file, 'r') as f:
-            scan_results = json.load(f)
-        
-        return render_template('results.html', scan=scan_results)
-    except Exception as e:
-        logging.error(f"Error loading scan results: {e}")
-        return render_template('error.html', error=f"Error loading scan results: {str(e)}")
-
 @app.route('/api/scan', methods=['POST'])    
 @limiter.limit("5 per minute")    
 def api_scan():
