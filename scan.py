@@ -1004,3 +1004,303 @@ def analyze_cookies(url):
             'total_cookies': 0,
             'score': 0
         }
+
+def calculate_risk_score(scan_results):
+    """Calculate overall security risk score based on all scan results"""
+    try:
+        scores = {
+            'ssl_certificate': 0,
+            'security_headers': 0,
+            'cms': 0,
+            'dns_configuration': 0,
+            'cookies': 0,
+            'frameworks': 0,
+            'sensitive_content': 0,
+            'open_ports': 0,
+            'email_security': 0,
+            'system': 0
+        }
+        
+        weights = {
+            'ssl_certificate': 10,
+            'security_headers': 10,
+            'cms': 8,
+            'dns_configuration': 8,
+            'cookies': 7,
+            'frameworks': 7,
+            'sensitive_content': 10,
+            'open_ports': 15,
+            'email_security': 10,
+            'system': 15
+        }
+        
+        # Email Security scoring
+        if 'email_security' in scan_results:
+            email_data = scan_results['email_security']
+            
+            if 'error' not in email_data:
+                # Start with full score
+                email_score = 100
+                
+                # Deduct for SPF issues
+                spf_severity = email_data.get('spf', {}).get('severity', 'Low')
+                if spf_severity == 'High' or spf_severity == 'Critical':
+                    email_score -= 30
+                elif spf_severity == 'Medium':
+                    email_score -= 15
+                
+                # Deduct for DMARC issues
+                dmarc_severity = email_data.get('dmarc', {}).get('severity', 'Low')
+                if dmarc_severity == 'High' or dmarc_severity == 'Critical':
+                    email_score -= 30
+                elif dmarc_severity == 'Medium':
+                    email_score -= 15
+                
+                # Deduct for DKIM issues
+                dkim_severity = email_data.get('dkim', {}).get('severity', 'Low')
+                if dkim_severity == 'High' or dkim_severity == 'Critical':
+                    email_score -= 30
+                elif dkim_severity == 'Medium':
+                    email_score -= 15
+                
+                scores['email_security'] = max(0, email_score)
+        
+        # System Security scoring
+        if 'system' in scan_results:
+            system_data = scan_results['system']
+            
+            if 'error' not in system_data:
+                # Start with full score
+                system_score = 100
+                
+                # Deduct for OS update issues
+                os_severity = system_data.get('os_updates', {}).get('severity', 'Low')
+                if os_severity == 'Critical':
+                    system_score -= 40
+                elif os_severity == 'High':
+                    system_score -= 30
+                elif os_severity == 'Medium':
+                    system_score -= 15
+                
+                # Deduct for firewall issues
+                firewall_severity = system_data.get('firewall', {}).get('severity', 'Low')
+                if firewall_severity == 'Critical':
+                    system_score -= 30
+                elif firewall_severity == 'High':
+                    system_score -= 20
+                elif firewall_severity == 'Medium':
+                    system_score -= 10
+                
+                scores['system'] = max(0, system_score)
+        
+        # SSL Certificate scoring
+        if 'ssl_certificate' in scan_results and 'error' not in scan_results['ssl_certificate']:
+            ssl_data = scan_results['ssl_certificate']
+            
+            # Start with full score
+            ssl_score = 100
+            
+            # Deduct for issues
+            if ssl_data.get('is_expired', False):
+                ssl_score -= 50
+            elif ssl_data.get('expiring_soon', False):
+                ssl_score -= 20
+                
+            if ssl_data.get('weak_protocol', False):
+                ssl_score -= 30
+                
+            scores['ssl_certificate'] = max(0, ssl_score)
+        
+        # Security Headers scoring
+        if 'security_headers' in scan_results and 'error' not in scan_results['security_headers']:
+            scores['security_headers'] = scan_results['security_headers'].get('score', 0)
+        
+        # CMS scoring
+        if 'cms' in scan_results and 'error' not in scan_results['cms']:
+            cms_data = scan_results['cms']
+            
+            if cms_data.get('cms_detected', False):
+                # Start with full score
+                cms_score = 100
+                vulnerabilities = cms_data.get('potential_vulnerabilities', [])
+                
+                if vulnerabilities:
+                    cms_score -= len(vulnerabilities) * 25  # Deduct 25 points per vulnerability
+                
+                scores['cms'] = max(0, cms_score)
+            else:
+                scores['cms'] = 100  # No known CMS, assume good
+        
+        # DNS Configuration scoring
+        if 'dns_configuration' in scan_results and 'error' not in scan_results['dns_configuration']:
+            dns_data = scan_results['dns_configuration']
+            
+            # Start with full score
+            dns_score = 100
+            
+            # Deduct points for issues
+            issues = dns_data.get('issues', [])
+            for issue in issues:
+                severity = issue.get('severity', 'Medium')
+                if severity == 'High':
+                    dns_score -= 30
+                elif severity == 'Medium':
+                    dns_score -= 15
+                else:  # Low
+                    dns_score -= 5
+            
+            scores['dns_configuration'] = max(0, dns_score)
+        
+        # Cookie security scoring
+        if 'cookies' in scan_results and 'error' not in scan_results['cookies']:
+            scores['cookies'] = scan_results['cookies'].get('score', 0)
+        
+        # Framework detection scoring
+        if 'frameworks' in scan_results and 'error' not in scan_results['frameworks']:
+            framework_data = scan_results['frameworks']
+            
+            # Start with full score
+            framework_score = 100
+            
+            # Deduct for vulnerabilities
+            vulnerabilities = framework_data.get('known_vulnerabilities', [])
+            if vulnerabilities:
+                framework_score -= len(vulnerabilities) * 20
+                
+            scores['frameworks'] = max(0, framework_score)
+        
+        # Sensitive content scoring
+        if 'sensitive_content' in scan_results and 'error' not in scan_results['sensitive_content']:
+            content_data = scan_results['sensitive_content']
+            
+            # Start with full score
+            content_score = 100
+            
+            # Deduct based on findings
+            findings = content_data.get('findings', [])
+            for finding in findings:
+                severity = finding.get('severity', 'medium')
+                if severity == 'high':
+                    content_score -= 15
+                else:  # medium
+                    content_score -= 7
+            
+            scores['sensitive_content'] = max(0, content_score)
+        
+        # Open ports scoring
+        if 'open_ports' in scan_results:
+            # For direct open_ports entry
+            if 'error' not in scan_results['open_ports']:
+                ports_data = scan_results['open_ports']
+                
+                # Start with full score
+                ports_score = 100
+                
+                # Count high-risk open ports
+                high_risk_ports = [21, 22, 23, 25, 53, 137, 138, 139, 445, 1433, 1434, 3306, 3389, 5432, 5900]
+                open_ports = ports_data.get('open_ports', [])
+                
+                high_risk_open = sum(1 for port in open_ports if port in high_risk_ports)
+                
+                # Deduct points for high-risk ports
+                if high_risk_open > 0:
+                    ports_score -= high_risk_open * 15
+                
+                # Deduct less for other open ports
+                other_open = len(open_ports) - high_risk_open
+                if other_open > 0:
+                    ports_score -= other_open * 5
+                    
+                scores['open_ports'] = max(0, ports_score)
+        elif 'network' in scan_results and 'open_ports' in scan_results['network']:
+            # For nested open_ports in network
+            network_data = scan_results['network']
+            if 'error' not in network_data:
+                ports_data = network_data.get('open_ports', {})
+                
+                # Start with full score
+                ports_score = 100
+                
+                # Count high-risk open ports
+                high_risk_ports = [21, 22, 23, 25, 53, 137, 138, 139, 445, 1433, 1434, 3306, 3389, 5432, 5900]
+                open_ports = ports_data.get('list', [])
+                
+                high_risk_open = sum(1 for port in open_ports if port in high_risk_ports)
+                
+                # Deduct points for high-risk ports
+                if high_risk_open > 0:
+                    ports_score -= high_risk_open * 15
+                
+                # Deduct less for other open ports
+                other_open = len(open_ports) - high_risk_open
+                if other_open > 0:
+                    ports_score -= other_open * 5
+                    
+                scores['open_ports'] = max(0, ports_score)
+                
+        # Fill in missing scores with average to avoid skewing the results
+        available_scores = [score for category, score in scores.items() if score > 0]
+        average_score = sum(available_scores) / len(available_scores) if available_scores else 50
+        
+        for category, score in scores.items():
+            if score == 0:
+                scores[category] = average_score
+        
+        # Calculate weighted average score
+        total_weight = sum(weights.values())
+        weighted_score = 0
+        
+        for category, score in scores.items():
+            weighted_score += score * weights[category]
+        
+        overall_score = int(weighted_score / total_weight)
+        
+        # Generate risk level based on score
+        if overall_score >= 90:
+            risk_level = 'Low'
+        elif overall_score >= 70:
+            risk_level = 'Medium'
+        elif overall_score >= 50:
+            risk_level = 'High'
+        else:
+            risk_level = 'Critical'
+        
+        # Generate recommendations based on lowest scores
+        recommendations = []
+        for category, score in scores.items():
+            if score < 70:  # Only recommend fixing categories with low scores
+                if category == 'ssl_certificate' and score < 70:
+                    recommendations.append('Update SSL/TLS configuration to use modern protocols and ensure certificate is valid')
+                elif category == 'security_headers' and score < 70:
+                    recommendations.append('Implement missing security headers to improve web application security')
+                elif category == 'cms' and score < 70:
+                    recommendations.append('Update CMS to latest version and check for vulnerable plugins')
+                elif category == 'dns_configuration' and score < 70:
+                    recommendations.append('Fix DNS configuration issues such as missing records or zone transfer vulnerabilities')
+                elif category == 'cookies' and score < 70:
+                    recommendations.append('Add security flags to cookies (Secure, HttpOnly, SameSite)')
+                elif category == 'frameworks' and score < 70:
+                    recommendations.append('Update web frameworks and libraries to fix known vulnerabilities')
+                elif category == 'sensitive_content' and score < 70:
+                    recommendations.append('Restrict access to sensitive files and directories')
+                elif category == 'open_ports' and score < 70:
+                    recommendations.append('Close unnecessary open ports, especially high-risk services')
+                elif category == 'email_security' and score < 70:
+                    recommendations.append('Configure SPF, DKIM, and DMARC records for your email domains')
+                elif category == 'system' and score < 70:
+                    recommendations.append('Ensure operating system and software are up to date with latest security patches')
+        
+        return {
+            'overall_score': overall_score,
+            'risk_level': risk_level,
+            'category_scores': scores,
+            'recommendations': recommendations
+        }
+    except Exception as e:
+        import logging
+        logging.error(f"Risk scoring failed: {str(e)}")
+        return {
+            'error': f'Risk scoring failed: {str(e)}',
+            'overall_score': 0,
+            'risk_level': 'Unknown'
+        }        
