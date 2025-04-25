@@ -19,6 +19,7 @@ import ssl
 import requests
 from bs4 import BeautifulSoup
 import dns.resolver
+import scan
 
 # Initialize Flask app
 app = Flask(__name__)
