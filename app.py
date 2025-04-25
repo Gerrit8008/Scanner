@@ -21,9 +21,10 @@ from bs4 import BeautifulSoup
 import dns.resolver
 from email_handler import send_email_report
 
-SCAN_HISTORY_DIR = 'scan_history'
+ASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SCAN_HISTORY_DIR = os.path.join(BASE_DIR, 'scan_history')
 if not os.path.exists(SCAN_HISTORY_DIR):
-    os.makedirs(SCAN_HISTORY_DIR)
+    os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -1858,6 +1859,8 @@ def run_consolidated_scan(lead_data):
     scan_id = str(uuid.uuid4())
     timestamp = datetime.now().isoformat()
     
+    logging.debug(f"Starting scan with ID: {scan_id}")
+    
     # Initialize scan results structure
     scan_results = {
         'scan_id': scan_id,
@@ -2054,18 +2057,41 @@ def run_consolidated_scan(lead_data):
         
         # Save scan results to file
         results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
-        with open(results_file, 'w') as f:
-            json.dump(scan_results, f, indent=2)
+        logging.debug(f"Saving scan results to: {results_file}")
+        try:
+            with open(results_file, 'w') as f:
+                json.dump(scan_results, f, indent=2)
+            logging.debug(f"Scan results saved successfully to {results_file}")
+        except Exception as e:
+            logging.error(f"Error saving scan results to file: {e}")
+            # Try with a different directory if the main one fails
+            fallback_dir = "/tmp/scan_history"
+            os.makedirs(fallback_dir, exist_ok=True)
+            fallback_file = os.path.join(fallback_dir, f"scan_{scan_id}.json")
+            logging.debug(f"Trying fallback location: {fallback_file}")
+            with open(fallback_file, 'w') as f:
+                json.dump(scan_results, f, indent=2)
+            logging.debug(f"Scan results saved to fallback location: {fallback_file}")
+            # Update the SCAN_HISTORY_DIR to the fallback location that worked
+            global SCAN_HISTORY_DIR
+            SCAN_HISTORY_DIR = fallback_dir
+            
+        return scan_results
         
-        # Send email report
-        email = lead_data.get('email')
-        if email:
-            logging.info(f"Sending report to {email}...")
-            send_email_report(lead_data, html_report, is_html=True)
     except Exception as e:
-        logging.error(f"Error generating or sending report: {e}")
-    
-    return scan_results
+        logging.error(f"Error during scan execution: {e}")
+        scan_results['error'] = str(e)
+        
+        # Even if the scan fails, try to save what we have
+        results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json") 
+        try:
+            with open(results_file, 'w') as f:
+                json.dump(scan_results, f, indent=2)
+            logging.debug(f"Partial scan results saved to {results_file}")
+        except Exception as e_save:
+            logging.error(f"Error saving partial scan results: {e_save}")
+            
+        return scan_results
 
 # ---------------------------- FLASK ROUTES ----------------------------
 
