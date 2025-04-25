@@ -1856,6 +1856,8 @@ def run_consolidated_scan(lead_data):
     Returns:
         dict: Complete scan results
     """
+    global SCAN_HISTORY_DIR  # Move this to the beginning of the function
+    
     scan_id = str(uuid.uuid4())
     timestamp = datetime.now().isoformat()
     
@@ -2073,7 +2075,6 @@ def run_consolidated_scan(lead_data):
                 json.dump(scan_results, f, indent=2)
             logging.debug(f"Scan results saved to fallback location: {fallback_file}")
             # Update the SCAN_HISTORY_DIR to the fallback location that worked
-            global SCAN_HISTORY_DIR
             SCAN_HISTORY_DIR = fallback_dir
             
         return scan_results
