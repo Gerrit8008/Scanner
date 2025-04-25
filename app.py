@@ -19,7 +19,8 @@ import ssl
 import requests
 from bs4 import BeautifulSoup
 import dns.resolver
-import scan
+from email_handler import send_email_report
+from scan import SCAN_HISTORY_DIR
 
 # Initialize Flask app
 app = Flask(__name__)
