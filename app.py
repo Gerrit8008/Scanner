@@ -25,10 +25,15 @@ from email_handler import send_email_report
 # Define the base directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Then use it for SCAN_HISTORY_DIR
+# Create directory for scan history
 SCAN_HISTORY_DIR = os.path.join(BASE_DIR, 'scan_history')
 if not os.path.exists(SCAN_HISTORY_DIR):
     os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
+
+# Define a fallback directory that should be writable in most environments
+FALLBACK_DIR = '/tmp/scan_history'
+if not os.path.exists(FALLBACK_DIR):
+    os.makedirs(FALLBACK_DIR, exist_ok=True)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -1942,22 +1947,20 @@ def test_email_functionality():
     
 # ---------------------------- MAIN SCANNING FUNCTION ----------------------------
 
-def run_consolidated_scan(lead_data):
+def simple_scan(lead_data):
     """
-    Run a complete security scan and generate one comprehensive report.
+    A simplified version of the scan function that avoids using global variables.
     
     Args:
         lead_data (dict): User information and scan parameters
     
     Returns:
-        dict: Complete scan results
+        dict: Scan results with file location
     """
-    global SCAN_HISTORY_DIR
-    
     scan_id = str(uuid.uuid4())
     timestamp = datetime.now().isoformat()
     
-    logging.debug(f"Starting scan with ID: {scan_id}")
+    logging.debug(f"Starting simplified scan with ID: {scan_id}")
     
     # Initialize scan results structure
     scan_results = {
@@ -1972,10 +1975,7 @@ def run_consolidated_scan(lead_data):
     }
     
     try:
-        # Simplified scan for testing - just a placeholder
-        logging.debug("Running simplified scan for testing...")
-        
-        # Add basic scan results for testing
+        # Add some simulated scan results
         scan_results['system'] = {
             'os_updates': {'message': 'System is up to date', 'severity': 'Low'},
             'firewall': {'status': 'Firewall enabled', 'severity': 'Low'}
@@ -1985,48 +1985,52 @@ def run_consolidated_scan(lead_data):
             'open_ports': {'count': 3, 'list': [80, 443, 22], 'severity': 'Low'}
         }
         
+        # Calculate a simple risk score
+        scan_results['risk_assessment'] = {
+            'overall_score': 85,
+            'risk_level': 'Low',
+            'risk_factors': []
+        }
+        
         logging.debug("Basic scan completed, attempting to save results...")
         
-        # Try to save scan results
-        success = False
-        try_locations = [
-            os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json"),
-            os.path.join("/tmp", f"scan_{scan_id}.json"),
-            os.path.join("/tmp/scan_history", f"scan_{scan_id}.json")
-        ]
+        # Try to save scan results in the primary directory
+        primary_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
+        fallback_file = os.path.join(FALLBACK_DIR, f"scan_{scan_id}.json")
         
-        for location in try_locations:
+        # Try primary location first
+        saved_file = None
+        try:
+            with open(primary_file, 'w') as f:
+                json.dump(scan_results, f, indent=2)
+            if os.path.exists(primary_file):
+                saved_file = primary_file
+                logging.debug(f"Scan results saved to primary location: {primary_file}")
+        except Exception as e:
+            logging.error(f"Failed to save to primary location: {str(e)}")
+        
+        # If primary failed, try fallback
+        if not saved_file:
             try:
-                directory = os.path.dirname(location)
-                if not os.path.exists(directory):
-                    os.makedirs(directory, exist_ok=True)
-                    logging.debug(f"Created directory: {directory}")
-                
-                with open(location, 'w') as f:
+                with open(fallback_file, 'w') as f:
                     json.dump(scan_results, f, indent=2)
-                
-                # Verify file was created
-                if os.path.exists(location):
-                    logging.debug(f"Scan results saved to: {location}")
-                    scan_results['results_file'] = location
-                    success = True
-                    break
+                if os.path.exists(fallback_file):
+                    saved_file = fallback_file
+                    logging.debug(f"Scan results saved to fallback location: {fallback_file}")
             except Exception as e:
-                logging.error(f"Failed to save scan results to {location}: {str(e)}")
+                logging.error(f"Failed to save to fallback location: {str(e)}")
         
-        if not success:
+        # Store the file location
+        if saved_file:
+            scan_results['results_file'] = saved_file
+        else:
             logging.critical("CRITICAL: Could not save scan results to any location!")
             scan_results['error'] = "Failed to save scan results to disk"
-        
-        # Update the global scan directory if needed
-        if success and os.path.dirname(scan_results['results_file']) != SCAN_HISTORY_DIR:
-            SCAN_HISTORY_DIR = os.path.dirname(scan_results['results_file'])
-            logging.debug(f"Updated SCAN_HISTORY_DIR to: {SCAN_HISTORY_DIR}")
         
         return scan_results
         
     except Exception as e:
-        logging.error(f"Error during scan execution: {str(e)}", exc_info=True)
+        logging.error(f"Error during scan execution: {str(e)}")
         scan_results['error'] = str(e)
         return scan_results
 
@@ -2087,19 +2091,15 @@ def scan_page():
             logging.debug("Cleared old session data")
             
             # Save lead data
-            save_result = save_lead_data(lead_data)
-            logging.debug(f"Lead data saved: {save_result}")
+            save_lead_data(lead_data)
+            logging.debug("Lead data saved")
             
-            # Run the simplified test scan first to verify file operations
-            test_scan_id = test_save_functionality()
-            logging.debug(f"Test scan completed with ID: {test_scan_id}")
-            
-            # Run the actual scan
-            logging.debug("Starting actual scan...")
-            scan_results = run_consolidated_scan(lead_data)
+            # Run the simplified scan
+            logging.debug("Starting simplified scan...")
+            scan_results = simple_scan(lead_data)
             logging.debug(f"Scan completed with ID: {scan_results.get('scan_id', 'No ID generated')}")
             
-            # Store scan ID in session
+            # Store scan info in session
             session['scan_id'] = scan_results['scan_id']
             if 'results_file' in scan_results:
                 session['scan_results_file'] = scan_results['results_file']
@@ -2108,8 +2108,11 @@ def scan_page():
             # Redirect to results page
             return redirect(url_for('results'))
         except Exception as e:
-            logging.error(f"Error processing scan: {str(e)}", exc_info=True)
+            logging.error(f"Error processing scan: {str(e)}")
             return render_template('scan.html', error=f"An error occurred: {str(e)}")
+    
+    # For GET requests, just show the scan form
+    return render_template('scan.html')
     
     # For GET requests, just show the scan form
 
@@ -2135,29 +2138,27 @@ def results():
             return render_template('results.html', scan=scan_results)
         
         # Try various potential locations
-        potential_locations = [
-            os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json"),
-            os.path.join("/tmp", f"scan_{scan_id}.json"),
-            os.path.join("/tmp/scan_history", f"scan_{scan_id}.json")
-        ]
+        primary_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
+        fallback_file = os.path.join(FALLBACK_DIR, f"scan_{scan_id}.json")
         
-        for location in potential_locations:
-            logging.debug(f"Checking for results at: {location}")
-            if os.path.exists(location):
-                logging.debug(f"Found results at: {location}")
-                with open(location, 'r') as f:
-                    scan_results = json.load(f)
-                    logging.debug(f"Successfully loaded results with keys: {list(scan_results.keys())}")
-                return render_template('results.html', scan=scan_results)
-            else:
-                logging.debug(f"No results file at: {location}")
+        if os.path.exists(primary_file):
+            logging.debug(f"Found results at primary location: {primary_file}")
+            with open(primary_file, 'r') as f:
+                scan_results = json.load(f)
+            return render_template('results.html', scan=scan_results)
+        
+        if os.path.exists(fallback_file):
+            logging.debug(f"Found results at fallback location: {fallback_file}")
+            with open(fallback_file, 'r') as f:
+                scan_results = json.load(f)
+            return render_template('results.html', scan=scan_results)
         
         # If we get here, we couldn't find the results
         logging.error(f"Could not find results for scan_id: {scan_id}")
         return render_template('error.html', error="Scan results not found. Please try scanning again.")
         
     except Exception as e:
-        logging.error(f"Error loading scan results: {str(e)}", exc_info=True)
+        logging.error(f"Error loading scan results: {str(e)}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
     
 @app.route('/api/scan', methods=['POST'])    
