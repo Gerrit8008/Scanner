@@ -21,7 +21,11 @@ from bs4 import BeautifulSoup
 import dns.resolver
 from email_handler import send_email_report
 
-ASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Define the base directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Then use it for SCAN_HISTORY_DIR
 SCAN_HISTORY_DIR = os.path.join(BASE_DIR, 'scan_history')
 if not os.path.exists(SCAN_HISTORY_DIR):
     os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
