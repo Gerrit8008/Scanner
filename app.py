@@ -2180,6 +2180,7 @@ def scan_page():
 def results():
     """Display scan results"""
     scan_id = session.get('scan_id')
+    results_file = session.get('scan_results_file')  # Check for fallback file location
     
     logging.debug(f"Results page accessed with scan_id from session: {scan_id}")
     
@@ -2188,17 +2189,32 @@ def results():
         return redirect(url_for('scan_page'))
     
     try:
-        # Load scan results from file
-        results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
-        
-        logging.debug(f"Looking for results file: {results_file}")
-        
-        if not os.path.exists(results_file):
-            logging.error(f"Scan results file not found: {results_file}")
-            return render_template('error.html', error="Scan results not found. Please try scanning again.")
-        
-        with open(results_file, 'r') as f:
-            scan_results = json.load(f)
+        # First check if we have a specific file path in session
+        if results_file and os.path.exists(results_file):
+            logging.debug(f"Using specific results file path from session: {results_file}")
+            with open(results_file, 'r') as f:
+                scan_results = json.load(f)
+        else:
+            # Fall back to default location
+            default_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
+            logging.debug(f"Looking for results file at default location: {default_file}")
+            
+            if not os.path.exists(default_file):
+                logging.error(f"Scan results file not found: {default_file}")
+                # Try fallback location
+                fallback_dir = "/tmp/scan_history"
+                fallback_file = os.path.join(fallback_dir, f"scan_{scan_id}.json")
+                logging.debug(f"Trying fallback location: {fallback_file}")
+                
+                if not os.path.exists(fallback_file):
+                    logging.error(f"Fallback results file not found: {fallback_file}")
+                    return render_template('error.html', error="Scan results not found. Please try scanning again.")
+                
+                with open(fallback_file, 'r') as f:
+                    scan_results = json.load(f)
+            else:
+                with open(default_file, 'r') as f:
+                    scan_results = json.load(f)
         
         logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
         
@@ -2206,7 +2222,7 @@ def results():
     except Exception as e:
         logging.error(f"Error loading scan results: {e}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
-
+    
 @app.route('/api/scan', methods=['POST'])    
 @limiter.limit("5 per minute")    
 def api_scan():
