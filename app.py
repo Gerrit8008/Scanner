@@ -2128,81 +2128,29 @@ def scan_page():
     # For GET requests, just show the scan form
     return render_template('scan.html')
 
-@app.route('/scan', methods=['GET', 'POST'])
-def scan_page():
-    """Main scan page - handles both form display and scan submission"""
-    if request.method == 'POST':
-        # Get form data
-        lead_data = {
-            'name': request.form.get('name', ''),
-            'email': request.form.get('email', ''),
-            'company': request.form.get('company', ''),
-            'phone': request.form.get('phone', ''),
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'client_os': request.form.get('client_os', 'Unknown'),
-            'client_browser': request.form.get('client_browser', 'Unknown'),
-            'windows_version': request.form.get('windows_version', ''),
-            'target': request.form.get('target', '')
-        }
-        
-        logging.debug(f"Received scan form data: {lead_data}")
-        
-        try:
-            # Run the consolidated scan
-            scan_results = scan.run_consolidated_scan(lead_data, request)
-            
-            # Debug log the scan_id
-            scan_id = scan_results.get('scan_id')
-            logging.debug(f"Generated scan with ID: {scan_id}")
-            
-            # Store scan ID in session
-            session['scan_id'] = scan_id
-            logging.debug(f"Stored scan_id in session: {session.get('scan_id')}")
-            
-            # Add a direct link to the scan result file
-            results_file = os.path.join(scan.SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
-            logging.debug(f"Scan results should be at: {results_file}")
-            logging.debug(f"File exists: {os.path.exists(results_file)}")
-            
-            # Redirect to results page
-            return redirect(url_for('results'))
-        except Exception as e:
-            logging.error(f"Error processing scan: {e}")
-            return render_template('scan.html', error=f"An error occurred: {str(e)}")
-    
-    # For GET requests, just show the scan form
-    return render_template('scan.html')
-
 @app.route('/results')
 def results():
     """Display scan results"""
     scan_id = session.get('scan_id')
-    logging.debug(f"Retrieved scan_id from session: {scan_id}")
     
     if not scan_id:
-        logging.error("No scan_id found in session")
         return redirect(url_for('scan_page'))
     
     try:
-        # Define results file path
-        results_file = os.path.join(scan.SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
-        logging.debug(f"Looking for scan results at: {results_file}")
+        # Load scan results from file
+        results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
         
-        # Check if file exists
         if not os.path.exists(results_file):
-            logging.error(f"Scan results file not found: {results_file}")
             return render_template('error.html', error="Scan results not found. Please try scanning again.")
         
-        # Load scan results from file
         with open(results_file, 'r') as f:
             scan_results = json.load(f)
-            logging.debug(f"Loaded scan results: {len(str(scan_results))} bytes")
         
-        # Use a very basic template just to verify we can display data
         return render_template('results.html', scan=scan_results)
     except Exception as e:
         logging.error(f"Error loading scan results: {e}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
+
 @app.route('/api/scan', methods=['POST'])    
 @limiter.limit("5 per minute")    
 def api_scan():
