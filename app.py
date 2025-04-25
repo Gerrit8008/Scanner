@@ -656,7 +656,7 @@ def results():
         # Clear the session after retrieving to avoid stale data
         session.pop('scan_result', None)
         session.pop('scan_completed', None)
-        return render_template('results.html', scan_result=scan_result)
+        return render_template('results.html', scan_result=scan_result, scan_completed=True)
     else:
         logging.debug("No scan result in session")
         return redirect(url_for('scan_page'))
