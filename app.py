@@ -2117,12 +2117,28 @@ def scan_page():
         try:
             # Save lead data
             save_lead_data(lead_data)
+            logging.debug("Lead data saved successfully")
             
             # Run the consolidated scan - this contains all scan types in one function
             scan_results = run_consolidated_scan(lead_data)
+            logging.debug(f"Scan completed with ID: {scan_results.get('scan_id', 'No ID generated')}")
+            
+            # Check if scan_results contains valid data
+            if not scan_results or 'scan_id' not in scan_results:
+                logging.error("Scan did not return valid results")
+                return render_template('scan.html', error="Scan failed to return valid results. Please try again.")
             
             # Store scan ID in session
             session['scan_id'] = scan_results['scan_id']
+            logging.debug(f"Stored scan_id in session: {session['scan_id']}")
+            
+            # Verify the results file exists
+            results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_results['scan_id']}.json")
+            if not os.path.exists(results_file):
+                logging.error(f"Results file not found: {results_file}")
+                return render_template('scan.html', error="Scan results file not created. Please try again.")
+            
+            logging.debug(f"Results file exists: {results_file}")
             
             # Redirect to results page
             return redirect(url_for('results'))
@@ -2132,6 +2148,37 @@ def scan_page():
     
     # For GET requests, just show the scan form
     return render_template('scan.html')
+
+@app.route('/results')
+def results():
+    """Display scan results"""
+    scan_id = session.get('scan_id')
+    
+    logging.debug(f"Results page accessed with scan_id from session: {scan_id}")
+    
+    if not scan_id:
+        logging.warning("No scan_id in session, redirecting to scan page")
+        return redirect(url_for('scan_page'))
+    
+    try:
+        # Load scan results from file
+        results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
+        
+        logging.debug(f"Looking for results file: {results_file}")
+        
+        if not os.path.exists(results_file):
+            logging.error(f"Scan results file not found: {results_file}")
+            return render_template('error.html', error="Scan results not found. Please try scanning again.")
+        
+        with open(results_file, 'r') as f:
+            scan_results = json.load(f)
+        
+        logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
+        
+        return render_template('results.html', scan=scan_results)
+    except Exception as e:
+        logging.error(f"Error loading scan results: {e}")
+        return render_template('error.html', error=f"Error loading scan results: {str(e)}")
 
 @app.route('/results')
 def results():
