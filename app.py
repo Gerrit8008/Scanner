@@ -20,7 +20,10 @@ import requests
 from bs4 import BeautifulSoup
 import dns.resolver
 from email_handler import send_email_report
-from scan import SCAN_HISTORY_DIR
+
+SCAN_HISTORY_DIR = 'scan_history'
+if not os.path.exists(SCAN_HISTORY_DIR):
+    os.makedirs(SCAN_HISTORY_DIR)
 
 # Initialize Flask app
 app = Flask(__name__)
