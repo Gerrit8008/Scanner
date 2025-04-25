@@ -1,854 +1,124 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprehensive Security Scan Results</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f9fa;
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-        .header {
-            background-color: #808588;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .results-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .result-card {
-            margin-bottom: 30px;
-        }
-        .warning-alert {
-            background-color: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-        }
-        .severity-critical, .severity-high {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .severity-medium {
-            color: #fd7e14;
-            font-weight: bold;
-        }
-        .severity-low {
-            color: #198754;
-            font-weight: bold;
-        }
-        .footer {
-            background-color: #808588;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            margin-top: 50px;
-        }
-        pre {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            white-space: pre-wrap;
-            font-family: monospace;
-        }
-        .report-section {
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .contact-us {
-            background-color: #FF6900;
-            color: white;
-            border: none;
-            font-weight: bold;
-        }
-        .card {
-            background-color: #fff;
-            padding: 1.5rem;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-        .card-header {
-            background-color: #FF6900;
-            color: white;
-            font-weight: bold;
-            padding: 10px 15px;
-        }
-        .risk-score {
-            text-align: center;
-            padding: 2rem;
-        }
-        .score-value {
-            font-size: 4rem;
-            font-weight: bold;
-            line-height: 1;
-            margin-bottom: 0.5rem;
-        }
-        .score-label {
-            font-size: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .score-low { color: #198754; }
-        .score-medium { color: #fd7e14; }
-        .score-high { color: #dc3545; }
-        .score-critical { color: #721c24; }
-        .section-title {
-            color: #FF6900;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 0.5rem;
-            font-size: 1.5rem;
-            margin-top: 0;
-        }
-        .findings {
-            margin-bottom: 2rem;
-        }
-        .finding {
-            padding: 1rem;
-            border-left: 4px solid #3498db;
-            background-color: #f1f9ff;
-            margin-bottom: 1rem;
-        }
-        .finding.critical {
-            border-left-color: #721c24;
-            background-color: #fadbd8;
-        }
-        .finding.high {
-            border-left-color: #dc3545;
-            background-color: #fce5e1;
-        }
-        .finding.medium {
-            border-left-color: #fd7e14;
-            background-color: #fef5e7;
-        }
-        .finding.low {
-            border-left-color: #198754;
-            background-color: #e9f7ef;
-        }
-        .finding .title {
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-        .severity {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 3px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #fff;
-            margin-left: 0.5rem;
-        }
-        .severity.critical { background-color: #721c24; }
-        .severity.high { background-color: #dc3545; }
-        .severity.medium { background-color: #fd7e14; }
-        .severity.low { background-color: #198754; }
-        .recommendations {
-            background-color: #e8f4f8;
-            padding: 1rem;
-            border-radius: 5px;
-            margin-top: 1rem;
-        }
-        .btn {
-            display: inline-block;
-            background-color: #3498db;
-            color: #fff;
-            text-decoration: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
-            font-weight: bold;
-            margin-right: 1rem;
-            margin-bottom: 1rem;
-            transition: background-color 0.3s;
-        }
-        .btn:hover {
-            background-color: #2980b9;
-        }
-        .btn-primary {
-            background-color: #FF6900;
-        }
-        .btn-primary:hover {
-            background-color: #E05C00;
-        }
-        .summary {
-            display: flex;
-            flex-wrap: wrap;
-            margin: 0 -1rem;
-        }
-        .summary-card {
-            flex: 1 1 250px;
-            margin: 1rem;
-            padding: 1.5rem;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .summary-value {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-        .progress-bar {
-            height: 8px;
-            background-color: #ecf0f1;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 0.5rem;
-        }
-        .progress-fill {
-            height: 100%;
-            border-radius: 4px;
-        }
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1.5rem;
-        }
-        .table th, .table td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        .table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-        }
-        .table tr:hover td {
-            background-color: #f1f9ff;
-        }
-        @media (max-width: 768px) {
-            .summary-card {
-                flex: 1 1 100%;
-            }
-        }
-        .print-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 100;
-            background-color: #FF6900;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        .print-button:hover {
-            background-color: #E05C00;
-        }
-        @media print {
-            .print-button {
-                display: none;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <img src="/static/images/logo.png" alt="Company Logo" class="logo">
-        <h1>Comprehensive Security Scan Results</h1>
-        <p>April 24, 2025</p>
-    </div>
+import os
+import logging
+import smtplib
+from email.message import EmailMessage
+from datetime import datetime
 
-    <div class="container results-container">
-        <!-- Overall Risk Score -->
-        <div class="card risk-score">
-            <div class="score-value score-high">62</div>
-            <div class="score-label score-high">High Risk</div>
-        </div>
-        
-        <!-- Warning Alert for Critical Issues -->
-        <div id="warningAlert" class="alert alert-danger warning-alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>WARNING: Critical vulnerabilities detected!</strong> Contact us immediately for assistance with the critical security issues identified below.
-            <div class="mt-3">
-                <a href="tel:+14704810400" class="btn btn-danger">
-                    <i class="bi bi-telephone-fill me-2"></i> Call Now: 470-481-0400
-                </a>
-                <a href="mailto:sales@cengatech.com" class="btn btn-danger ms-2">
-                    <i class="bi bi-envelope-fill me-2"></i> Email Us
-                </a>
-            </div>
-        </div>
+# Set up logging configuration if not already set
+if not logging.getLogger().handlers:
+    logging.basicConfig(level=logging.DEBUG,
+                       format='%(asctime)s - %(levelname)s - %(message)s')
 
-        <!-- Key Recommendations -->
-        <div class="card">
-            <div class="card-header">
-                Key Recommendations
-            </div>
-            <div class="card-body">
-                <ul>
-                    <li><strong>Update your operating system immediately</strong> - Your system is 154 days behind on critical security updates</li>
-                    <li><strong>Implement email security</strong> - Configure SPF, DKIM, and DMARC records for your domain</li>
-                    <li><strong>Secure network access</strong> - Close unnecessary ports, especially high-risk ports 3389 (RDP) and 445 (SMB)</li>
-                    <li><strong>Update your web browser</strong> - Current version is significantly outdated with known vulnerabilities</li>
-                    <li><strong>Update your CMS</strong> - WordPress 6.2.1 contains known security vulnerabilities that have been fixed in newer versions</li>
-                    <li><strong>Implement security headers</strong> - Add Content-Security-Policy and other missing security headers</li>
-                    <li><strong>Update SSL configuration</strong> - Upgrade to TLS 1.2 or higher and review certificate settings</li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Security Score Summary -->
-        <div class="card">
-            <div class="card-header">
-                Security Score by Category
-            </div>
-            <div class="card-body">
-                <div class="summary">
-                    <div class="summary-card">
-                        <h3>System Security</h3>
-                        <div class="summary-value score-high">35</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 35%; background-color: #dc3545;"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="summary-card">
-                        <h3>Email Security</h3>
-                        <div class="summary-value score-high">30</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 30%; background-color: #dc3545;"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="summary-card">
-                        <h3>Network Security</h3>
-                        <div class="summary-value score-medium">65</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 65%; background-color: #fd7e14;"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="summary-card">
-                        <h3>Web Security</h3>
-                        <div class="summary-value score-medium">70</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 70%; background-color: #fd7e14;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- System Security Results -->
-        <div class="card">
-            <div class="card-header">
-                System Security
-            </div>
-            <div class="card-body">
-                <table class="table">
-                    <tr>
-                        <th>Check</th>
-                        <th>Status</th>
-                        <th>Risk Level</th>
-                    </tr>
-                    <tr>
-                        <td>Operating System</td>
-                        <td>Windows 10</td>
-                        <td><span class="severity low">Info</span></td>
-                    </tr>
-                    <tr>
-                        <td>OS Updates</td>
-                        <td>Out of date (Last security update: 154 days ago)</td>
-                        <td><span class="severity high">High</span></td>
-                    </tr>
-                    <tr>
-                        <td>Firewall</td>
-                        <td>Enabled</td>
-                        <td><span class="severity low">Low</span></td>
-                    </tr>
-                    <tr>
-                        <td>Antivirus</td>
-                        <td>Detected but signatures outdated</td>
-                        <td><span class="severity medium">Medium</span></td>
-                    </tr>
-                    <tr>
-                        <td>Browser</td>
-                        <td>Chrome version: 101.0.4951.67 (Current: 113.0.5672.93)</td>
-                        <td><span class="severity high">High</span></td>
-                    </tr>
-                    <tr>
-                        <td>Browser Settings</td>
-                        <td>Default configuration</td>
-                        <td><span class="severity low">Low</span></td>
-                    </tr>
-                    <tr>
-                        <td>Browser Plugins</td>
-                        <td>2 vulnerable plugins detected</td>
-                        <td><span class="severity medium">Medium</span></td>
-                    </tr>
-                </table>
-                
-                <div class="findings">
-                    <div class="finding high">
-                        <div class="title">Outdated Operating System <span class="severity high">High</span></div>
-                        <p>Your Windows 10 system has not been updated in 154 days. Missing critical security patches exposes your system to known vulnerabilities.</p>
-                        <div class="recommendations">
-                            <strong>Recommendation:</strong> Run Windows Update immediately and configure automatic updates.
-                        </div>
-                    </div>
-                    
-                    <div class="finding high">
-                        <div class="title">Outdated Browser <span class="severity high">High</span></div>
-                        <p>Chrome version 101.0.4951.67 is significantly outdated and contains multiple known security vulnerabilities.</p>
-                        <div class="recommendations">
-                            <strong>Recommendation:</strong> Update Chrome to the latest version (113.0.5672.93) and enable automatic updates.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Email Security Results -->
-        <div class="card">
-            <div class="card-header">
-                Email Security
-            </div>
-            <div class="card-body">
-                <table class="table">
-                    <tr>
-                        <th>Check</th>
-                        <th>Status</th>
-                        <th>Risk Level</th>
-                    </tr>
-                    <tr>
-                        <td>SPF Record</td>
-                        <td>Not Configured</td>
-                        <td><span class="severity high">High</span></td>
-                    </tr>
-                    <tr>
-                        <td>DMARC Record</td>
-                        <td>Missing</td>
-                        <td><span class="severity medium">Medium</span></td>
-                    </tr>
-                    <tr>
-                        <td>DKIM</td>
-                        <td>Not Detected</td>
-                        <td><span class="severity medium">Medium</span></td>
-                    </tr>
-                </table>
-                
-                <div class="findings">
-                    <div class="finding high">
-                        <div class="title">Missing SPF Record <span class="severity high">High</span></div>
-                        <p>Your domain does not have a Sender Policy Framework (SPF) record, allowing attackers to spoof emails from your domain more easily.</p>
-                        <div class="recommendations">
-                            <strong>Recommendation:</strong> Configure an SPF record in your domain's DNS settings to specify which mail servers are authorized to send email on behalf of your domain.
-                        </div>
-                    </div>
-                    
-                    <div class="finding medium">
-                        <div class="title">Missing DMARC Record <span class="severity medium">Medium</span></div>
-                        <p>Domain-based Message Authentication, Reporting, and Conformance (DMARC) is not configured for your domain.</p>
-                        <div class="recommendations">
-                            <strong>Recommendation:</strong> Implement DMARC to specify how receiving mail servers should handle messages that fail SPF or DKIM authentication.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Network Security Results -->
-        <div class="card">
-            <div class="card-header">
-                Network Security
-            </div>
-            <div class="card-body">
-                <div class="finding high">
-                    <div class="title">High-risk ports open <span class="severity high">High</span></div>
-                    <p>Several high-risk ports were found open on your network, including Remote Desktop Protocol (RDP) and Server Message Block (SMB).</p>
-                </div>
-                
-                <h3>Open Ports List</h3>
-                <table class="table">
-                    <tr>
-                        <th>Port</th>
-                        <th>Service</th>
-                        <th>Risk Level</th>
-                    </tr>
-                    <tr>
-                        <td>3389</td>
-                        <td>Remote Desktop (RDP)</td>
-                        <td><span class="severity high">High</span></td>
-                    </tr>
-                    <tr>
-                        <td>445</td>
-                        <td>SMB</td>
-                        <td><span class="severity high">High</span></td>
-                    </tr>
-                    <tr>
-                        <td>80</td>
-                        <td>HTTP</td>
-                        <td><span class="severity low">Low</span></td>
-                    </tr>
-                    <tr>
-                        <td>443</td>
-                        <td>HTTPS</td>
-                        <td><span class="severity low">Low</span></td>
-                    </tr>
-                    <tr>
-                        <td>25</td>
-                        <td>SMTP</td>
-                        <td><span class="severity medium">Medium</span></td>
-                    </tr>
-                </table>
-                
-                <div class="finding high">
-                    <div class="title">Potential unauthorized network access point <span class="severity high">High</span></div>
-                    <p>An additional wireless network access point was detected that may not be properly secured.</p>
-                    <div class="recommendations">
-                        <strong>Recommendation:</strong> Verify all wireless access points are authorized and properly secured with WPA2 or WPA3 encryption.
-                    </div>
-                </div>
-                
-                <div class="recommendations">
-                    <strong>Recommendations:</strong>
-                    <ul>
-                        <li>Close unnecessary ports, especially high-risk ports 3389 (RDP) and 445 (SMB)</li>
-                        <li>If RDP is required, implement network level authentication and restrict access by IP</li>
-                        <li>Use a VPN for remote access instead of exposing RDP directly</li>
-                        <li>Ensure your firewall is properly configured to block unauthorized access</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Web Application Security Results -->
-        <div class="card">
-            <div class="card-header">
-                Web Application Security
-            </div>
-            <div class="card-body">
-                <!-- SSL/TLS Certificate Results -->
-                <h3 class="section-title">SSL/TLS Certificate</h3>
-                
-                <table class="table">
-                    <tr>
-                        <th>Issuer</th>
-                        <td>Let's Encrypt Authority X3</td>
-                    </tr>
-                    <tr>
-                        <th>Status</th>
-                        <td>
-                            <span class="severity low">Valid</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Valid Until</th>
-                        <td>July 23, 2025</td>
-                    </tr>
-                    <tr>
-                        <th>Days to Expiry</th>
-                        <td>90</td>
-                    </tr>
-                    <tr>
-                        <th>Protocol</th>
-                        <td>TLS 1.1</td>
-                    </tr>
-                    <tr>
-                        <th>Weak Protocol</th>
-                        <td>
-                            <span class="severity high">Yes</span>
-                        </td>
-                    </tr>
-                </table>
-                
-                <div class="findings">
-                    <div class="finding high">
-                        <div class="title">Weak SSL/TLS protocol detected <span class="severity high">High</span></div>
-                        <p>Your server is using TLS 1.1, which is considered insecure. Upgrade to TLS 1.2 or higher.</p>
-                    </div>
-                </div>
-
-                <!-- Security Headers Results -->
-                <h3 class="section-title">HTTP Security Headers</h3>
-                
-                <div class="summary-card">
-                    <h3>Security Headers Score</h3>
-                    <div class="summary-value score-high">45</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 45%; background-color: #dc3545;"></div>
-                    </div>
-                </div>
-                
-                <h4>Missing Security Headers</h4>
-                <div class="findings">
-                    <div class="finding medium">
-                        <div class="title">Content-Security-Policy <span class="severity medium">Missing</span></div>
-                        <p>Content Security Policy helps prevent Cross-Site Scripting (XSS) attacks by defining which domains can load content.</p>
-                    </div>
-                    
-                    <div class="finding medium">
-                        <div class="title">X-XSS-Protection <span class="severity medium">Missing</span></div>
-                        <p>This header enables the browser's built-in XSS filter to prevent cross-site scripting attacks.</p>
-                    </div>
-                </div>
-                
-                <h4>Implemented Headers</h4>
-                <table class="table">
-                    <tr>
-                        <th>Header</th>
-                        <th>Value</th>
-                    </tr>
-                    <tr>
-                        <td>Strict-Transport-Security</td>
-                        <td><code>max-age=31536000; includeSubDomains</code></td>
-                    </tr>
-                    <tr>
-                        <td>X-Frame-Options</td>
-                        <td><code>SAMEORIGIN</code></td>
-                    </tr>
-                </table>
-
-                <!-- CMS Detection Results -->
-                <h3 class="section-title">Content Management System (CMS)</h3>
-                
-                <div class="summary-card">
-                    <h3>WordPress</h3>
-                    <p>Version: 6.2.1</p>
-                    <p>Detection Confidence: High</p>
-                </div>
-                
-                <h4>Potential Vulnerabilities</h4>
-                <div class="findings">
-                    <div class="finding high">
-                        <div class="title">Outdated WordPress Version <span class="severity high">Vulnerability</span></div>
-                        <p>WordPress 6.2.1 contains known security vulnerabilities that have been fixed in newer versions.</p>
-                        <div class="recommendations">
-                            <strong>Recommendation:</strong> Update to WordPress 6.4.3 or later to patch these vulnerabilities.
-                        </div>
-                    </div>
-                    
-                    <div class="finding high">
-                        <div class="title">Vulnerable Plugin: Contact Form 7 v5.5.3 <span class="severity high">Vulnerability</span></div>
-                        <p>This version of Contact Form 7 has a known cross-site scripting vulnerability.</p>
-                        <div class="recommendations">
-                            <strong>Recommendation:</strong> Update Contact Form 7 to version 5.7.2 or later.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Actions Buttons -->
-        <div class="card">
-            <div class="card-header">
-                Next Steps
-            </div>
-            <div class="card-body">
-                <p>
-                    <strong>Need help addressing these vulnerabilities?</strong> Our security experts can help you implement the recommendations from this report.
-                </p>
-                
-                <a href="/scan" class="btn btn-primary me-2">Run Another Scan</a>
-                <a href="#" class="btn contact-us" id="emailReportBtn">Email This Report</a>
-                <a href="#" class="btn contact-us ms-2" id="printReportBtn">Print Report</a>
-                
-                <div class="mt-4">
-                    <h4>Our Services Include:</h4>
-                    <ul>
-                        <li>Vulnerability Remediation</li>
-                        <li>Network Security Configuration</li>
-                        <li>Email Security Setup</li>
-                        <li>System Security Updates</li>
-                        <li>Web Application Hardening</li>
-                        <li>Security Awareness Training</li>
-                        <li>Ongoing Security Monitoring</li>
-                    </ul>
-                    <p>
-                        <strong>Contact us today to discuss how we can help secure your systems.</strong>
-                    </p>
-                    <div class="text-center mt-3">
-                        <a href="tel:+14704810400" class="btn contact-us">
-                            Call: 470-481-0400
-                        </a>
-                        <a href="mailto:sales@cengatech.com" class="btn contact-us ms-2">
-                            Email: sales@cengatech.com
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="footer">
-        <p>&copy; 2025 Central Georgia Technology. All rights reserved.</p>
-    </div>
+def send_email_report(lead_data, scan_result, is_html=False, is_integrated=False):
+    """Send lead info and scan report to your email using a mail relay.
     
-    <button class="print-button" id="floatingPrintBtn" title="Print Report">
-        <i class="bi bi-printer"></i>📄
-    </button>
+    Args:
+        lead_data (dict): Dictionary containing lead information (name, email, etc.)
+        scan_result (str): String containing the full scan report content
+        is_html (bool): Whether the report is in HTML format
+        is_integrated (bool): Whether this is an integrated scan
+        
+    Returns:
+        bool: True if email was sent successfully, False otherwise
+    """
+    try:
+        # Use environment variables for credentials
+        smtp_user = os.environ.get('SMTP_USER')
+        smtp_password = os.environ.get('SMTP_PASSWORD')
+        
+        # Check if credentials are available
+        if not smtp_user or not smtp_password:
+            logging.error("SMTP credentials not found in environment variables")
+            return False
+            
+        logging.debug(f"Attempting to send email with SMTP user: {smtp_user}")
+        
+        msg = EmailMessage()
+        msg["Subject"] = f"Security Scan Report - {lead_data.get('company', 'Unknown Company')}"
+        msg["From"] = smtp_user
+        
+        # Send to both the admin and the user
+        admin_email = smtp_user
+        user_email = lead_data.get("email", "")
+        recipients = [admin_email]
+        
+        if user_email:
+            recipients.append(user_email)
+            
+        msg["To"] = ", ".join(recipients)
+        
+        logging.debug(f"Email recipients: {msg['To']}")
+        
+        # Prepare content based on format
+        if is_html:
+            # HTML content
+            msg.add_alternative(scan_result, subtype='html')
+            
+            # Also include a plain text version
+            plain_text = f"""
+Security Scan Report for {lead_data.get('name', '')} at {lead_data.get('company', '')}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Print functionality
-            document.getElementById('printReportBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                window.print();
-            });
+This is an HTML email. Please view in an HTML-compatible email client for best results.
+
+Contact us for help at:
+Email: sales@cengatech.com
+Phone: 470-481-0400
+Website: cengatech.com
+"""
+            msg.set_content(plain_text)
+        else:
+            # Plain text content
+            body = f"""
+A new scan has been completed with the following details:
+
+Name: {lead_data.get('name', '')}
+Email: {lead_data.get('email', '')}
+Company: {lead_data.get('company', '')}
+Phone: {lead_data.get('phone', '')}
+Timestamp: {lead_data.get('timestamp', '')}
+
+--- Begin Scan Report ---
+
+{scan_result}
+
+--- End of Report ---
+
+We look forward to partnering with you for all your IT and cybersecurity needs.
+You can reach us through our website at cengatech.com, by email at sales@cengatech.com, or by phone at 470-481-0400.
+
+Thank you,
+The Cengatech Team
+"""
+            msg.set_content(body)
+        
+        # Try different ports if needed
+        smtp_server = "mail.privateemail.com"
+        smtp_port = 587  # 587 is typical for authenticated TLS
+        
+        logging.debug(f"Connecting to SMTP server: {smtp_server}:{smtp_port}")
+        
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
+            logging.debug("SMTP connection established")
+            server.ehlo()
+            logging.debug("EHLO successful")
+            server.starttls()
+            logging.debug("STARTTLS successful")
+            server.ehlo()
+            logging.debug("Second EHLO successful")
+            server.login(smtp_user, smtp_password)
+            logging.debug("SMTP login successful")
+            server.send_message(msg)
+            logging.debug("Email sent successfully!")
+            return True
             
-            document.getElementById('floatingPrintBtn').addEventListener('click', function() {
-                window.print();
-            });
-            
-            // Email report functionality
-            document.getElementById('emailReportBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                const email = prompt("Enter your email address to receive this report:");
-                if (email && email.includes('@')) {
-                    alert("Report will be sent to " + email + " shortly.");
-                    // In a real implementation, this would call an API endpoint to email the report
-                } else if (email) {
-                    alert("Please enter a valid email address.");
-                }
-            });
-            
-            // Highlight severity levels in table cells
-            const severityCells = document.querySelectorAll('td:contains("High Risk"), td:contains("Medium Risk"), td:contains("Low Risk")');
-            severityCells.forEach(cell => {
-                if (cell.textContent.includes('High Risk')) {
-                    cell.innerHTML = cell.innerHTML.replace('High Risk', '<span class="severity-high">High Risk</span>');
-                } else if (cell.textContent.includes('Medium Risk')) {
-                    cell.innerHTML = cell.innerHTML.replace('Medium Risk', '<span class="severity-medium">Medium Risk</span>');
-                } else if (cell.textContent.includes('Low Risk')) {
-                    cell.innerHTML = cell.innerHTML.replace('Low Risk', '<span class="severity-low">Low Risk</span>');
-                }
-            });
-        });
-    </script>
-</body>
-</html>-bottom: 30px;
-        }
-        .warning-alert {
-            background-color: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-        }
-        .severity-critical, .severity-high {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .severity-medium {
-            color: #fd7e14;
-            font-weight: bold;
-        }
-        .severity-low {
-            color: #198754;
-            font-weight: bold;
-        }
-        .footer {
-            background-color: #808588;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            margin-top: 50px;
-        }
-        pre {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            white-space: pre-wrap;
-            font-family: monospace;
-        }
-        .report-section {
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .contact-us {
-            background-color: #FF6900;
-            color: white;
-            border: none;
-            font-weight: bold;
-        }
-        .card {
-            background-color: #fff;
-            padding: 1.5rem;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-        .card-header {
-            background-color: #FF6900;
-            color: white;
-            font-weight: bold;
-            padding: 10px 15px;
-        }
-        .risk-score {
-            text-align: center;
-            padding: 2rem;
-        }
-        .score-value {
-            font-size: 4rem;
-            font-weight: bold;
-            line-height: 1;
-            margin-bottom: 0.5rem;
-        }
-        .score-label {
-            font-size: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .score-low { color: #198754; }
-        .score-medium { color: #fd7e14; }
-        .score-high { color: #dc3545; }
-        .score-critical { color: #721c24; }
-        .section-title {
-            color: #FF6900;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 0.5rem;
-            font-size: 1.5rem;
-            margin-top: 0;
-        }
-        .findings {
-            margin-bottom: 2rem;
-        }
-        .finding {
-            padding: 1rem;
-            border-left: 4px solid #3498db;
-            background-color: #f1f9ff;
-            margin-bottom: 1rem;
-        }
-        .finding.critical {
-            border-left-color: #721c24;
-            background-color: #fadbd8;
-        }
-        .finding.high {
-            border-left-color: #dc3545;
-            background-color: #fce5e1;
-        }
-        .finding.medium {
-            border-left-color: #fd7e14;
-            background-color: #fef5e7;
-        }
-        .finding.low
+    except Exception as e:
+        logging.error(f"Error sending email: {e}")
+        if isinstance(e, smtplib.SMTPAuthenticationError):
+            logging.error("SMTP Authentication failed - check username and password")
+        elif isinstance(e, smtplib.SMTPConnectError):
+            logging.error("Failed to connect to SMTP server - check server and port")
+        elif isinstance(e, smtplib.SMTPDataError):
+            logging.error("The SMTP server refused to accept the message data")
+        elif isinstance(e, smtplib.SMTPRecipientsRefused):
+            logging.error("All recipients were refused - check email addresses")
+        return False
