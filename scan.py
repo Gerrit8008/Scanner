@@ -14,7 +14,6 @@ import requests
 from bs4 import BeautifulSoup
 import dns.resolver
 
-
 # Set up logging configuration
 logging.basicConfig(level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -1492,3 +1491,20 @@ def generate_html_report(scan_results, is_integrated=False):
                 <div class="score" style="font-size: 48px;">{0}/100</div>
             </div>
             """.format(scan_results['security_headers']['score'])
+            
+            try:
+                html += """
+            <div class="score-container">
+            <div style="font-size: 18px;">Security Headers Score</div>
+            <div class="score" style="font-size: 48px;">{0}/100</div>
+            </div>
+            """.format(scan_results['security_headers']['score'])
+            except Exception as e:
+                # Add error handling here
+                logging.error(f"Error formatting security headers score: {e}")
+                html += """
+            <div class="score-container">
+            <div style="font-size: 18px;">Security Headers Score</div>
+            <div class="score" style="font-size: 48px;">N/A</div>
+            </div>
+        """
