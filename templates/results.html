@@ -272,18 +272,23 @@
     <div class="header">
         <img src="/static/images/logo.png" alt="Company Logo" class="logo">
         <h1>Comprehensive Security Scan Results</h1>
-        <p>April 25, 2025</p>
+        <p>{{ scan.timestamp|default('April 25, 2025') }}</p>
     </div>
 
     <div class="container results-container">
         <!-- Overall Risk Score -->
         <div class="card risk-score">
-            <div class="score-value score-high">{{ score }}</div>
-            <div class="score-label score-high">{{ risk_level }} Risk</div>
+            {% if scan.risk_assessment and scan.risk_assessment.overall_score is defined %}
+            <div class="score-value {% if scan.risk_assessment.risk_level == 'Low' %}score-low{% elif scan.risk_assessment.risk_level == 'Medium' %}score-medium{% elif scan.risk_assessment.risk_level == 'High' %}score-high{% else %}score-critical{% endif %}">{{ scan.risk_assessment.overall_score }}</div>
+            <div class="score-label {% if scan.risk_assessment.risk_level == 'Low' %}score-low{% elif scan.risk_assessment.risk_level == 'Medium' %}score-medium{% elif scan.risk_assessment.risk_level == 'High' %}score-high{% else %}score-critical{% endif %}">{{ scan.risk_assessment.risk_level }} Risk</div>
+            {% else %}
+            <div class="score-value score-medium">N/A</div>
+            <div class="score-label score-medium">Risk Level Unknown</div>
+            {% endif %}
         </div>
         
         <!-- Warning Alert for Critical Issues -->
-        {% if score < 50 %}
+        {% if scan.risk_assessment and scan.risk_assessment.overall_score < 50 %}
         <div id="warningAlert" class="alert alert-danger warning-alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <strong>WARNING: Critical vulnerabilities detected!</strong> Contact us immediately for assistance with the critical security issues identified below.
@@ -299,39 +304,17 @@
         {% endif %}
 
         <!-- Key Recommendations -->
-        {% if scan.risk_assessment and scan.risk_assessment.recommendations %}
+        {% if scan.recommendations %}
         <div class="card">
             <div class="card-header">
                 Key Recommendations
             </div>
             <div class="card-body">
                 <ul>
-                    {% for recommendation in scan.risk_assessment.recommendations %}
+                    {% for recommendation in scan.recommendations %}
                     <li><strong>{{ recommendation }}</strong></li>
                     {% endfor %}
                 </ul>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Security Score Summary -->
-        {% if scan.risk_assessment and scan.risk_assessment.category_scores %}
-        <div class="card">
-            <div class="card-header">
-                Security Score by Category
-            </div>
-            <div class="card-body">
-                <div class="summary">
-                    {% for category, score in scan.risk_assessment.category_scores.items() %}
-                    <div class="summary-card">
-                        <h3>{{ category|title|replace('_', ' ') }}</h3>
-                        <div class="summary-value {% if score >= 80 %}score-low{% elif score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ score }}</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: {{ score }}%; background-color: {% if score >= 80 %}#198754{% elif score >= 60 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
             </div>
         </div>
         {% endif %}
@@ -377,21 +360,27 @@
                         <th>Status</th>
                         <th>Risk Level</th>
                     </tr>
+                    {% if scan.email_security.spf %}
                     <tr>
                         <td>SPF Record</td>
                         <td>{{ scan.email_security.spf.status }}</td>
                         <td><span class="severity {% if scan.email_security.spf.severity == 'Low' %}low{% elif scan.email_security.spf.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.email_security.spf.severity }}</span></td>
                     </tr>
+                    {% endif %}
+                    {% if scan.email_security.dmarc %}
                     <tr>
                         <td>DMARC Record</td>
                         <td>{{ scan.email_security.dmarc.status }}</td>
                         <td><span class="severity {% if scan.email_security.dmarc.severity == 'Low' %}low{% elif scan.email_security.dmarc.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.email_security.dmarc.severity }}</span></td>
                     </tr>
+                    {% endif %}
+                    {% if scan.email_security.dkim %}
                     <tr>
                         <td>DKIM Record</td>
                         <td>{{ scan.email_security.dkim.status }}</td>
                         <td><span class="severity {% if scan.email_security.dkim.severity == 'Low' %}low{% elif scan.email_security.dkim.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.email_security.dkim.severity }}</span></td>
                     </tr>
+                    {% endif %}
                 </table>
             </div>
         </div>
@@ -471,7 +460,7 @@
                     <tr>
                         <th>Status</th>
                         <td>
-                            <span class="severity {% if scan.ssl_certificate.status == 'valid' %}low{% else %}high{% endif %}">{{ scan.ssl_certificate.status|upper }}</span>
+                            <span class="severity {% if scan.ssl_certificate.status == 'Valid' %}low{% else %}high{% endif %}">{{ scan.ssl_certificate.status|upper }}</span>
                         </td>
                     </tr>
                     <tr>
@@ -479,12 +468,12 @@
                         <td>{{ scan.ssl_certificate.valid_until }}</td>
                     </tr>
                     <tr>
-                        <th>Days to Expiry</th>
-                        <td>{{ scan.ssl_certificate.days_to_expiry }}</td>
+                        <th>Days Remaining</th>
+                        <td>{{ scan.ssl_certificate.days_remaining }}</td>
                     </tr>
                     <tr>
                         <th>Protocol</th>
-                        <td>{{ scan.ssl_certificate.protocol }}</td>
+                        <td>{{ scan.ssl_certificate.protocol_version }}</td>
                     </tr>
                     <tr>
                         <th>Weak Protocol</th>
@@ -504,14 +493,14 @@
                     {% elif scan.ssl_certificate.expiring_soon %}
                     <div class="finding medium">
                         <div class="title">SSL Certificate Expiring Soon <span class="severity medium">Medium</span></div>
-                        <p>Your SSL certificate will expire in {{ scan.ssl_certificate.days_to_expiry }} days.</p>
+                        <p>Your SSL certificate will expire in {{ scan.ssl_certificate.days_remaining }} days.</p>
                     </div>
                     {% endif %}
                     
                     {% if scan.ssl_certificate.weak_protocol %}
                     <div class="finding high">
                         <div class="title">Weak SSL/TLS Protocol <span class="severity high">High</span></div>
-                        <p>Your server is using {{ scan.ssl_certificate.protocol }}, which is considered insecure. Upgrade to TLS 1.2 or higher.</p>
+                        <p>Your server is using {{ scan.ssl_certificate.protocol_version }}, which is considered insecure. Upgrade to TLS 1.2 or higher.</p>
                     </div>
                     {% endif %}
                 </div>
@@ -529,33 +518,21 @@
                     </div>
                 </div>
                 
-                {% if scan.security_headers.missing_headers %}
-                <h4>Missing Security Headers</h4>
-                <div class="findings">
-                    {% for header in scan.security_headers.missing_headers %}
-                    <div class="finding medium">
-                        <div class="title">{{ header }} <span class="severity medium">Missing</span></div>
-                        <p>{{ scan.security_headers.headers[header].description }}</p>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                
-                <h4>Implemented Headers</h4>
+                {% if scan.security_headers.headers %}
+                <h4>Security Headers</h4>
                 <table class="table">
                     <tr>
                         <th>Header</th>
-                        <th>Value</th>
+                        <th>Status</th>
                     </tr>
-                    {% for header, details in scan.security_headers.headers.items() %}
-                    {% if details.present %}
+                    {% for header, found in scan.security_headers.headers.items() %}
                     <tr>
                         <td>{{ header }}</td>
-                        <td><code>{{ details.value }}</code></td>
+                        <td>{% if found %}✅ Present{% else %}❌ Missing{% endif %}</td>
                     </tr>
-                    {% endif %}
                     {% endfor %}
                 </table>
+                {% endif %}
                 {% endif %}
 
                 <!-- CMS Detection Results -->
@@ -565,7 +542,6 @@
                 <div class="summary-card">
                     <h3>{{ scan.cms.cms_name }}</h3>
                     <p>Version: {{ scan.cms.version }}</p>
-                    <p>Detection Confidence: {{ scan.cms.confidence|title }}</p>
                 </div>
                 
                 {% if scan.cms.potential_vulnerabilities %}
@@ -573,11 +549,8 @@
                 <div class="findings">
                     {% for vuln in scan.cms.potential_vulnerabilities %}
                     <div class="finding high">
-                        <div class="title">{{ vuln.name }} <span class="severity high">Vulnerability</span></div>
-                        <p>{{ vuln.description }}</p>
-                        <div class="recommendations">
-                            <strong>Recommendation:</strong> {{ vuln.recommendation }}
-                        </div>
+                        <div class="title">CMS Vulnerability <span class="severity high">High</span></div>
+                        <p>{{ vuln }}</p>
                     </div>
                     {% endfor %}
                 </div>
@@ -658,18 +631,6 @@
                     // In a real implementation, this would call an API endpoint to email the report
                 } else if (email) {
                     alert("Please enter a valid email address.");
-                }
-            });
-            
-            // Highlight severity levels in table cells
-            const severityCells = document.querySelectorAll('td:contains("High Risk"), td:contains("Medium Risk"), td:contains("Low Risk")');
-            severityCells.forEach(cell => {
-                if (cell.textContent.includes('High Risk')) {
-                    cell.innerHTML = cell.innerHTML.replace('High Risk', '<span class="severity-high">High Risk</span>');
-                } else if (cell.textContent.includes('Medium Risk')) {
-                    cell.innerHTML = cell.innerHTML.replace('Medium Risk', '<span class="severity-medium">Medium Risk</span>');
-                } else if (cell.textContent.includes('Low Risk')) {
-                    cell.innerHTML = cell.innerHTML.replace('Low Risk', '<span class="severity-low">Low Risk</span>');
                 }
             });
         });
