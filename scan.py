@@ -1303,4 +1303,644 @@ def calculate_risk_score(scan_results):
             'error': f'Risk scoring failed: {str(e)}',
             'overall_score': 0,
             'risk_level': 'Unknown'
-        }        
+        }  
+
+def generate_html_report(scan_results, is_integrated=False):
+    """Generate an HTML report from scan data"""
+    import datetime
+    
+    target = scan_results.get('target', 'Unknown')
+    scan_date = datetime.datetime.fromisoformat(scan_results.get('timestamp', datetime.datetime.now().isoformat()))
+    scan_date_str = scan_date.strftime('%Y-%m-%d %H:%M:%S')
+    
+    # Start building HTML
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Security Scan Report for {target}</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 0 auto; padding: 20px; }}
+            .header {{ background-color: #808588; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }}
+            .section {{ margin-bottom: 30px; border: 1px solid #ddd; border-radius: 5px; padding: 20px; }}
+            .subsection {{ margin-top: 20px; }}
+            h1 {{ color: #333; }}
+            h2 {{ color: #FF6900; border-bottom: 1px solid #eee; padding-bottom: 10px; }}
+            h3 {{ color: #333; }}
+            table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
+            th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }}
+            th {{ background-color: #f8f9fa; }}
+            .score {{ font-size: 24px; font-weight: bold; }}
+            .high {{ color: #27ae60; }}
+            .medium {{ color: #f39c12; }}
+            .low {{ color: #e74c3c; }}
+            .critical {{ color: #c0392b; }}
+            .issue {{ padding: 10px; margin: 5px 0; border-radius: 3px; }}
+            .high-severity {{ background-color: #ffdddd; }}
+            .medium-severity {{ background-color: #ffffcc; }}
+            .low-severity {{ background-color: #e8f4f8; }}
+            .recommendation {{ background-color: #e8f4f8; padding: 10px; margin-top: 10px; border-radius: 3px; }}
+            .btn {{ display: inline-block; background-color: #FF6900; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; margin-top: 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>Security Scan Report</h1>
+            <p><strong>Target:</strong> {target}</p>
+            <p><strong>Scan Date:</strong> {scan_date_str}</p>
+            <p><strong>Scan ID:</strong> {scan_results.get('scan_id', 'Unknown')}</p>
+    """
+    
+    # Add risk assessment if available
+    if 'risk_assessment' in scan_results and 'error' not in scan_results['risk_assessment']:
+        risk = scan_results['risk_assessment']
+        score = risk.get('overall_score', 0)
+        risk_level = risk.get('risk_level', 'Unknown')
+        
+        score_class = 'high' if score >= 80 else 'medium' if score >= 60 else 'low' if score >= 40 else 'critical'
+        
+        html += f"""
+            <div>
+                <h2>Overall Security Score</h2>
+                <p class="score {score_class}">{score}/100 - {risk_level} Risk</p>
+            </div>
+        """
+    
+    html += """
+        </div>
+    """
+    
+    # Add recommendations section if available
+    if 'risk_assessment' in scan_results and 'recommendations' in scan_results['risk_assessment']:
+        recommendations = scan_results['risk_assessment']['recommendations']
+        
+        if recommendations:
+            html += """
+            <div class="section">
+                <h2>Key Recommendations</h2>
+                <ul>
+            """
+            
+            for recommendation in recommendations:
+                html += f"""
+                    <li>{recommendation}</li>
+                """
+            
+            html += """
+                </ul>
+            </div>
+            """
+    
+    # System security section (for integrated scan)
+    if is_integrated and 'system' in scan_results:
+        system_data = scan_results['system']
+        
+        if 'error' not in system_data:
+            html += """
+            <div class="section">
+                <h2>System Security</h2>
+                <table>
+                    <tr>
+                        <th>Check</th>
+                        <th>Status</th>
+                        <th>Severity</th>
+                    </tr>
+            """
+            
+            # OS Updates
+            os_updates = system_data.get('os_updates', {})
+            os_severity = os_updates.get('severity', 'Low')
+            os_severity_class = 'high' if os_severity == 'Low' else 'medium' if os_severity == 'Medium' else 'low'
+            
+            html += f"""
+                <tr>
+                    <td>Operating System Updates</td>
+                    <td>{os_updates.get('message', 'Unknown')}</td>
+                    <td class="{os_severity_class}">{os_severity}</td>
+                </tr>
+            """
+            
+            # Firewall
+            firewall = system_data.get('firewall', {})
+            firewall_status = firewall.get('status', 'Unknown')
+            firewall_severity = firewall.get('severity', 'Low')
+            firewall_severity_class = 'high' if firewall_severity == 'Low' else 'medium' if firewall_severity == 'Medium' else 'low'
+            
+            html += f"""
+                <tr>
+                    <td>Firewall Status</td>
+                    <td>{firewall_status}</td>
+                    <td class="{firewall_severity_class}">{firewall_severity}</td>
+                </tr>
+            """
+            
+            html += """
+                </table>
+            </div>
+            """
+    
+    # Email security section
+    if 'email_security' in scan_results and 'error' not in scan_results['email_security']:
+        email_data = scan_results['email_security']
+        
+        html += f"""
+        <div class="section">
+            <h2>Email Security</h2>
+            
+            <table>
+                <tr>
+                    <th>Check</th>
+                    <th>Status</th>
+                    <th>Severity</th>
+                </tr>
+        """        
+        
+        # SPF Record
+        spf_status = email_data.get('spf', {}).get('status', 'Unknown')
+        spf_severity = email_data.get('spf', {}).get('severity', 'Medium')
+        spf_severity_class = 'high' if spf_severity == 'Low' else 'medium' if spf_severity == 'Medium' else 'low'
+        
+        html += f"""
+            <tr>
+                <td>SPF Record</td>
+                <td>{spf_status}</td>
+                <td class="{spf_severity_class}">{spf_severity}</td>
+            </tr>
+        """
+        
+        # DMARC Record
+        dmarc_status = email_data.get('dmarc', {}).get('status', 'Unknown')
+        dmarc_severity = email_data.get('dmarc', {}).get('severity', 'Medium')
+        dmarc_severity_class = 'high' if dmarc_severity == 'Low' else 'medium' if dmarc_severity == 'Medium' else 'low'
+        
+        html += f"""
+            <tr>
+                <td>DMARC Record</td>
+                <td>{dmarc_status}</td>
+                <td class="{dmarc_severity_class}">{dmarc_severity}</td>
+            </tr>
+        """
+        
+        # DKIM Record
+        dkim_status = email_data.get('dkim', {}).get('status', 'Unknown')
+        dkim_severity = email_data.get('dkim', {}).get('severity', 'Medium')
+        dkim_severity_class = 'high' if dkim_severity == 'Low' else 'medium' if dkim_severity == 'Medium' else 'low'
+        
+        html += f"""
+            <tr>
+                <td>DKIM Record</td>
+                <td>{dkim_status}</td>
+                <td class="{dkim_severity_class}">{dkim_severity}</td>
+            </tr>
+        """
+        
+        html += """
+            </table>
+            
+            <div class="recommendation">
+                <strong>Recommendation:</strong> Implement SPF, DKIM, and DMARC records to protect against email spoofing and phishing attacks.
+            </div>
+        </div>
+        """
+    
+    # Network security section (for integrated scan)
+    if is_integrated and 'network' in scan_results:
+        network_data = scan_results['network']
+        
+        if 'error' not in network_data:
+            html += """
+            <div class="section">
+                <h2>Network Security</h2>
+            """
+            
+            # Open Ports
+            if 'open_ports' in network_data:
+                ports_data = network_data['open_ports']
+                ports_count = ports_data.get('count', 0)
+                ports_list = ports_data.get('list', [])
+                ports_severity = ports_data.get('severity', 'Low')
+                
+                ports_severity_class = 'high' if ports_severity == 'Low' else 'medium' if ports_severity == 'Medium' else 'low'
+                
+                html += f"""
+                <div class="subsection">
+                    <h3>Open Ports</h3>
+                    <p><strong>Open Ports Count:</strong> {ports_count}</p>
+                    <p><strong>Severity:</strong> <span class="{ports_severity_class}">{ports_severity}</span></p>
+                    
+                    <p><strong>Open Ports:</strong> {', '.join(str(p) for p in sorted(ports_list[:20]))}
+                """
+                
+                if len(ports_list) > 20:
+                    html += f" and {len(ports_list) - 20} more..."
+                
+                html += "</p>"
+                
+                # Add high-risk ports analysis
+                high_risk_ports = [21, 22, 23, 25, 53, 137, 138, 139, 445, 1433, 1434, 3306, 3389, 5432, 5900]
+                high_risk_open = [p for p in ports_list if p in high_risk_ports]
+                
+                if high_risk_open:
+                    html += """
+                    <div class="issue high-severity">
+                        <p><strong>High-Risk Ports Detected:</strong></p>
+                        <ul>
+                    """
+                    
+                    for port in high_risk_open:
+                        service = ""
+                        if port == 21:
+                            service = "FTP - Transmits credentials in plain text"
+                        elif port == 22:
+                            service = "SSH - Remote terminal access"
+                        elif port == 23:
+                            service = "Telnet - Insecure, transmits data in plain text"
+                        elif port == 3389:
+                            service = "Remote Desktop Protocol (RDP) - High security risk if exposed"
+                        elif port == 5900:
+                            service = "VNC - Remote desktop access, often lacks encryption"
+                        elif port in [139, 445]:
+                            service = "SMB/NetBIOS - Windows file sharing, historically vulnerable"
+                        elif port in [1433, 3306]:
+                            service = "Database access (SQL Server/MySQL)"
+                        
+                        html += f"""
+                        <li>Port {port}: {service}</li>
+                        """
+                    
+                    html += """
+                        </ul>
+                    </div>
+                    """
+                
+                html += """
+                <div class="recommendation">
+                    <strong>Recommendation:</strong> Close unnecessary ports, especially high-risk ones. For required services, implement proper security measures like firewall rules and strong authentication.
+                </div>
+                </div>
+                """
+            
+            # Gateway
+            if 'gateway' in network_data:
+                gateway_data = network_data['gateway']
+                gateway_info = gateway_data.get('info', '')
+                gateway_results = gateway_data.get('results', [])
+                
+                html += """
+                <div class="subsection">
+                    <h3>Gateway Security</h3>
+                """
+                
+                if gateway_info:
+                    html += f"""
+                    <p>{gateway_info}</p>
+                    """
+                
+                if gateway_results:
+                    high_severity_issues = [msg for msg, severity in gateway_results if severity in ['High', 'Critical']]
+                    
+                    if high_severity_issues:
+                        html += """
+                        <div class="issue high-severity">
+                            <p><strong>Gateway Security Issues:</strong></p>
+                            <ul>
+                        """
+                        
+                        for msg in high_severity_issues:
+                            html += f"""
+                            <li>{msg}</li>
+                            """
+                        
+                        html += """
+                            </ul>
+                        </div>
+                        """
+                
+                html += """
+                </div>
+                """
+            
+            html += """
+            </div>
+            """
+    
+    # SSL/TLS Certificate section
+    if 'ssl_certificate' in scan_results and 'error' not in scan_results['ssl_certificate']:
+        ssl_data = scan_results['ssl_certificate']
+        
+        status = ssl_data.get('status', 'Unknown')
+        status_class = 'high' if status == 'valid' else 'low'
+        
+        html += f"""
+        <div class="section">
+            <h2>SSL/TLS Certificate</h2>
+            <p>Status: <span class="{status_class}">{status.upper()}</span></p>
+            
+            <table>
+                <tr>
+                    <th>Attribute</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>Issuer</td>
+                    <td>{ssl_data.get('issuer', 'Unknown')}</td>
+                </tr>
+                <tr>
+                    <td>Valid Until</td>
+                    <td>{ssl_data.get('valid_until', 'Unknown')}</td>
+                </tr>
+                <tr>
+                    <td>Days to Expiry</td>
+                    <td>{ssl_data.get('days_to_expiry', 'Unknown')}</td>
+                </tr>
+                <tr>
+                    <td>Protocol</td>
+                    <td>{ssl_data.get('protocol', 'Unknown')}</td>
+                </tr>
+                <tr>
+                    <td>Cipher Suite</td>
+                    <td>{ssl_data.get('cipher_suite', 'Unknown')}</td>
+                </tr>
+            </table>
+            
+            <div class="subsection">
+                <h3>Issues</h3>
+        """
+        
+        has_issues = False
+        
+        if ssl_data.get('is_expired', False):
+            has_issues = True
+            html += """
+                <div class="issue high-severity">
+                    <strong>Critical: Certificate is expired</strong>
+                    <p>Your SSL certificate has expired and needs to be renewed immediately.</p>
+                </div>
+            """
+        elif ssl_data.get('expiring_soon', False):
+            has_issues = True
+            html += """
+                <div class="issue medium-severity">
+                    <strong>Warning: Certificate expiring soon</strong>
+                    <p>Your SSL certificate will expire soon. Plan to renew it before expiration.</p>
+                </div>
+            """
+        
+        if ssl_data.get('weak_protocol', False):
+            has_issues = True
+            html += """
+                <div class="issue high-severity">
+                    <strong>Critical: Weak SSL/TLS protocol</strong>
+                    <p>Your server is using an outdated SSL/TLS protocol that has known vulnerabilities.</p>
+                </div>
+            """
+        
+        if not has_issues:
+            html += """
+                <p>No issues found with SSL certificate.</p>
+            """
+        
+        html += """
+            </div>
+        </div>
+        """
+    
+    # Security Headers section
+    if 'security_headers' in scan_results and 'error' not in scan_results['security_headers']:
+        headers_data = scan_results['security_headers']
+        
+        score = headers_data.get('score', 0)
+        score_class = 'high' if score >= 80 else 'medium' if score >= 60 else 'low'
+        
+        html += f"""
+        <div class="section">
+            <h2>HTTP Security Headers</h2>
+            <p>Score: <span class="{score_class}">{score}/100</span></p>
+            
+            <div class="subsection">
+                <h3>Missing Headers</h3>
+        """
+        
+        missing_headers = headers_data.get('missing_headers', [])
+        
+        if missing_headers:
+            html += """
+                <ul>
+            """
+            
+            for header in missing_headers:
+                description = headers_data.get('headers', {}).get(header, {}).get('description', '')
+                html += f"""
+                    <li><strong>{header}</strong>: {description}</li>
+                """
+            
+            html += """
+                </ul>
+            """
+        else:
+            html += """
+                <p>All recommended security headers are present. Great job!</p>
+            """
+        
+        html += """
+            </div>
+            
+            <div class="subsection">
+                <h3>Present Headers</h3>
+                <table>
+                    <tr>
+                        <th>Header</th>
+                        <th>Value</th>
+                    </tr>
+        """
+        
+        for header, details in headers_data.get('headers', {}).items():
+            if details.get('present', False):
+                html += f"""
+                    <tr>
+                        <td>{header}</td>
+                        <td><code>{details.get('value', 'Unknown')}</code></td>
+                    </tr>
+                """
+        
+        html += """
+                </table>
+            </div>
+        </div>
+        """
+    
+    # CMS Detection section
+    if 'cms' in scan_results and 'error' not in scan_results['cms']:
+        cms_data = scan_results['cms']
+        
+        if cms_data.get('cms_detected', False):
+            cms_name = cms_data.get('cms_name', 'Unknown CMS')
+            cms_version = cms_data.get('version', 'Unknown')
+            
+            html += f"""
+            <div class="section">
+                <h2>Content Management System (CMS)</h2>
+                <p><strong>CMS:</strong> {cms_name}</p>
+                <p><strong>Version:</strong> {cms_version}</p>
+                <p><strong>Confidence:</strong> {cms_data.get('confidence', 'Unknown')}</p>
+            """
+            
+            vulnerabilities = cms_data.get('potential_vulnerabilities', [])
+            if vulnerabilities:
+                html += """
+                <div class="subsection">
+                    <h3>Potential Vulnerabilities</h3>
+                    <ul>
+                """
+                
+                for vuln in vulnerabilities:
+                    html += f"""
+                    <li>
+                        <div class="issue high-severity">
+                            <strong>{vuln.get('name', 'Unknown Issue')}</strong>
+                            <p>{vuln.get('description', '')}</p>
+                            <div class="recommendation">
+                                <strong>Recommendation:</strong> {vuln.get('recommendation', '')}
+                            </div>
+                        </div>
+                    </li>
+                    """
+                
+                html += """
+                    </ul>
+                </div>
+                """
+            else:
+                html += """
+                <p>No known vulnerabilities detected for this CMS configuration.</p>
+                """
+            
+            html += """
+            </div>
+            """
+    
+    # Web Framework Detection section
+    if 'frameworks' in scan_results and 'error' not in scan_results['frameworks']:
+        framework_data = scan_results['frameworks']
+        frameworks_list = framework_data.get('frameworks', [])
+        
+        if frameworks_list:
+            html += """
+            <div class="section">
+                <h2>Web Technologies</h2>
+                <table>
+                    <tr>
+                        <th>Technology</th>
+                        <th>Version</th>
+                        <th>Type</th>
+                    </tr>
+            """
+            
+            for framework in frameworks_list:
+                html += f"""
+                    <tr>
+                        <td>{framework.get('name', 'Unknown')}</td>
+                        <td>{framework.get('value', 'Unknown')}</td>
+                        <td>{framework.get('type', 'Unknown')}</td>
+                    </tr>
+                """
+            
+            html += """
+                </table>
+            """
+            
+            vulnerabilities = framework_data.get('known_vulnerabilities', [])
+            if vulnerabilities:
+                html += """
+                <div class="subsection">
+                    <h3>Known Vulnerabilities</h3>
+                    <ul>
+                """
+                
+                for vuln in vulnerabilities:
+                    html += f"""
+                    <li>
+                        <div class="issue high-severity">
+                            <strong>{vuln.get('framework', 'Unknown')} {vuln.get('version', '')}</strong>
+                            <p>{vuln.get('description', '')}</p>
+                            <div class="recommendation">
+                                <strong>Recommendation:</strong> {vuln.get('recommendation', '')}
+                            </div>
+                        </div>
+                    </li>
+                    """
+                
+                html += """
+                    </ul>
+                </div>
+                """
+            
+            html += """
+            </div>
+            """
+    
+    # Sensitive Content section
+    if 'sensitive_content' in scan_results and 'error' not in scan_results['sensitive_content']:
+        content_data = scan_results['sensitive_content']
+        findings = content_data.get('findings', [])
+        
+        if findings:
+            html += """
+            <div class="section">
+                <h2>Sensitive Content Exposure</h2>
+                <p><strong>Status:</strong> <span class="low">SENSITIVE CONTENT EXPOSED</span></p>
+                
+                <div class="subsection">
+                    <h3>Exposed Paths</h3>
+                    <table>
+                        <tr>
+                            <th>URL</th>
+                            <th>Status</th>
+                            <th>Source</th>
+                            <th>Severity</th>
+                        </tr>
+            """
+            
+            for finding in findings[:10]:  # Limit to first 10 findings
+                severity = finding.get('severity', 'medium')
+                severity_class = 'high-severity' if severity == 'high' else 'medium-severity'
+                
+                html += f"""
+                        <tr class="{severity_class}">
+                            <td>{finding.get('url', 'Unknown')}</td>
+                            <td>{finding.get('status_code', 'Unknown')}</td>
+                            <td>{finding.get('source', 'Unknown')}</td>
+                            <td>{severity.upper()}</td>
+                        </tr>
+                """
+            
+            if len(findings) > 10:
+                html += f"""
+                        <tr>
+                            <td colspan="4"><em>{len(findings) - 10} more findings not shown</em></td>
+                        </tr>
+                """
+            
+            html += """
+                    </table>
+                    
+                    <div class="recommendation">
+                        <strong>Recommendation:</strong> Restrict access to sensitive paths and files. Configure proper access controls and remove unnecessary files.
+                    </div>
+                </div>
+            </div>
+            """
+    
+    # Complete the HTML document
+    html += """
+        <div class="section">
+            <h2>Next Steps</h2>
+            <p>Address the issues identified in this report according to their severity. Start with critical and high severity issues first.</p>
+            <p>For further assistance or a more detailed analysis, please contact our security team.</p>
+            <p><a href="#" class="btn" onclick="window.print();">Print Report</a></p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return html              
