@@ -1505,4 +1505,61 @@ def generate_html_report(scan_results, is_integrated=False):
             <div class="score-container">
             <div style="font-size: 18px;">Security Headers Score</div>
             <div class="score" style="font-size: 48px;">N/A</div>
-        </div>
+            </div>
+            """
+                
+        # Add recommendations section
+        if 'recommendations' in scan_results:
+            html += """
+                <h2>Recommendations</h2>
+            """
+            
+            for recommendation in scan_results['recommendations']:
+                html += f"""
+                    <div class="recommendation">
+                        <p>{recommendation}</p>
+                    </div>
+                """
+        
+        # Add threat scenarios section
+        if 'threat_scenarios' in scan_results:
+            html += """
+                <h2>Potential Threat Scenarios</h2>
+                <p>Based on the security scan results, these are potential threats that could affect your systems:</p>
+            """
+            
+            for threat in scan_results['threat_scenarios']:
+                html += f"""
+                    <div class="threat">
+                        <h3>{threat['name']}</h3>
+                        <p>{threat['description']}</p>
+                        <p><strong>Impact:</strong> {threat['impact']} | <strong>Likelihood:</strong> {threat['likelihood']}</p>
+                    </div>
+                """
+        
+        # Add footer
+        html += """
+                <div class="footer">
+                    <p>This report was generated automatically and is intended for informational purposes only.</p>
+                    <p>For a comprehensive security assessment, contact a cybersecurity professional.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return html
+    except Exception as e:
+        logging.error(f"Error generating HTML report: {e}")
+        # Return a simple error report if HTML generation fails
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Scan Error</title></head>
+        <body>
+            <h1>Error Generating Report</h1>
+            <p>An error occurred while generating your security scan report: {str(e)}</p>
+            <p>Please try again or contact support.</p>
+        </body>
+        </html>
+        """
