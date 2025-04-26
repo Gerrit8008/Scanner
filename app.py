@@ -17,7 +17,8 @@ from flask_limiter.util import get_remote_address
 import json
 import ssl
 import requests
-from bs4 import BeautifulSoupfrom flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from bs4 import BeautifulSoup
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 import logging
 import os
