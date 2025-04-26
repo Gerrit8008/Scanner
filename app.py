@@ -46,7 +46,6 @@ from scan import (
     get_recommendations,
     generate_html_report
     )
-
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
@@ -214,11 +213,17 @@ def run_consolidated_scan(lead_data):
         }
         
         # Gateway checks
-        gateway_info = get_default_gateway_ip()
-        gateway_scan_results = scan_gateway_ports(gateway_info)
-        scan_results['network']['gateway'] = {
-            'info': gateway_info,
-            'results': gateway_scan_results
+        class DummyRequest:
+            def __init__(self):
+                self.remote_addr = "127.0.0.1"
+                self.headers = {}
+
+                request_obj = request if 'request' in locals() else DummyRequest()
+                gateway_info = get_default_gateway_ip(request_obj)
+                gateway_scan_results = scan_gateway_ports(gateway_info)
+                scan_results['network']['gateway'] = {
+                    'info': gateway_info,
+                    'results': gateway_scan_results
         }
     except Exception as e:
         logging.error(f"Error during network security checks: {e}")
