@@ -1109,7 +1109,3 @@ def generate_threat_scenario(scan_results):
         })
     
     return threats
-
-            <div style="font-size: 18px;">Security Headers Score</div>
-            <div class="score" style="font-size: 48px;">N/A</div>
-            </div>"""
