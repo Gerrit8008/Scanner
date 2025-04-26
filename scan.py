@@ -206,8 +206,6 @@ def check_ssl_certificate(domain):
                 subject = dict(x[0] for x in cert['subject'])
                 
                 # Format dates
-                from datetime import datetime
-                import ssl
                 not_after_date = ssl.cert_time_to_seconds(not_after)
                 current_time = datetime.now().timestamp()
                 days_remaining = int((not_after_date - current_time) / 86400)
@@ -1502,5 +1500,4 @@ def generate_html_report(scan_results, is_integrated=False):
             <div class="score-container">
             <div style="font-size: 18px;">Security Headers Score</div>
             <div class="score" style="font-size: 48px;">N/A</div>
-            </div>
-        """
+            </div>"""
