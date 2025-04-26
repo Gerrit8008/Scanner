@@ -694,7 +694,7 @@ def results():
     
     if not scan_id:
         logging.warning("No scan_id in session, redirecting to scan page")
-        return redirect(url_for('scan_page'))
+        return redirect(url_for('scan_page', error="No scan ID found. Please run a new scan."))
     
     try:
         # Get scan results from database
@@ -702,8 +702,9 @@ def results():
         
         if not scan_results:
             logging.error(f"No scan results found for ID: {scan_id}")
+            # Clear the session and redirect
             session.pop('scan_id', None)
-            return render_template('scan.html', error="Scan results not found. Please try scanning again.")
+            return render_template('scan.html', error="Scan results not found. Please try running a new scan.")
         
         logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
         return render_template('results.html', scan=scan_results)
@@ -711,7 +712,7 @@ def results():
         logging.error(f"Error loading scan results: {e}")
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
-
+    
 @app.route('/db_check')
 def db_check():
     """Check if the database is set up and working properly"""
@@ -865,6 +866,18 @@ def debug():
     
     return jsonify(debug_info)
 
+@app.route('/clear_session')
+def clear_session():
+    """Clear the current session to start fresh"""
+    # Clear existing session data
+    session.clear()
+    logging.info("Session cleared")
+    
+    return jsonify({
+        "status": "success",
+        "message": "Session cleared successfully. You can now run a new scan.",
+        "redirect": url_for('scan_page')
+    })
 # ---------------------------- MAIN ENTRY POINT ----------------------------
 
 if __name__ == '__main__':
