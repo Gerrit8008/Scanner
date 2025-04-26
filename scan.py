@@ -392,9 +392,8 @@ def save_scan_data(scan_data):
     is_render = os.environ.get('RENDER') == 'true'
     
     if is_render:
-        # Using EXACTLY the naming convention from your application's logs
-        # Note that it's "scan_" prefix with NO results suffix
-        filename = f"scan_{scan_id}.json"
+        # EXACTLY match the app's naming convention from logs - no underscore between "scan" and UUID
+        filename = f"scan{scan_id}.json"
     else:
         # Default naming convention
         filename = f"{scan_id}.json"
@@ -410,7 +409,7 @@ def save_scan_data(scan_data):
         logging.error(f"Failed to save scan data to {json_path}: {e}")
         
         # Attempt to save to fallback locations
-        for fallback_dir in [scan_data.get("fallback_save_directory"), os.getcwd(), "/tmp/scan_history", "/tmp"]:
+        for fallback_dir in [scan_data.get("fallback_save_directory"), "/tmp/scan_history", os.getcwd(), "/tmp"]:
             if fallback_dir and fallback_dir != save_directory:
                 try:
                     os.makedirs(fallback_dir, exist_ok=True)
@@ -473,9 +472,8 @@ def finalize_scan(scan_data, results_html_path="results.html"):
                 # Fallback to /tmp which is usually writable
                 results_dir = '/tmp/scan_history'
             
-            # Create a filename with scan ID that matches the expected pattern
-            # Using "scan_results_" prefix based on application logs
-            filename = f"scan_results_{scan_data['scan_id']}.html"
+            # EXACT naming from app logs - note no underscore between "scan" and "results"
+            filename = f"scanresults_{scan_data['scan_id']}.html"
             absolute_path = os.path.join(results_dir, filename)
         else:
             # For non-Render environments, use the provided path
@@ -524,7 +522,7 @@ def finalize_scan(scan_data, results_html_path="results.html"):
                 os.makedirs(fallback_dir, exist_ok=True)
                 # Use consistent naming pattern
                 if is_render:
-                    filename = f"scan_results_{scan_data['scan_id']}.html"
+                    filename = f"scanresults_{scan_data['scan_id']}.html"
                 else:
                     filename = f"security_scan_results_{scan_data['scan_id']}.html"
                     
