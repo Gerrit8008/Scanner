@@ -1859,6 +1859,127 @@ def run_consolidated_scan(lead_data):
     Returns:
         dict: Complete scan results
     """
+    # Reference the global variable properly
+    from flask import session
+    global SCAN_HISTORY_DIR  
+    
+    scan_id = str(uuid.uuid4())
+    timestamp = datetime.now().isoformat()
+    
+    logging.debug(f"Starting scan with ID: {scan_id}")
+    
+    # Initialize scan results structure
+    scan_results = {
+        'scan_id': scan_id,
+        'timestamp': timestamp,
+        'target': lead_data.get('target', ''),
+        'client_info': {
+            'os': lead_data.get('client_os', 'Unknown'),
+            'browser': lead_data.get('client_browser', 'Unknown'),
+            'windows_version': lead_data.get('windows_version', '')
+        }
+    }
+    
+    # Rest of the function remains the same...
+    
+    # For the results saving section:
+    try:
+        logging.info("Generating HTML report...")
+        html_report = generate_html_report(scan_results)
+        
+        # Save scan results to multiple locations to ensure at least one works
+        logging.debug(f"Saving scan results for scan_id: {scan_id}")
+        
+        # Define multiple locations to try
+        locations = [
+            os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json"),
+            os.path.join('/tmp/scan_history', f"scan_{scan_id}.json"),
+            os.path.join('/tmp', f"scan_{scan_id}.json"),
+            os.path.join(os.getcwd(), 'scan_history', f"scan_{scan_id}.json")
+        ]
+        
+        # Try each location
+        success = False
+        for location in locations:
+            try:
+                # Make sure directory exists
+                os.makedirs(os.path.dirname(location), exist_ok=True)
+                
+                # Save the file
+                with open(location, 'w') as f:
+                    json.dump(scan_results, f, indent=2)
+                logging.info(f"Successfully saved scan results to: {location}")
+                
+                # Store the successful location in session
+                session['scan_results_file'] = location
+                success = True
+                
+                # Break after first successful save
+                break
+            except Exception as e:
+                logging.warning(f"Failed to save to {location}: {e}")
+        
+        if not success:
+            logging.error("Failed to save scan results to any location")
+        
+        # Send email with the report if required
+        try:
+            if lead_data.get('email'):
+                from email_handler import send_email_report
+                email_sent = send_email_report(lead_data, html_report, is_html=True)
+                logging.info(f"Email report sent: {email_sent}")
+                scan_results['email_sent'] = email_sent
+        except Exception as email_error:
+            logging.error(f"Error sending email report: {email_error}")
+            scan_results['email_error'] = str(email_error)
+            
+        return scan_results
+        
+    except Exception as e:
+        logging.error(f"Error during scan execution: {e}")
+        scan_results['error'] = str(e)
+        
+        # Even if the scan fails, try to save what we have to multiple locations
+        locations = [
+            os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json"),
+            os.path.join('/tmp/scan_history', f"scan_{scan_id}.json"),
+            os.path.join('/tmp', f"scan_{scan_id}.json"),
+            os.path.join(os.getcwd(), 'scan_history', f"scan_{scan_id}.json")
+        ]
+        
+        saved = False
+        for location in locations:
+            try:
+                # Make sure directory exists
+                os.makedirs(os.path.dirname(location), exist_ok=True)
+                
+                # Save the file
+                with open(location, 'w') as f:
+                    json.dump(scan_results, f, indent=2)
+                logging.info(f"Partial scan results saved to: {location}")
+                
+                # Store the successful location in session
+                session['scan_results_file'] = location
+                saved = True
+                
+                # Break after first successful save
+                break
+            except Exception as save_error:
+                logging.warning(f"Failed to save partial results to {location}: {save_error}")
+        
+        if not saved:
+            logging.error("Failed to save partial scan results to any location")
+            
+        return scan_results
+    """
+    Run a complete security scan and generate one comprehensive report.
+    
+    Args:
+        lead_data (dict): User information and scan parameters
+    
+    Returns:
+        dict: Complete scan results
+    """
     global SCAN_HISTORY_DIR  
     
     scan_id = str(uuid.uuid4())
@@ -2475,10 +2596,48 @@ def scan_page():
     # For GET requests, just show the scan form
     return render_template('scan.html')
 
-# Update this in your app.py file
 
 @app.route('/results')
 def results():
+    """Display scan results"""
+    scan_id = session.get('scan_id')
+    results_file = session.get('scan_results_file')  # Check for specific file location
+    
+    logging.info(f"Results page accessed with scan_id from session: {scan_id}")
+    
+    if not scan_id:
+        logging.warning("No scan_id in session, redirecting to scan page")
+        return redirect(url_for('scan_page'))
+    
+    try:
+        # Try multiple locations for the results file
+        possible_locations = [
+            results_file,  # First try the specific file path if stored in session
+            os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json"),
+            os.path.join('/tmp/scan_history', f"scan_{scan_id}.json"),
+            os.path.join('/tmp', f"scan_{scan_id}.json"),
+            os.path.join(os.getcwd(), 'scan_history', f"scan_{scan_id}.json")
+        ]
+        
+        # Filter out None values
+        possible_locations = [loc for loc in possible_locations if loc]
+        
+        # Log all the locations we're trying
+        for location in possible_locations:
+            logging.info(f"Checking for results file at: {location}")
+            if os.path.exists(location):
+                logging.info(f"Found results file at: {location}")
+                with open(location, 'r') as f:
+                    scan_results = json.load(f)
+                logging.info(f"Successfully loaded scan results with keys: {list(scan_results.keys())}")
+                return render_template('results.html', scan=scan_results)
+        
+        # If we get here, we couldn't find the file
+        logging.error(f"Could not find scan results file in any location for scan_id: {scan_id}")
+        return render_template('error.html', error="Scan results not found. Please try scanning again.")
+    except Exception as e:
+        logging.error(f"Error loading scan results: {e}")
+        return render_template('error.html', error=f"Error loading scan results: {str(e)}")
     """Display scan results"""
     scan_id = session.get('scan_id')
     results_file = session.get('scan_results_file')  # Check for specific file location
