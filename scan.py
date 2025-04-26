@@ -1,4 +1,74 @@
-def get_severity_level(score):
+!")
+        print(f"HTML Report: {output_paths.get('html_report', 'Not saved')}")
+        print(f"JSON Data: {output_paths.get('json_file', 'Not saved')}")
+    else:
+        print(f"Scan failed: {message}")
+        print("Output locations (if any):")
+        for output_type, path in output_paths.items():
+            if path:
+                print(f"- {output_type}: {path}")
+                
+    # Try to open the HTML report if successful
+    if success and output_paths.get('html_report'):
+        try:
+            html_path = output_paths['html_report']
+            print(f"\nTrying to open the HTML report at: {html_path}")
+            
+            # Try platform-specific methods to open the file
+            if platform.system() == 'Windows':
+                os.startfile(html_path)
+            elif platform.system() == 'Darwin':  # macOS
+                import subprocess
+                subprocess.call(['open', html_path])
+            else:  # Linux/Unix
+                import subprocess
+                subprocess.call(['xdg-open', html_path])
+                
+            print("HTML report opened in browser.")
+        except Exception as e:
+            print(f"Could not automatically open the report: {e}")
+            print("Please open the file manually using your browser.")# For command-line usage:
+if __name__ == "__main__":
+    import sys
+    
+    if len(sys.argv) < 2:
+        print("Usage: python security_scanner.py <target_domain_or_url> [results_path] [save_directory]")
+        sys.exit(1)
+    
+    target = sys.argv[1]
+    results_path = "results.html"
+    save_dir = None
+    
+    # Optional parameter for results path
+    if len(sys.argv) >= 3:
+        results_path = sys.argv[2]
+    
+    # Optional parameter for save directory
+    if len(sys.argv) >= 4:
+        save_dir = sys.argv[3]
+    
+    # Check for Render.com environment
+    if os.environ.get('RENDER') == 'true':
+        render_src_path = '/opt/render/project/src'
+        if not save_dir:
+            # Try Render source directory first
+            if os.path.exists(render_src_path) and os.access(render_src_path, os.W_OK):
+                save_dir = os.path.join(render_src_path, 'scan_history')
+                print(f"Detected Render.com environment, using directory: {save_dir}")
+            else:
+                # Fallback to /tmp
+                save_dir = '/tmp/scan_history'
+                print(f"Detected Render.com environment, using fallback directory: {save_dir}")
+    
+    print(f"Starting security scan for {target}...")
+    print(f"Results will be saved to: {results_path}")
+    if save_dir:
+        print(f"Using save directory: {save_dir}")
+    
+    success, message, scan_data, output_paths = run_scan(target, None, results_path, save_dir)
+    
+    if success:
+        print(f"Scan completed successfullydef get_severity_level(score):
     """Convert a numerical score to a severity level"""
     if score <= 30:
         return "Critical"
@@ -259,6 +329,20 @@ def initialize_scan_data(target, scan_id=None, save_dir=None):
     if scan_id is None:
         scan_id = str(uuid.uuid4())
     
+    # Check for known deployment environments
+    is_render = os.environ.get('RENDER') == 'true'
+    render_src_path = '/opt/render/project/src'
+    
+    # Set appropriate save paths for the environment
+    if is_render:
+        # Use Render-specific paths
+        primary_save_dir = os.path.join(render_src_path, 'scan_history')
+        fallback_save_dir = '/tmp/scan_history'
+    else:
+        # Use provided directory or default
+        primary_save_dir = save_dir or SCAN_HISTORY_DIR
+        fallback_save_dir = os.path.join(os.getcwd(), 'scan_history')
+    
     scan_data = {
         "scan_id": scan_id,
         "target": target,
@@ -266,7 +350,9 @@ def initialize_scan_data(target, scan_id=None, save_dir=None):
         "end_time": None,
         "status": "in_progress",
         "completion_percentage": 0,
-        "save_directory": save_dir or SCAN_HISTORY_DIR,
+        "primary_save_directory": primary_save_dir,
+        "fallback_save_directory": fallback_save_dir,
+        "current_save_directory": None,  # Will be set after directory creation
         "email_security": {},
         "web_security": {},
         "network": {},
@@ -274,18 +360,25 @@ def initialize_scan_data(target, scan_id=None, save_dir=None):
         "risk_assessment": {}
     }
     
-    # Ensure save directory exists
-    save_directory = scan_data["save_directory"]
-    try:
-        os.makedirs(save_directory, exist_ok=True)
-        logging.info(f"Using scan history directory: {save_directory}")
-    except Exception as e:
-        # If we can't create the directory, fall back to current directory
-        current_dir = os.getcwd()
-        logging.warning(f"Failed to create directory {save_directory}: {e}. Using current directory: {current_dir}")
-        scan_data["save_directory"] = current_dir
+    # Ensure primary save directory exists
+    success = False
+    for save_directory in [primary_save_dir, fallback_save_dir]:
+        try:
+            os.makedirs(save_directory, exist_ok=True)
+            logging.info(f"Using scan history directory: {save_directory}")
+            scan_data["current_save_directory"] = save_directory
+            success = True
+            break
+        except Exception as e:
+            logging.warning(f"Failed to create directory {save_directory}: {e}")
     
-    # Save initial scan data
+    # If both failed, use current directory
+    if not success:
+        current_dir = os.getcwd()
+        logging.warning(f"Using current directory as last resort: {current_dir}")
+        scan_data["current_save_directory"] = current_dir
+    
+    # Save initial scan data with proper file naming convention
     save_scan_data(scan_data)
     
     return scan_data
@@ -293,8 +386,19 @@ def initialize_scan_data(target, scan_id=None, save_dir=None):
 def save_scan_data(scan_data):
     """Save the current scan data to a JSON file"""
     scan_id = scan_data["scan_id"]
-    save_directory = scan_data.get("save_directory", os.getcwd())
-    json_path = os.path.join(save_directory, f"{scan_id}.json")
+    save_directory = scan_data.get("current_save_directory", os.getcwd())
+    
+    # Check environment to use the correct file naming pattern
+    is_render = os.environ.get('RENDER') == 'true'
+    
+    if is_render:
+        # Use the naming convention from your logs
+        filename = f"scan_{scan_id}.json"
+    else:
+        # Default naming convention
+        filename = f"{scan_id}.json"
+    
+    json_path = os.path.join(save_directory, filename)
     
     try:
         with open(json_path, 'w') as f:
@@ -302,17 +406,24 @@ def save_scan_data(scan_data):
         logging.info(f"Scan data saved to {json_path}")
         return True, json_path
     except Exception as e:
-        logging.error(f"Failed to save scan data: {e}")
-        # Attempt to save to current directory as fallback
-        try:
-            fallback_path = os.path.join(os.getcwd(), f"{scan_id}.json")
-            with open(fallback_path, 'w') as f:
-                json.dump(scan_data, f, indent=2)
-            logging.info(f"Scan data saved to fallback location: {fallback_path}")
-            return True, fallback_path
-        except Exception as e2:
-            logging.error(f"Failed to save data to fallback location: {e2}")
-            return False, None
+        logging.error(f"Failed to save scan data to {json_path}: {e}")
+        
+        # Attempt to save to fallback locations
+        for fallback_dir in [scan_data.get("fallback_save_directory"), os.getcwd(), "/tmp"]:
+            if fallback_dir and fallback_dir != save_directory:
+                try:
+                    os.makedirs(fallback_dir, exist_ok=True)
+                    fallback_path = os.path.join(fallback_dir, filename)
+                    with open(fallback_path, 'w') as f:
+                        json.dump(scan_data, f, indent=2)
+                    logging.info(f"Scan data saved to fallback location: {fallback_path}")
+                    return True, fallback_path
+                except Exception as e2:
+                    logging.warning(f"Failed to save to fallback location {fallback_dir}: {e2}")
+        
+        # If we get here, all save attempts failed
+        logging.error("All attempts to save scan data failed")
+        return False, None
 
 def update_scan_progress(scan_data, module_name, percentage_increase=10):
     """Update the scan progress and save the data"""
@@ -342,11 +453,32 @@ def finalize_scan(scan_data, results_html_path="results.html"):
     # Generate HTML report
     html_report = generate_html_report(scan_data)
     
+    # Check environment to determine appropriate file paths
+    is_render = os.environ.get('RENDER') == 'true'
+    
     # Determine the best path for the results file
     try:
         # Try to resolve the provided path
-        absolute_path = os.path.abspath(results_html_path)
-        results_dir = os.path.dirname(absolute_path)
+        if is_render:
+            # For Render.com, try known writable directories
+            render_src_path = '/opt/render/project/src'
+            if os.path.exists(render_src_path) and os.access(render_src_path, os.W_OK):
+                # Try to use the same directory as the JSON files
+                if "current_save_directory" in scan_data and os.path.exists(scan_data["current_save_directory"]):
+                    results_dir = scan_data["current_save_directory"]
+                else:
+                    results_dir = os.path.join(render_src_path, 'results')
+            else:
+                # Fallback to /tmp which is usually writable
+                results_dir = '/tmp'
+            
+            # Create a filename with scan ID for uniqueness
+            filename = f"scan_results_{scan_data['scan_id']}.html"
+            absolute_path = os.path.join(results_dir, filename)
+        else:
+            # For non-Render environments, use the provided path
+            absolute_path = os.path.abspath(results_html_path)
+            results_dir = os.path.dirname(absolute_path)
         
         # Check if the directory exists
         if results_dir and not os.path.exists(results_dir):
@@ -355,9 +487,13 @@ def finalize_scan(scan_data, results_html_path="results.html"):
                 logging.info(f"Created directory: {results_dir}")
             except Exception as dir_err:
                 logging.warning(f"Could not create directory {results_dir}: {dir_err}")
-                # Fall back to current directory or scan directory
-                absolute_path = os.path.join(scan_data.get("save_directory", os.getcwd()), 
-                                            os.path.basename(results_html_path))
+                # Fall back to current save directory or /tmp
+                fallback_dir = scan_data.get("current_save_directory", "/tmp")
+                filename = os.path.basename(absolute_path)
+                absolute_path = os.path.join(fallback_dir, filename)
+                
+                # Ensure the fallback directory exists
+                os.makedirs(fallback_dir, exist_ok=True)
         
         # Write HTML report to the determined path
         with open(absolute_path, 'w') as f:
@@ -377,21 +513,30 @@ def finalize_scan(scan_data, results_html_path="results.html"):
     except Exception as e:
         logging.error(f"Failed to write HTML report: {e}")
         
-        # Try to write to fallback location
-        try:
-            fallback_path = os.path.join(os.getcwd(), f"security_scan_results_{scan_data['scan_id']}.html")
-            with open(fallback_path, 'w') as f:
-                f.write(html_report)
-            logging.info(f"Scan report saved to fallback location: {fallback_path}")
-            
-            # Store the path in scan data
-            scan_data["results_html_path"] = fallback_path
-            save_scan_data(scan_data)
-            
-            return True, fallback_path
-        except Exception as e2:
-            logging.error(f"Failed to write report to fallback location: {e2}")
-            return False, str(e) + " AND " + str(e2)
+        # Try multiple fallback locations
+        for fallback_dir in [scan_data.get("current_save_directory"), os.getcwd(), "/tmp"]:
+            if not fallback_dir:
+                continue
+                
+            try:
+                os.makedirs(fallback_dir, exist_ok=True)
+                filename = f"security_scan_results_{scan_data['scan_id']}.html"
+                fallback_path = os.path.join(fallback_dir, filename)
+                
+                with open(fallback_path, 'w') as f:
+                    f.write(html_report)
+                logging.info(f"Scan report saved to fallback location: {fallback_path}")
+                
+                # Store the path in scan data
+                scan_data["results_html_path"] = fallback_path
+                save_scan_data(scan_data)
+                
+                return True, fallback_path
+            except Exception as fallback_err:
+                logging.warning(f"Failed to write to fallback directory {fallback_dir}: {fallback_err}")
+        
+        # If all fallbacks failed
+        return False, f"Failed to write report to any location: {e}"
 
 # ---------------------------- SSL AND WEB SECURITY FUNCTIONS ----------------------------
 
