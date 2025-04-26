@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from flask_cors import CORS
 import logging
 import os
+import sqlite3
 import platform
 import socket
 import re
@@ -45,9 +46,14 @@ from scan import (
     get_severity_level,
     get_recommendations,
     generate_html_report
-    )
+)
 from logging_utils import log_function_call
 import traceback
+from db import init_db, save_scan_results, get_scan_results, save_lead_data
+
+
+# Initialize the database during startup
+init_db()
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -149,6 +155,7 @@ def log_system_info():
                 logger.warning(f"  Could not check permissions: {e}")
     
     logger.info("-----------------------------")
+
 def setup_logging():
     log_filename = os.path.join(LOGS_DIR, f"security_scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
     
@@ -183,67 +190,9 @@ def setup_logging():
 # Call setup at the beginning of your application
 logger = setup_logging()
 
-def save_lead_data(lead_data):
-    """
-    Save lead data to CSV file for future reference and marketing
-    
-    Args:
-        lead_data (dict): Dictionary containing lead information
-    """
-    try:
-        # Define the path for the leads CSV file
-        leads_file = os.path.join(BASE_DIR, 'leads.csv')
-        file_exists = os.path.exists(leads_file)
-        
-        # Get the field names from the lead_data dictionary
-        fieldnames = list(lead_data.keys())
-        
-        # Open the file in append mode
-        with open(leads_file, 'a', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            
-            # Write header if file doesn't exist
-            if not file_exists:
-                writer.writeheader()
-            
-            # Write the lead data
-            writer.writerow(lead_data)
-            
-        logging.debug(f"Lead data saved successfully for: {lead_data.get('email', 'Unknown')}")
-        return True
-    except Exception as e:
-        logging.error(f"Error saving lead data: {e}")
-        # Try with a fallback directory
-        try:
-            fallback_dir = "/tmp"
-            fallback_file = os.path.join(fallback_dir, 'leads.csv')
-            file_exists = os.path.exists(fallback_file)
-            
-            with open(fallback_file, 'a', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=list(lead_data.keys()))
-                if not file_exists:
-                    writer.writeheader()
-                writer.writerow(lead_data)
-                
-            logging.debug(f"Lead data saved to fallback location for: {lead_data.get('email', 'Unknown')}")
-            return True
-        except Exception as e2:
-            logging.error(f"Error saving lead data to fallback location: {e2}")
-            return False
-        
 # ---------------------------- MAIN SCANNING FUNCTION ----------------------------
 def run_consolidated_scan(lead_data):
-    """
-    Run a complete security scan and generate one comprehensive report.
-    
-    Args:
-        lead_data (dict): User information and scan parameters
-    
-    Returns:
-        dict: Complete scan results
-    """
-    global SCAN_HISTORY_DIR  
-    
+    """Run a complete security scan and generate one comprehensive report."""
     scan_id = str(uuid.uuid4())
     timestamp = datetime.now().isoformat()
     
@@ -254,6 +203,7 @@ def run_consolidated_scan(lead_data):
         'scan_id': scan_id,
         'timestamp': timestamp,
         'target': lead_data.get('target', ''),
+        'email': lead_data.get('email', ''),  # Store email for reference
         'client_info': {
             'os': lead_data.get('client_os', 'Unknown'),
             'browser': lead_data.get('client_browser', 'Unknown'),
@@ -569,7 +519,7 @@ def run_consolidated_scan(lead_data):
                     json.dump(scan_results, f, indent=2)
                 logging.info(f"Scan results saved to fallback location: {fallback_file}")
                 # Update the global variable to use the fallback directory that worked
-                SCAN_HISTORY_DIR = fallback_dir  # Removed the second 'global' keyword here
+                SCAN_HISTORY_DIR = fallback_dir
             except Exception as e2:
                 logging.critical(f"Failed to save scan results to both primary and fallback locations: {e2}")
                 logging.debug(f"Fallback exception traceback: {traceback.format_exc()}")
@@ -579,26 +529,34 @@ def run_consolidated_scan(lead_data):
         try:
             logging.info("Generating HTML report...")
             html_report = generate_html_report(scan_results)
+            scan_results['html_report'] = html_report
             logging.debug("HTML report generated successfully")
         except Exception as report_e:
             logging.error(f"Error generating HTML report: {report_e}")
             logging.debug(f"Exception traceback: {traceback.format_exc()}")
-    except Exception as e:
-        logging.error(f"Error during scan execution: {e}")
-        logging.debug(f"Exception traceback: {traceback.format_exc()}")
-        scan_results['error'] = str(e)
-        
-        # Even if the scan fails, try to save what we have
+    
+        # Save to database instead of file
         try:
-            emergency_file = os.path.join('/tmp', f"emergency_scan_{scan_id}.json") 
-            with open(emergency_file, 'w') as f:
-                json.dump(scan_results, f, indent=2)
-            logging.debug(f"Emergency scan results saved to {emergency_file}")
-        except Exception as e_save:
-            logging.critical(f"Error saving emergency scan results: {e_save}")
-            
-    logging.info(f"Scan {scan_id} completed")
-    return scan_results
+            logging.info("Saving scan results to database...")
+            saved_scan_id = save_scan_results(scan_results)
+            if saved_scan_id:
+                # Store scan_id in session
+                session['scan_id'] = saved_scan_id
+                logging.info(f"Scan results saved to database with ID: {saved_scan_id}")
+            else:
+                logging.error("Failed to save scan results to database")
+        except Exception as e:
+            logging.error(f"Error saving scan results: {e}")
+            logging.debug(f"Exception traceback: {traceback.format_exc()}")
+            scan_results['error'] = str(e)
+    
+        logging.info(f"Scan {scan_id} completed")
+        return scan_results
+    except Exception as outer_e:
+        logging.critical(f"Unexpected error in outer block of run_consolidated_scan: {outer_e}")
+        logging.debug(f"Outer exception traceback: {traceback.format_exc()}")
+        scan_results['critical_error'] = str(outer_e)
+        return scan_results
 
 
 # ---------------------------- FLASK ROUTES ----------------------------
@@ -727,117 +685,71 @@ def scan_page():
     
     # For GET requests, just show the scan form
     return render_template('scan.html')
-    """Main scan page - handles both form display and scan submission"""
-    if request.method == 'POST':
-        # Get form data including client OS info
-        lead_data = {
-            'name': request.form.get('name', ''),
-            'email': request.form.get('email', ''),
-            'company': request.form.get('company', ''),
-            'phone': request.form.get('phone', ''),
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'client_os': request.form.get('client_os', 'Unknown'),
-            'client_browser': request.form.get('client_browser', 'Unknown'),
-            'windows_version': request.form.get('windows_version', ''),
-            'target': request.form.get('target', '')
-        }
-        
-        logging.debug(f"Received scan form data: {lead_data}")
-        
-        # Basic validation
-        if not lead_data["email"]:
-            return render_template('scan.html', error="Please enter your email address to receive the scan report.")
-        
-        try:
-            # Save lead data
-            save_lead_data(lead_data)
-            logging.debug("Lead data saved successfully")
-            
-            # Run the consolidated scan - this contains all scan types in one function
-            scan_results = run_consolidated_scan(lead_data)
-            logging.debug(f"Scan completed with ID: {scan_results.get('scan_id', 'No ID generated')}")
-            
-            # Check if scan_results contains valid data
-            if not scan_results or 'scan_id' not in scan_results:
-                logging.error("Scan did not return valid results")
-                return render_template('scan.html', error="Scan failed to return valid results. Please try again.")
-            
-            # Store scan ID in session
-            session['scan_id'] = scan_results['scan_id']
-            logging.debug(f"Stored scan_id in session: {session['scan_id']}")
-            
-            # Verify the results file exists
-            results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_results['scan_id']}.json")
-            if not os.path.exists(results_file):
-                logging.error(f"Results file not found: {results_file}")
-                return render_template('scan.html', error="Scan results file not created. Please try again.")
-            
-            logging.debug(f"Results file exists: {results_file}")
-            
-            # Redirect to results page
-            return redirect(url_for('results'))
-        except Exception as e:
-            logging.error(f"Error processing scan: {e}")
-            return render_template('scan.html', error=f"An error occurred: {str(e)}")
-    
-    # For GET requests, just show the scan form
-    return render_template('scan.html')
 
 @app.route('/results')
 def results():
     """Display scan results"""
-    logger = logging.getLogger(__name__)
-    
     scan_id = session.get('scan_id')
-    results_file = session.get('scan_results_file')
-    
-    logger.info(f"Results page accessed with scan_id from session: {scan_id}")
+    logging.info(f"Results page accessed with scan_id from session: {scan_id}")
     
     if not scan_id:
-        logger.warning("No scan_id in session, redirecting to scan page")
+        logging.warning("No scan_id in session, redirecting to scan page")
         return redirect(url_for('scan_page'))
     
     try:
-        # First check if we have a specific file path in session
-        if results_file and os.path.exists(results_file):
-            logger.debug(f"Using specific results file path from session: {results_file}")
-            with open(results_file, 'r') as f:
-                scan_results = json.load(f)
-        else:
-            # Fall back to default location
-            default_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
-            logger.debug(f"Looking for results file at default location: {default_file}")
-            
-            if not os.path.exists(default_file):
-                logger.error(f"Scan results file not found: {default_file}")
-                # Try fallback location
-                fallback_dir = "/tmp/scan_history"
-                fallback_file = os.path.join(fallback_dir, f"scan_{scan_id}.json")
-                logger.debug(f"Trying fallback location: {fallback_file}")
-                
-                if not os.path.exists(fallback_file):
-                    logger.error(f"Fallback results file not found: {fallback_file}")
-                    # Clear the session and redirect to scan page with error
-                    session.pop('scan_id', None)
-                    session.pop('scan_results_file', None)
-                    return render_template('scan.html', error="Scan results not found. Please try scanning again.")
-                
-                with open(fallback_file, 'r') as f:
-                    scan_results = json.load(f)
-            else:
-                with open(default_file, 'r') as f:
-                    scan_results = json.load(f)
+        # Get scan results from database
+        scan_results = get_scan_results(scan_id)
         
-        logger.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
+        if not scan_results:
+            logging.error(f"No scan results found for ID: {scan_id}")
+            session.pop('scan_id', None)
+            return render_template('scan.html', error="Scan results not found. Please try scanning again.")
         
+        logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
         return render_template('results.html', scan=scan_results)
     except Exception as e:
-        logger.error(f"Error loading scan results: {e}")
-        # Clear the session on error
-        session.pop('scan_id', None)
-        session.pop('scan_results_file', None)
+        logging.error(f"Error loading scan results: {e}")
+        logging.debug(f"Exception traceback: {traceback.format_exc()}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
-    
+
+@app.route('/db_check')
+def db_check():
+    """Check if the database is set up and working properly"""
+    try:
+        from db import DB_PATH
+        
+        # Try to connect to the database
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if tables exist
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = cursor.fetchall()
+        
+        # Get count of records in each table
+        table_counts = {}
+        for table in tables:
+            table_name = table[0]
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            count = cursor.fetchone()[0]
+            table_counts[table_name] = count
+        
+        conn.close()
+        
+        return jsonify({
+            "status": "success",
+            "database_path": DB_PATH,
+            "tables": [table[0] for table in tables],
+            "record_counts": table_counts,
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "trace": traceback.format_exc()
+        })
+                    
 @app.route('/api/scan', methods=['POST'])    
 @limiter.limit("5 per minute")    
 def api_scan():
