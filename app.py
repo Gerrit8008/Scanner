@@ -24,7 +24,7 @@ from email_handler import send_email_report
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
-app.secret_key = os.environ.get('SECRET_KEY', 'your_temporary_secret_key')
+app.secret_key = os.environ.get('SECRET_KEY')
 
 # Set up logging configuration
 logging.basicConfig(level=logging.DEBUG, 
@@ -1859,7 +1859,7 @@ def run_consolidated_scan(lead_data):
     Returns:
         dict: Complete scan results
     """
-    global SCAN_HISTORY_DIR  # Move this to the beginning of the function
+    global SCAN_HISTORY_DIR  
     
     scan_id = str(uuid.uuid4())
     timestamp = datetime.now().isoformat()
