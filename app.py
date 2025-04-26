@@ -1,5 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from flask_cors import CORS
+# app.py - Main Flask application
 import logging
 import os
 import sqlite3
@@ -9,18 +8,16 @@ import re
 import uuid
 import urllib.parse
 from datetime import datetime
-import csv
+import json
 import sys
-import random
-import ipaddress
+import traceback
+import requests
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import json
-import ssl
-import requests
-from bs4 import BeautifulSoup
-import dns.resolver
-from email_handler import send_email_report
+
+# Import scan functionality
 from scan import (
     extract_domain_from_email,
     server_lookup,
@@ -47,41 +44,11 @@ from scan import (
     get_recommendations,
     generate_html_report
 )
-from logging_utils import log_function_call
-import traceback
-from db import init_db, save_scan_results, get_scan_results, save_lead_data
 
+# Import database functionality
+from db import init_db, save_scan_results, get_scan_results, save_lead_data, DB_PATH
 
-# Initialize the database during startup
-init_db()
-
-# Initialize Flask app
-app = Flask(__name__)
-CORS(app)
-app.secret_key = os.environ.get('SECRET_KEY', 'your_temporary_secret_key')
-
-# Set up logging configuration
-logging.basicConfig(level=logging.DEBUG, 
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Create logs directory
-LOGS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
-os.makedirs(LOGS_DIR, exist_ok=True)
-
-# Initialize limiter with proper storage
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://"  # Use memory storage for now
-)
-
-# Add a warning log to acknowledge the storage limitation
-logging.warning(
-    "Using in-memory storage for rate limiting. This is not recommended for production."
-)
-    
-# Constants for severity levels and warnings
+# Constants
 SEVERITY = {
     "Critical": 10,
     "High": 7,
@@ -107,61 +74,22 @@ GATEWAY_PORT_WARNINGS = {
     22: ("SSH", "Low"),
 }
 
-# Define constants
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SCAN_HISTORY_DIR = os.path.join(BASE_DIR, 'scan_history')
-FALLBACK_DIR = '/tmp/scan_history'
-
-# Create directories
-os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
-os.makedirs(FALLBACK_DIR, exist_ok=True)
-
-def log_system_info():
-    """Log system information to help with debugging"""
-    logger = logging.getLogger(__name__)
-    
-    logger.info("----- System Information -----")
-    logger.info(f"Python version: {sys.version}")
-    logger.info(f"Platform: {platform.platform()}")
-    logger.info(f"Working directory: {os.getcwd()}")
-    
-    # Log directory information
-    directories = [
-        ("Base directory", BASE_DIR),
-        ("Scan history directory", SCAN_HISTORY_DIR),
-        ("Fallback directory", FALLBACK_DIR)
-    ]
-    
-    for name, path in directories:
-        exists = os.path.exists(path)
-        logger.info(f"{name}: {path} (Exists: {exists})")
-        
-        if exists:
-            try:
-                permissions = oct(os.stat(path).st_mode)[-3:]
-                writable = os.access(path, os.W_OK)
-                logger.info(f"  Permissions: {permissions}, Writable: {writable}")
-                
-                # Try a test write
-                test_file = os.path.join(path, "test_write.tmp")
-                try:
-                    with open(test_file, 'w') as f:
-                        f.write("test")
-                    os.remove(test_file)
-                    logger.info(f"  Write test: Successful")
-                except Exception as e:
-                    logger.warning(f"  Write test: Failed - {e}")
-            except Exception as e:
-                logger.warning(f"  Could not check permissions: {e}")
-    
-    logger.info("-----------------------------")
-
+# Setup logging
 def setup_logging():
-    log_filename = os.path.join(LOGS_DIR, f"security_scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+    """Configure application logging"""
+    # Create logs directory
+    logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+    os.makedirs(logs_dir, exist_ok=True)
+    
+    log_filename = os.path.join(logs_dir, f"security_scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
     
     # Configure root logger
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
+    
+    # Remove any existing handlers
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
     
     # Create formatters
     file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(funcName)s - Line %(lineno)d - %(message)s')
@@ -181,18 +109,59 @@ def setup_logging():
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
     
-    # Log the start of the application
     logger.info("Application started")
     logger.info(f"Detailed logs will be saved to: {log_filename}")
     
     return logger
 
-# Call setup at the beginning of your application
+# Log system information
+def log_system_info():
+    """Log details about the system environment"""
+    logger = logging.getLogger(__name__)
+    
+    logger.info("----- System Information -----")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Platform: {platform.platform()}")
+    logger.info(f"Working directory: {os.getcwd()}")
+    logger.info(f"Database path: {DB_PATH}")
+    
+    # Test database connection
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT sqlite_version()")
+        version = cursor.fetchone()
+        logger.info(f"SQLite version: {version[0]}")
+        conn.close()
+        logger.info("Database connection successful")
+    except Exception as e:
+        logger.warning(f"Database connection failed: {e}")
+    
+    logger.info("-----------------------------")
+
+# Initialize Flask app
+app = Flask(__name__)
+CORS(app)
+app.secret_key = os.environ.get('SECRET_KEY', 'your_temporary_secret_key')
+
+# Initialize limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+logging.warning("Using in-memory storage for rate limiting. Not recommended for production.")
+
+# Initialize logging and database
 logger = setup_logging()
+init_db()
+log_system_info()
 
 # ---------------------------- MAIN SCANNING FUNCTION ----------------------------
+
 def run_consolidated_scan(lead_data):
-    """Run a complete security scan and generate one comprehensive report."""
+    """Run a complete security scan and generate one comprehensive report"""
     scan_id = str(uuid.uuid4())
     timestamp = datetime.now().isoformat()
     
@@ -203,7 +172,7 @@ def run_consolidated_scan(lead_data):
         'scan_id': scan_id,
         'timestamp': timestamp,
         'target': lead_data.get('target', ''),
-        'email': lead_data.get('email', ''),  # Store email for reference
+        'email': lead_data.get('email', ''),
         'client_info': {
             'os': lead_data.get('client_os', 'Unknown'),
             'browser': lead_data.get('client_browser', 'Unknown'),
@@ -253,12 +222,12 @@ def run_consolidated_scan(lead_data):
                 'info': gateway_info,
                 'results': gateway_scan_results
             }
-            logging.debug(f"Gateway checks completed: {scan_results['network']['gateway']}")
+            logging.debug(f"Gateway checks completed")
         except Exception as gateway_error:
             logging.error(f"Error during gateway checks: {gateway_error}")
             scan_results['network']['gateway'] = {'error': str(gateway_error)}
             
-        logging.debug(f"Network security checks completed: {scan_results['network']}")
+        logging.debug(f"Network security checks completed")
     except Exception as e:
         logging.error(f"Error during network security checks: {e}")
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
@@ -274,21 +243,21 @@ def run_consolidated_scan(lead_data):
             
             try:
                 spf_status, spf_severity = check_spf_status(domain)
-                logging.debug(f"SPF check completed: {spf_status}, {spf_severity}")
+                logging.debug(f"SPF check completed")
             except Exception as spf_error:
                 logging.error(f"Error checking SPF for {domain}: {spf_error}")
                 spf_status, spf_severity = f"Error checking SPF: {str(spf_error)}", "High"
                 
             try:
                 dmarc_status, dmarc_severity = check_dmarc_record(domain)
-                logging.debug(f"DMARC check completed: {dmarc_status}, {dmarc_severity}")
+                logging.debug(f"DMARC check completed")
             except Exception as dmarc_error:
                 logging.error(f"Error checking DMARC for {domain}: {dmarc_error}")
                 dmarc_status, dmarc_severity = f"Error checking DMARC: {str(dmarc_error)}", "High"
                 
             try:
                 dkim_status, dkim_severity = check_dkim_record(domain)
-                logging.debug(f"DKIM check completed: {dkim_status}, {dkim_severity}")
+                logging.debug(f"DKIM check completed")
             except Exception as dkim_error:
                 logging.error(f"Error checking DKIM for {domain}: {dkim_error}")
                 dkim_status, dkim_severity = f"Error checking DKIM: {str(dkim_error)}", "High"
@@ -381,7 +350,7 @@ def run_consolidated_scan(lead_data):
                         try:
                             logging.debug(f"Checking SSL certificate for {domain}")
                             scan_results['ssl_certificate'] = check_ssl_certificate(domain)
-                            logging.debug(f"SSL certificate check completed: {scan_results['ssl_certificate']}")
+                            logging.debug(f"SSL certificate check completed")
                         except Exception as e:
                             logging.error(f"SSL check error for {domain}: {e}")
                             logging.debug(f"Exception traceback: {traceback.format_exc()}")
@@ -391,7 +360,7 @@ def run_consolidated_scan(lead_data):
                     try:
                         logging.debug(f"Checking security headers for {target_url}")
                         scan_results['security_headers'] = check_security_headers(target_url)
-                        logging.debug(f"Security headers check completed: {scan_results['security_headers']}")
+                        logging.debug(f"Security headers check completed")
                     except Exception as e:
                         logging.error(f"Headers check error for {target_url}: {e}")
                         logging.debug(f"Exception traceback: {traceback.format_exc()}")
@@ -401,7 +370,7 @@ def run_consolidated_scan(lead_data):
                     try:
                         logging.debug(f"Detecting CMS for {target_url}")
                         scan_results['cms'] = detect_cms(target_url)
-                        logging.debug(f"CMS detection completed: {scan_results['cms']}")
+                        logging.debug(f"CMS detection completed")
                     except Exception as e:
                         logging.error(f"CMS detection error for {target_url}: {e}")
                         logging.debug(f"Exception traceback: {traceback.format_exc()}")
@@ -411,7 +380,7 @@ def run_consolidated_scan(lead_data):
                     try:
                         logging.debug(f"Analyzing cookies for {target_url}")
                         scan_results['cookies'] = analyze_cookies(target_url)
-                        logging.debug(f"Cookie analysis completed: {scan_results['cookies']}")
+                        logging.debug(f"Cookie analysis completed")
                     except Exception as e:
                         logging.error(f"Cookie analysis error for {target_url}: {e}")
                         logging.debug(f"Exception traceback: {traceback.format_exc()}")
@@ -421,7 +390,7 @@ def run_consolidated_scan(lead_data):
                     try:
                         logging.debug(f"Detecting web frameworks for {target_url}")
                         scan_results['frameworks'] = detect_web_framework(target_url)
-                        logging.debug(f"Framework detection completed: {scan_results['frameworks']}")
+                        logging.debug(f"Framework detection completed")
                     except Exception as e:
                         logging.error(f"Framework detection error for {target_url}: {e}")
                         logging.debug(f"Exception traceback: {traceback.format_exc()}")
@@ -432,7 +401,7 @@ def run_consolidated_scan(lead_data):
                         max_urls = 15
                         logging.debug(f"Crawling for sensitive content at {target_url} (max {max_urls} urls)")
                         scan_results['sensitive_content'] = crawl_for_sensitive_content(target_url, max_urls)
-                        logging.debug(f"Content crawling completed: {scan_results['sensitive_content']}")
+                        logging.debug(f"Content crawling completed")
                     except Exception as e:
                         logging.error(f"Content crawling error for {target_url}: {e}")
                         logging.debug(f"Exception traceback: {traceback.format_exc()}")
@@ -451,7 +420,7 @@ def run_consolidated_scan(lead_data):
     try:
         logging.info("Calculating risk assessment...")
         scan_results['risk_assessment'] = calculate_risk_score(scan_results)
-        logging.debug(f"Risk assessment completed: {scan_results['risk_assessment']}")
+        logging.debug(f"Risk assessment completed")
         
         scan_results['recommendations'] = get_recommendations(scan_results)
         logging.debug(f"Generated {len(scan_results['recommendations'])} recommendations")
@@ -466,98 +435,34 @@ def run_consolidated_scan(lead_data):
                                           "Use strong, unique passwords and implement multi-factor authentication.",
                                           "Regularly back up your data and test the restoration process."]
     
-    # 6. Save scan results to file
+    # 6. Generate HTML report
     try:
-        logging.info("Saving scan results to file...")
-        
-        # Create directories if they don't exist
-        os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
-        os.makedirs('/tmp/scan_history', exist_ok=True)
-        
-        # Try to save to primary location
-        results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
-        logging.debug(f"Attempting to save scan results to: {results_file}")
-        
-        try:
-            # Test if we can write to this directory
-            test_file = os.path.join(SCAN_HISTORY_DIR, "test_write.tmp")
-            try:
-                with open(test_file, 'w') as f:
-                    f.write("test")
-                os.remove(test_file)
-                logging.debug("Write test to primary directory successful")
-            except Exception as test_e:
-                logging.warning(f"Write test to primary directory failed: {test_e}")
-                raise test_e  # Re-raise to trigger fallback
-                
-            with open(results_file, 'w') as f:
-                json.dump(scan_results, f, indent=2)
-            logging.info(f"Scan results saved successfully to {results_file}")
-        except Exception as e:
-            logging.error(f"Error saving scan results to primary file: {e}")
-            logging.debug(f"Exception traceback: {traceback.format_exc()}")
-            
-            # Try fallback location
-            fallback_dir = "/tmp/scan_history"
-            os.makedirs(fallback_dir, exist_ok=True)
-            fallback_file = os.path.join(fallback_dir, f"scan_{scan_id}.json")
-            logging.debug(f"Trying fallback location: {fallback_file}")
-            
-            try:
-                # Test if we can write to fallback directory
-                test_fallback = os.path.join(fallback_dir, "test_write.tmp")
-                try:
-                    with open(test_fallback, 'w') as f:
-                        f.write("test")
-                    os.remove(test_fallback)
-                    logging.debug("Write test to fallback directory successful")
-                except Exception as test_e:
-                    logging.critical(f"Write test to fallback directory also failed: {test_e}")
-                    raise
-                    
-                with open(fallback_file, 'w') as f:
-                    json.dump(scan_results, f, indent=2)
-                logging.info(f"Scan results saved to fallback location: {fallback_file}")
-                # Update the global variable to use the fallback directory that worked
-                SCAN_HISTORY_DIR = fallback_dir
-            except Exception as e2:
-                logging.critical(f"Failed to save scan results to both primary and fallback locations: {e2}")
-                logging.debug(f"Fallback exception traceback: {traceback.format_exc()}")
-                scan_results['file_save_error'] = f"Could not save results to disk: {str(e2)}"
-        
-        # Generate HTML report
-        try:
-            logging.info("Generating HTML report...")
-            html_report = generate_html_report(scan_results)
-            scan_results['html_report'] = html_report
-            logging.debug("HTML report generated successfully")
-        except Exception as report_e:
-            logging.error(f"Error generating HTML report: {report_e}")
-            logging.debug(f"Exception traceback: {traceback.format_exc()}")
+        logging.info("Generating HTML report...")
+        html_report = generate_html_report(scan_results)
+        scan_results['html_report'] = html_report
+        logging.debug("HTML report generated successfully")
+    except Exception as report_e:
+        logging.error(f"Error generating HTML report: {report_e}")
+        logging.debug(f"Exception traceback: {traceback.format_exc()}")
+        scan_results['html_report_error'] = str(report_e)
     
-        # Save to database instead of file
-        try:
-            logging.info("Saving scan results to database...")
-            saved_scan_id = save_scan_results(scan_results)
-            if saved_scan_id:
-                # Store scan_id in session
-                session['scan_id'] = saved_scan_id
-                logging.info(f"Scan results saved to database with ID: {saved_scan_id}")
-            else:
-                logging.error("Failed to save scan results to database")
-        except Exception as e:
-            logging.error(f"Error saving scan results: {e}")
-            logging.debug(f"Exception traceback: {traceback.format_exc()}")
-            scan_results['error'] = str(e)
+    # 7. Save to database
+    try:
+        logging.info("Saving scan results to database...")
+        saved_scan_id = save_scan_results(scan_results)
+        
+        if not saved_scan_id:
+            logging.error("Database save function returned None or False")
+            scan_results['database_error'] = "Failed to save scan results to database"
+        else:
+            logging.info(f"Scan results saved to database with ID: {saved_scan_id}")
+    except Exception as db_error:
+        logging.error(f"Exception during database save: {str(db_error)}")
+        logging.debug(f"Exception traceback: {traceback.format_exc()}")
+        scan_results['database_error'] = f"Database error: {str(db_error)}"
     
-        logging.info(f"Scan {scan_id} completed")
-        return scan_results
-    except Exception as outer_e:
-        logging.critical(f"Unexpected error in outer block of run_consolidated_scan: {outer_e}")
-        logging.debug(f"Outer exception traceback: {traceback.format_exc()}")
-        scan_results['critical_error'] = str(outer_e)
-        return scan_results
-
+    logging.info(f"Scan {scan_id} completed")
+    return scan_results
 
 # ---------------------------- FLASK ROUTES ----------------------------
 
@@ -571,7 +476,6 @@ def index():
         error_message = f"Error rendering index page: {str(e)}"
         logging.error(error_message)
         
-        # Return a simple HTML response with the error
         return f"""
         <html>
             <head><title>Error</title></head>
@@ -607,34 +511,13 @@ def scan_page():
             return render_template('scan.html', error="Please enter your email address to receive the scan report.")
         
         try:
-            # Save lead data
-            save_lead_data(lead_data)
-            logging.debug("Lead data saved successfully")
+            # Save lead data to database
+            if not save_lead_data(lead_data):
+                logging.warning("Failed to save lead data")
             
-            # Test write to scan directories before running the scan
-            test_primary = os.path.join(SCAN_HISTORY_DIR, "test_scan.json")
-            test_fallback = os.path.join(FALLBACK_DIR, "test_scan.json")
-            
-            try:
-                with open(test_primary, 'w') as f:
-                    json.dump({"test": "data"}, f)
-                logging.info(f"Test write to primary directory successful: {test_primary}")
-                os.remove(test_primary)
-            except Exception as e:
-                logging.error(f"Test write to primary directory failed: {e}")
-            
-            try:
-                with open(test_fallback, 'w') as f:
-                    json.dump({"test": "data"}, f)
-                logging.info(f"Test write to fallback directory successful: {test_fallback}")
-                os.remove(test_fallback)
-            except Exception as e:
-                logging.error(f"Test write to fallback directory failed: {e}")
-            
-            # Run the consolidated scan - this contains all scan types in one function
+            # Run the consolidated scan
             logging.info("Starting scan execution...")
             scan_results = run_consolidated_scan(lead_data)
-            logging.debug(f"Scan completed with ID: {scan_results.get('scan_id', 'No ID generated')}")
             
             # Check if scan_results contains valid data
             if not scan_results or 'scan_id' not in scan_results:
@@ -645,46 +528,16 @@ def scan_page():
             session['scan_id'] = scan_results['scan_id']
             logging.debug(f"Stored scan_id in session: {session['scan_id']}")
             
-            # Check for the results file directly after running the scan
-            results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_results['scan_id']}.json")
-            fallback_file = os.path.join(FALLBACK_DIR, f"scan_{scan_results['scan_id']}.json")
-            
-            if os.path.exists(results_file):
-                logging.info(f"Results file exists at primary location: {results_file}")
-                session['scan_results_file'] = results_file
-            elif os.path.exists(fallback_file):
-                logging.info(f"Results file exists at fallback location: {fallback_file}")
-                session['scan_results_file'] = fallback_file
-            else:
-                logging.error(f"Results file not found at either location immediately after scan")
-                
-                # Create minimal results file to ensure something exists
-                minimal_results = {
-                    'scan_id': scan_results['scan_id'],
-                    'timestamp': datetime.now().isoformat(),
-                    'error': 'Original scan results not saved properly',
-                    'minimal_backup': True
-                }
-                
-                try:
-                    backup_file = os.path.join(FALLBACK_DIR, f"backup_scan_{scan_results['scan_id']}.json")
-                    os.makedirs(os.path.dirname(backup_file), exist_ok=True)
-                    with open(backup_file, 'w') as f:
-                        json.dump(minimal_results, f)
-                    logging.info(f"Created minimal backup file: {backup_file}")
-                    session['scan_results_file'] = backup_file
-                except Exception as e:
-                    logging.critical(f"Failed to create minimal backup file: {e}")
-            
             # Redirect to results page
             return redirect(url_for('results'))
         except Exception as e:
             logging.error(f"Error processing scan: {e}")
-            logging.error(f"Exception traceback: {traceback.format_exc()}")
+            logging.debug(f"Exception traceback: {traceback.format_exc()}")
             return render_template('scan.html', error=f"An error occurred: {str(e)}")
     
-    # For GET requests, just show the scan form
-    return render_template('scan.html')
+    # For GET requests, show the scan form
+    error = request.args.get('error')
+    return render_template('scan.html', error=error)
 
 @app.route('/results')
 def results():
@@ -704,7 +557,7 @@ def results():
             logging.error(f"No scan results found for ID: {scan_id}")
             # Clear the session and redirect
             session.pop('scan_id', None)
-            return render_template('scan.html', error="Scan results not found. Please try running a new scan.")
+            return redirect(url_for('scan_page', error="Scan results not found. Please try running a new scan."))
         
         logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
         return render_template('results.html', scan=scan_results)
@@ -712,13 +565,11 @@ def results():
         logging.error(f"Error loading scan results: {e}")
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
-    
+
 @app.route('/db_check')
 def db_check():
     """Check if the database is set up and working properly"""
     try:
-        from db import DB_PATH
-        
         # Try to connect to the database
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -750,7 +601,59 @@ def db_check():
             "error": str(e),
             "trace": traceback.format_exc()
         })
-                    
+
+@app.route('/test_db_write')
+def test_db_write():
+    """Test direct database write functionality"""
+    try:
+        # Create test data
+        test_data = {
+            'scan_id': str(uuid.uuid4()),
+            'timestamp': datetime.now().isoformat(),
+            'target': 'test.com',
+            'email': 'test@example.com',
+            'test_field': 'This is a test'
+        }
+        
+        # Try to save to database
+        saved_id = save_scan_results(test_data)
+        
+        if saved_id:
+            # Try to retrieve it
+            retrieved = get_scan_results(saved_id)
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Database write and read successful',
+                'saved_id': saved_id,
+                'retrieved': retrieved is not None,
+                'record_matches': retrieved is not None and retrieved.get('test_field') == test_data['test_field']
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Database write failed - save_scan_results returned None or False'
+            })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Exception during database test: {str(e)}',
+            'traceback': traceback.format_exc()
+        })
+
+@app.route('/clear_session')
+def clear_session():
+    """Clear the current session to start fresh"""
+    # Clear existing session data
+    session.clear()
+    logging.info("Session cleared")
+    
+    return jsonify({
+        "status": "success",
+        "message": "Session cleared successfully. You can now run a new scan.",
+        "redirect": url_for('scan_page')
+    })
+
 @app.route('/api/scan', methods=['POST'])    
 @limiter.limit("5 per minute")    
 def api_scan():
@@ -790,6 +693,7 @@ def api_scan():
         })
     except Exception as e:
         logging.error(f"Error in API scan: {e}")
+        logging.debug(f"Exception traceback: {traceback.format_exc()}")
         return jsonify({
             "status": "error",
             "message": f"An error occurred during the scan: {str(e)}"
@@ -819,41 +723,9 @@ def healthcheck():
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
-def save_scan_results_directly(scan_id, scan_data):
-    """Directly save scan results with robust error handling"""
-    logging.info(f"Attempting to save scan results for ID: {scan_id}")
-    
-    # Create directories if they don't exist
-    os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
-    os.makedirs(FALLBACK_DIR, exist_ok=True)
-    
-    # Try primary location first
-    primary_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
-    try:
-        logging.debug(f"Writing to primary location: {primary_file}")
-        with open(primary_file, 'w') as f:
-            json.dump(scan_data, f, indent=2)
-        logging.info(f"Successfully wrote scan results to: {primary_file}")
-        return primary_file
-    except Exception as e:
-        logging.error(f"Failed to write to primary location: {e}")
-        
-        # Try fallback location
-        fallback_file = os.path.join(FALLBACK_DIR, f"scan_{scan_id}.json")
-        try:
-            logging.debug(f"Writing to fallback location: {fallback_file}")
-            with open(fallback_file, 'w') as f:
-                json.dump(scan_data, f, indent=2)
-            logging.info(f"Successfully wrote scan results to fallback: {fallback_file}")
-            return fallback_file
-        except Exception as e2:
-            logging.critical(f"Failed to write to fallback location: {e2}")
-            raise Exception(f"Could not save scan results to any location. Primary error: {e}, Fallback error: {e2}")
-        
 @app.route('/debug')
 def debug():
     """Debug endpoint to check Flask configuration"""
-    
     debug_info = {
         "Python Version": sys.version,
         "Working Directory": os.getcwd(),
@@ -861,23 +733,24 @@ def debug():
         "Templates Exist": os.path.exists(app.template_folder),
         "Templates Available": os.listdir(app.template_folder) if os.path.exists(app.template_folder) else "N/A",
         "Environment": app.config['ENV'],
-        "Debug Mode": app.config['DEBUG']
+        "Debug Mode": app.config['DEBUG'],
+        "Database Path": DB_PATH,
+        "Database Connection": "Unknown"
     }
+    
+    try:
+        # Test database connection
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT sqlite_version()")
+        version = cursor.fetchone()
+        conn.close()
+        debug_info["Database Connection"] = f"Success, SQLite version: {version[0]}"
+    except Exception as e:
+        debug_info["Database Connection"] = f"Failed: {str(e)}"
     
     return jsonify(debug_info)
 
-@app.route('/clear_session')
-def clear_session():
-    """Clear the current session to start fresh"""
-    # Clear existing session data
-    session.clear()
-    logging.info("Session cleared")
-    
-    return jsonify({
-        "status": "success",
-        "message": "Session cleared successfully. You can now run a new scan.",
-        "redirect": url_for('scan_page')
-    })
 # ---------------------------- MAIN ENTRY POINT ----------------------------
 
 if __name__ == '__main__':
