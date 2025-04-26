@@ -569,8 +569,7 @@ def run_consolidated_scan(lead_data):
                     json.dump(scan_results, f, indent=2)
                 logging.info(f"Scan results saved to fallback location: {fallback_file}")
                 # Update the global variable to use the fallback directory that worked
-                global SCAN_HISTORY_DIR
-                SCAN_HISTORY_DIR = fallback_dir
+                SCAN_HISTORY_DIR = fallback_dir  # Removed the second 'global' keyword here
             except Exception as e2:
                 logging.critical(f"Failed to save scan results to both primary and fallback locations: {e2}")
                 logging.debug(f"Fallback exception traceback: {traceback.format_exc()}")
@@ -600,6 +599,7 @@ def run_consolidated_scan(lead_data):
             
     logging.info(f"Scan {scan_id} completed")
     return scan_results
+
 # ---------------------------- FLASK ROUTES ----------------------------
 
 @app.route('/')
