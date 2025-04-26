@@ -46,6 +46,9 @@ from scan import (
     get_recommendations,
     generate_html_report
     )
+from logging_utils import log_function_call
+import traceback
+
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
@@ -54,6 +57,10 @@ app.secret_key = os.environ.get('SECRET_KEY', 'your_temporary_secret_key')
 # Set up logging configuration
 logging.basicConfig(level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Create logs directory
+LOGS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+os.makedirs(LOGS_DIR, exist_ok=True)
 
 # Initialize limiter with proper storage
 limiter = Limiter(
@@ -67,7 +74,7 @@ limiter = Limiter(
 logging.warning(
     "Using in-memory storage for rate limiting. This is not recommended for production."
 )
-
+    
 # Constants for severity levels and warnings
 SEVERITY = {
     "Critical": 10,
@@ -102,6 +109,84 @@ FALLBACK_DIR = '/tmp/scan_history'
 # Create directories
 os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
 os.makedirs(FALLBACK_DIR, exist_ok=True)
+
+def log_system_info():
+    """Log system information to help with debugging"""
+    logger = logging.getLogger(__name__)
+    
+    logger.info("----- System Information -----")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Platform: {platform.platform()}")
+    logger.info(f"Working directory: {os.getcwd()}")
+    
+    # Log directory information
+    directories = [
+        ("Base directory", BASE_DIR),
+        ("Scan history directory", SCAN_HISTORY_DIR),
+        ("Fallback directory", FALLBACK_DIR)
+    ]
+    
+    for name, path in directories:
+        exists = os.path.exists(path)
+        logger.info(f"{name}: {path} (Exists: {exists})")
+        
+        if exists:
+            try:
+                permissions = oct(os.stat(path).st_mode)[-3:]
+                writable = os.access(path, os.W_OK)
+                logger.info(f"  Permissions: {permissions}, Writable: {writable}")
+                
+                # Try a test write
+                test_file = os.path.join(path, "test_write.tmp")
+                try:
+                    with open(test_file, 'w') as f:
+                        f.write("test")
+                    os.remove(test_file)
+                    logger.info(f"  Write test: Successful")
+                except Exception as e:
+                    logger.warning(f"  Write test: Failed - {e}")
+            except Exception as e:
+                logger.warning(f"  Could not check permissions: {e}")
+    
+    logger.info("-----------------------------")
+
+# Call this at application startup
+log_system_info()
+
+# Configure logging with file and console handlers
+def setup_logging():
+    log_filename = os.path.join(LOGS_DIR, f"security_scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+    
+    # Configure root logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    
+    # Create formatters
+    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(funcName)s - Line %(lineno)d - %(message)s')
+    console_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    
+    # File handler (detailed)
+    file_handler = logging.FileHandler(log_filename)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(file_formatter)
+    
+    # Console handler (less detailed)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(console_formatter)
+    
+    # Add handlers
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    # Log the start of the application
+    logger.info("Application started")
+    logger.info(f"Detailed logs will be saved to: {log_filename}")
+    
+    return logger
+
+# Call setup at the beginning of your application
+logger = setup_logging()
 
 def save_lead_data(lead_data):
     """
@@ -492,6 +577,81 @@ def scan_page():
 @app.route('/results')
 def results():
     """Display scan results"""
+    logger = logging.getLogger(__name__)
+    
+    scan_id = session.get('scan_id')
+    results_file = session.get('scan_results_file')
+    
+    logger.info(f"Results page accessed with scan_id from session: {scan_id}")
+    logger.debug(f"Results file path from session: {results_file}")
+    
+    if not scan_id:
+        logger.warning("No scan_id in session, redirecting to scan page")
+        return redirect(url_for('scan_page'))
+    
+    try:
+        # First check if we have a specific file path in session
+        if results_file and os.path.exists(results_file):
+            logger.debug(f"Using specific results file path from session: {results_file}")
+            logger.debug(f"File size: {os.path.getsize(results_file)} bytes")
+            
+            with open(results_file, 'r') as f:
+                scan_results = json.load(f)
+                logger.debug(f"Successfully loaded JSON from {results_file}")
+        else:
+            # Fall back to default location
+            default_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
+            logger.debug(f"Looking for results file at default location: {default_file}")
+            
+            if os.path.exists(default_file):
+                logger.debug(f"Default file exists. Size: {os.path.getsize(default_file)} bytes")
+            else:
+                logger.error(f"Scan results file not found: {default_file}")
+            
+            if not os.path.exists(default_file):
+                # Try fallback location
+                fallback_dir = FALLBACK_DIR
+                fallback_file = os.path.join(fallback_dir, f"scan_{scan_id}.json")
+                logger.debug(f"Trying fallback location: {fallback_file}")
+                
+                if os.path.exists(fallback_file):
+                    logger.debug(f"Fallback file exists. Size: {os.path.getsize(fallback_file)} bytes")
+                else:
+                    logger.error(f"Fallback results file not found: {fallback_file}")
+                
+                if not os.path.exists(fallback_file):
+                    # Do a directory listing to see what files are available
+                    try:
+                        primary_files = os.listdir(SCAN_HISTORY_DIR)
+                        logger.debug(f"Files in primary directory: {primary_files}")
+                    except Exception as e:
+                        logger.warning(f"Could not list primary directory: {e}")
+                    
+                    try:
+                        fallback_files = os.listdir(FALLBACK_DIR)
+                        logger.debug(f"Files in fallback directory: {fallback_files}")
+                    except Exception as e:
+                        logger.warning(f"Could not list fallback directory: {e}")
+                    
+                    logger.error("No results file found in any location")
+                    return render_template('error.html', error="Scan results not found. Please try scanning again.")
+                
+                with open(fallback_file, 'r') as f:
+                    scan_results = json.load(f)
+                    logger.debug(f"Successfully loaded JSON from fallback location")
+            else:
+                with open(default_file, 'r') as f:
+                    scan_results = json.load(f)
+                    logger.debug(f"Successfully loaded JSON from default location")
+        
+        logger.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
+        
+        return render_template('results.html', scan=scan_results)
+    except Exception as e:
+        logger.error(f"Error loading scan results: {e}")
+        logger.debug(f"Exception traceback: {traceback.format_exc()}")
+        return render_template('error.html', error=f"Error loading scan results: {str(e)}")
+    """Display scan results"""
     scan_id = session.get('scan_id')
     results_file = session.get('scan_results_file')  # Check for fallback file location
     
@@ -603,6 +763,66 @@ def healthcheck():
         "version": "1.0.0",
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
+
+@log_function_call
+def save_scan_results(scan_id, scan_results):
+    """Dedicated function to save scan results to file with robust error handling"""
+    logger = logging.getLogger(__name__)
+    
+    # Primary location
+    primary_path = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
+    
+    # Log path details and directory permissions
+    logger.debug(f"Primary save path: {primary_path}")
+    logger.debug(f"Directory exists: {os.path.exists(os.path.dirname(primary_path))}")
+    
+    try:
+        if os.path.exists(os.path.dirname(primary_path)):
+            logger.debug(f"Directory permissions: {oct(os.stat(os.path.dirname(primary_path)).st_mode)[-3:]}")
+    except Exception as e:
+        logger.warning(f"Could not check directory permissions: {e}")
+    
+    try:
+        # Create directory if needed
+        os.makedirs(os.path.dirname(primary_path), exist_ok=True)
+        
+        # Test if we can write to this directory
+        test_file = os.path.join(os.path.dirname(primary_path), "test_write.tmp")
+        try:
+            with open(test_file, 'w') as f:
+                f.write("test")
+            os.remove(test_file)
+            logger.debug("Write test to primary directory successful")
+        except Exception as e:
+            logger.warning(f"Write test to primary directory failed: {e}")
+            raise  # Re-raise to trigger fallback
+        
+        # Save the actual results
+        with open(primary_path, 'w') as f:
+            json.dump(scan_results, f, indent=2)
+        
+        logger.info(f"Scan results saved successfully to {primary_path}")
+        return primary_path
+    except Exception as e:
+        logger.error(f"Failed to save to primary location: {e}")
+        logger.debug(f"Exception details: {traceback.format_exc()}")
+        
+        # Try fallback location
+        fallback_path = os.path.join(FALLBACK_DIR, f"scan_{scan_id}.json")
+        logger.debug(f"Trying fallback location: {fallback_path}")
+        
+        try:
+            os.makedirs(os.path.dirname(fallback_path), exist_ok=True)
+            
+            with open(fallback_path, 'w') as f:
+                json.dump(scan_results, f, indent=2)
+            
+            logger.info(f"Scan results saved to fallback location: {fallback_path}")
+            return fallback_path
+        except Exception as e2:
+            logger.critical(f"Failed to save to fallback location as well: {e2}")
+            logger.debug(f"Fallback exception details: {traceback.format_exc()}")
+            raise Exception(f"Could not save scan results: {e}. Fallback also failed: {e2}")
 
 @app.route('/debug')
 def debug():
