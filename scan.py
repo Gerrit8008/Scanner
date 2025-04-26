@@ -44,11 +44,6 @@ GATEWAY_PORT_WARNINGS = {
     22: ("SSH", "Low"),
 }
 
-# Create directory for scan history
-SCAN_HISTORY_DIR = 'scan_history'
-if not os.path.exists(SCAN_HISTORY_DIR):
-    os.makedirs(SCAN_HISTORY_DIR)
-
 # ---------------------------- UTILITY FUNCTIONS ----------------------------
 
 def extract_domain_from_email(email):
