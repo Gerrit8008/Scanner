@@ -89,6 +89,19 @@ GATEWAY_PORT_WARNINGS = {
     22: ("SSH", "Low"),
 }
 
+# Define the base directory first
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Create directory for scan history once
+SCAN_HISTORY_DIR = os.path.join(BASE_DIR, 'scan_history')
+if not os.path.exists(SCAN_HISTORY_DIR):
+    os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
+
+# Define a fallback directory that should be writable in most environments
+FALLBACK_DIR = '/tmp/scan_history'
+if not os.path.exists(FALLBACK_DIR):
+    os.makedirs(FALLBACK_DIR, exist_ok=True)
+  
 def test_save_functionality():
     """Test function to verify file saving works correctly"""
     test_id = f"test_{uuid.uuid4()}"
@@ -144,18 +157,7 @@ def test_save_functionality():
             logging.debug(f"Updated SCAN_HISTORY_DIR to working path: {SCAN_HISTORY_DIR}")
     
     return test_id    
-# Define the base directory first
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Create directory for scan history once
-SCAN_HISTORY_DIR = os.path.join(BASE_DIR, 'scan_history')
-if not os.path.exists(SCAN_HISTORY_DIR):
-    os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
-
-# Define a fallback directory that should be writable in most environments
-FALLBACK_DIR = '/tmp/scan_history'
-if not os.path.exists(FALLBACK_DIR):
-    os.makedirs(FALLBACK_DIR, exist_ok=True)
     
 # ---------------------------- SCANNING FUNCTIONS ----------------------------
 
