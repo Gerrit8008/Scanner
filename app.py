@@ -89,6 +89,61 @@ GATEWAY_PORT_WARNINGS = {
     22: ("SSH", "Low"),
 }
 
+def test_save_functionality():
+    """Test function to verify file saving works correctly"""
+    test_id = f"test_{uuid.uuid4()}"
+    logging.debug(f"Running file save test with ID: {test_id}")
+    
+    test_data = {
+        'test_id': test_id,
+        'timestamp': datetime.now().isoformat(),
+        'message': 'This is a test file to verify save functionality'
+    }
+    
+    # Try multiple locations to find one that works
+    try_locations = [
+        os.path.join(SCAN_HISTORY_DIR, f"test_{test_id}.json"),
+        os.path.join("/tmp", f"test_{test_id}.json"),
+        os.path.join("/tmp/scan_history", f"test_{test_id}.json")
+    ]
+    
+    success = False
+    working_path = None
+    
+    for location in try_locations:
+        try:
+            directory = os.path.dirname(location)
+            if not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+                logging.debug(f"Created directory: {directory}")
+            
+            with open(location, 'w') as f:
+                json.dump(test_data, f)
+            
+            # Verify file was created
+            if os.path.exists(location):
+                with open(location, 'r') as f:
+                    content = json.load(f)
+                if content.get('test_id') == test_id:
+                    success = True
+                    working_path = location
+                    logging.debug(f"Test file successfully created and verified at: {location}")
+                    break
+        except Exception as e:
+            logging.error(f"Error testing file operations at {location}: {str(e)}")
+    
+    if not success:
+        logging.critical("CRITICAL: Could not save files to any location!")
+    else:
+        logging.debug(f"File operations working at: {working_path}")
+        # Update global path if needed
+        directory = os.path.dirname(working_path)
+        if directory != SCAN_HISTORY_DIR:
+            global SCAN_HISTORY_DIR
+            SCAN_HISTORY_DIR = directory
+            logging.debug(f"Updated SCAN_HISTORY_DIR to working path: {SCAN_HISTORY_DIR}")
+    
+    return test_id    
 # Define the base directory first
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -1866,62 +1921,6 @@ def send_email_report(lead_data, report_content, is_html=False, is_integrated=Fa
     except Exception as e:
         logging.error(f"Error sending email: {e}")
         return False
-    
-def test_save_functionality():
-    """Test function to verify file saving works correctly"""
-    test_id = f"test_{uuid.uuid4()}"
-    logging.debug(f"Running file save test with ID: {test_id}")
-    
-    test_data = {
-        'test_id': test_id,
-        'timestamp': datetime.now().isoformat(),
-        'message': 'This is a test file to verify save functionality'
-    }
-    
-    # Try multiple locations to find one that works
-    try_locations = [
-        os.path.join(SCAN_HISTORY_DIR, f"test_{test_id}.json"),
-        os.path.join("/tmp", f"test_{test_id}.json"),
-        os.path.join("/tmp/scan_history", f"test_{test_id}.json")
-    ]
-    
-    success = False
-    working_path = None
-    
-    for location in try_locations:
-        try:
-            directory = os.path.dirname(location)
-            if not os.path.exists(directory):
-                os.makedirs(directory, exist_ok=True)
-                logging.debug(f"Created directory: {directory}")
-            
-            with open(location, 'w') as f:
-                json.dump(test_data, f)
-            
-            # Verify file was created
-            if os.path.exists(location):
-                with open(location, 'r') as f:
-                    content = json.load(f)
-                if content.get('test_id') == test_id:
-                    success = True
-                    working_path = location
-                    logging.debug(f"Test file successfully created and verified at: {location}")
-                    break
-        except Exception as e:
-            logging.error(f"Error testing file operations at {location}: {str(e)}")
-    
-    if not success:
-        logging.critical("CRITICAL: Could not save files to any location!")
-    else:
-        logging.debug(f"File operations working at: {working_path}")
-        # Update global path if needed
-        directory = os.path.dirname(working_path)
-        if directory != SCAN_HISTORY_DIR:
-            global SCAN_HISTORY_DIR
-            SCAN_HISTORY_DIR = directory
-            logging.debug(f"Updated SCAN_HISTORY_DIR to working path: {SCAN_HISTORY_DIR}")
-    
-    return test_id    
 
 def test_email_functionality():
     """Test if email functionality works"""
