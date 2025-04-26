@@ -1110,7 +1110,7 @@ def generate_threat_scenario(scan_results):
     
     return threats
 
-def generate_html_report(scan_results, is_integrated=False):
+def generate_html_report(scan_results, is_integrated=False, output_dir=None):
     """Generate an HTML report from scan results"""
     try:
         # Start HTML document
