@@ -13,6 +13,7 @@ import ssl
 import requests
 from bs4 import BeautifulSoup
 import dns.resolver
+from app import SCAN_HISTORY_DIR
 
 # Set up logging configuration
 logging.basicConfig(level=logging.DEBUG, 
@@ -43,11 +44,6 @@ GATEWAY_PORT_WARNINGS = {
     5900: ("VNC", "High"),
     22: ("SSH", "Low"),
 }
-
-# Create directory for scan history
-SCAN_HISTORY_DIR = 'scan_history'
-if not os.path.exists(SCAN_HISTORY_DIR):
-    os.makedirs(SCAN_HISTORY_DIR)
 
 # ---------------------------- UTILITY FUNCTIONS ----------------------------
 
