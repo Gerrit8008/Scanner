@@ -1,4 +1,67 @@
-import os
+def get_severity_level(score):
+    """Convert a numerical score to a severity level"""
+    if score <= 30:
+        return "Critical"
+    elif score <= 50:
+        return "High"
+    elif score <= 75:
+        return "Medium"
+    else:
+        return "Low"
+
+def get_recommendations(scan_results, scan_data=None):
+    """Generate recommendations based on scan results"""
+    recommendations = []
+    
+    # Email security recommendations
+    if 'email_security' in scan_results:
+        email_sec = scan_results['email_security']
+        
+        # SPF recommendations
+        if 'spf' in email_sec and email_sec['spf'].get('severity') in ['High', 'Critical']:
+            recommendations.append("Implement a proper SPF record with a hard fail (-all) policy to prevent email spoofing.")
+        
+        # DMARC recommendations
+        if 'dmarc' in email_sec and email_sec['dmarc'].get('severity') in ['High', 'Critical']:
+            recommendations.append("Set up a DMARC record with a 'reject' or 'quarantine' policy to enhance email security.")
+        
+        # DKIM recommendations
+        if 'dkim' in email_sec and email_sec['dkim'].get('severity') in ['High', 'Critical']:
+            recommendations.append("Implement DKIM signing for your domain to authenticate outgoing emails.")
+    
+    # Web security recommendations
+    if 'web_security' in scan_results:
+        if 'ssl_certificate' in scan_results['web_security'] and scan_results['web_security']['ssl_certificate'].get('severity', 'Low') in ['High', 'Critical']:
+            recommendations.append("Update your SSL/TLS certificate and ensure proper configuration with modern protocols.")
+        
+        if 'security_headers' in scan_results['web_security'] and scan_results['web_security']['security_headers'].get('severity', 'Low') in ['High', 'Critical']:
+            recommendations.append("Implement missing security headers to protect against common web vulnerabilities.")
+        
+        if 'cms' in scan_results['web_security'] and scan_results['web_security']['cms'].get('severity', 'Low') in ['High', 'Critical']:
+            cms_name = scan_results['web_security']['cms'].get('cms_name', '')
+            if cms_name:
+                recommendations.append(f"Update your {cms_name} installation to the latest version to patch security vulnerabilities.")
+        
+        if 'sensitive_content' in scan_results['web_security'] and scan_results['web_security']['sensitive_content'].get('severity', 'Low') in ['High', 'Critical']:
+            recommendations.append("Restrict access to sensitive directories and files that could expose configuration details.")
+    
+    # Network recommendations
+    if 'network' in scan_results and 'open_ports' in scan_results['network']:
+        if scan_results['network']['open_ports'].get('severity', 'Low') in ['High', 'Critical']:
+            recommendations.append("Close unnecessary open ports to reduce attack surface. Use a properly configured firewall.")
+    
+    # Add general recommendations if specific ones are limited
+    if len(recommendations) < 3:
+        recommendations.append("Implement regular security scanning and monitoring for early detection of vulnerabilities.")
+        recommendations.append("Keep all software and systems updated with the latest security patches.")
+        recommendations.append("Use strong, unique passwords and consider implementing multi-factor authentication where possible.")
+    
+    # Update scan data if provided
+    if scan_data:
+        scan_data["recommendations"] = recommendations
+        update_scan_progress(scan_data, "recommendations", 5)
+    
+    return recommendationsimport os
 import platform
 import socket
 import re
@@ -189,9 +252,94 @@ def scan_gateway_ports(gateway_info):
     
     return results
 
+# ---------------------------- PROGRESSIVE SAVING FUNCTIONALITY ----------------------------
+
+def initialize_scan_data(target, scan_id=None):
+    """Initialize the scan data structure and create a unique scan ID if not provided"""
+    if scan_id is None:
+        scan_id = str(uuid.uuid4())
+    
+    scan_data = {
+        "scan_id": scan_id,
+        "target": target,
+        "start_time": datetime.now().isoformat(),
+        "end_time": None,
+        "status": "in_progress",
+        "completion_percentage": 0,
+        "email_security": {},
+        "web_security": {},
+        "network": {},
+        "system": {},
+        "risk_assessment": {}
+    }
+    
+    # Ensure scan history directory exists
+    os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
+    
+    # Save initial scan data
+    save_scan_data(scan_data)
+    
+    return scan_data
+
+def save_scan_data(scan_data):
+    """Save the current scan data to a JSON file"""
+    scan_id = scan_data["scan_id"]
+    json_path = os.path.join(SCAN_HISTORY_DIR, f"{scan_id}.json")
+    
+    try:
+        with open(json_path, 'w') as f:
+            json.dump(scan_data, f, indent=2)
+        logging.info(f"Scan data saved to {json_path}")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to save scan data: {e}")
+        return False
+
+def update_scan_progress(scan_data, module_name, percentage_increase=10):
+    """Update the scan progress and save the data"""
+    # Update completion percentage
+    current_percentage = scan_data.get("completion_percentage", 0)
+    new_percentage = min(current_percentage + percentage_increase, 100)
+    scan_data["completion_percentage"] = new_percentage
+    
+    # Add timestamp for module completion
+    module_timestamps = scan_data.get("module_timestamps", {})
+    module_timestamps[module_name] = datetime.now().isoformat()
+    scan_data["module_timestamps"] = module_timestamps
+    
+    # Log progress
+    logging.info(f"Scan progress updated: {module_name} completed, overall progress: {new_percentage}%")
+    
+    # Save updated data
+    return save_scan_data(scan_data)
+
+def finalize_scan(scan_data, results_html_path="results.html"):
+    """Finalize the scan, generate the HTML report, and save to the specified path"""
+    # Update scan data
+    scan_data["end_time"] = datetime.now().isoformat()
+    scan_data["status"] = "completed"
+    scan_data["completion_percentage"] = 100
+    
+    # Generate HTML report
+    html_report = generate_html_report(scan_data)
+    
+    # Write HTML report to the specified path
+    try:
+        with open(results_html_path, 'w') as f:
+            f.write(html_report)
+        logging.info(f"Scan report saved to {results_html_path}")
+        
+        # Save final scan data
+        save_scan_data(scan_data)
+        
+        return True, results_html_path
+    except Exception as e:
+        logging.error(f"Failed to write HTML report: {e}")
+        return False, str(e)
+
 # ---------------------------- SSL AND WEB SECURITY FUNCTIONS ----------------------------
 
-def check_ssl_certificate(domain):
+def check_ssl_certificate(domain, scan_data=None):
     """Check SSL certificate of a domain"""
     try:
         context = ssl.create_default_context()
@@ -234,8 +382,8 @@ def check_ssl_certificate(domain):
                     status = "Valid"
                     severity = "Low"
                 
-                # Return structured data
-                return {
+                # Create result
+                result = {
                     'status': status,
                     'valid_until': not_after,
                     'valid_from': not_before,
@@ -248,14 +396,28 @@ def check_ssl_certificate(domain):
                     'weak_protocol': weak_protocol,
                     'severity': severity
                 }
+                
+                # Update scan data if provided
+                if scan_data:
+                    scan_data["web_security"]["ssl_certificate"] = result
+                    update_scan_progress(scan_data, "ssl_certificate", 10)
+                
+                return result
     except Exception as e:
-        return {
+        result = {
             'error': str(e),
             'status': 'Error checking certificate',
             'severity': 'High'
         }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["ssl_certificate"] = result
+            update_scan_progress(scan_data, "ssl_certificate", 10)
+        
+        return result
 
-def check_security_headers(url):
+def check_security_headers(url, scan_data=None):
     """Check security headers of a website"""
     try:
         headers = {
@@ -291,19 +453,33 @@ def check_security_headers(url):
         else:
             severity = "High"
         
-        return {
+        result = {
             'score': score,
             'headers': {header: details['found'] for header, details in security_headers.items()},
             'severity': severity
         }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["security_headers"] = result
+            update_scan_progress(scan_data, "security_headers", 10)
+        
+        return result
     except Exception as e:
-        return {
+        result = {
             'error': str(e),
             'score': 0,
             'severity': 'High'
         }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["security_headers"] = result
+            update_scan_progress(scan_data, "security_headers", 10)
+        
+        return result
 
-def detect_cms(url):
+def detect_cms(url, scan_data=None):
     """Detect Content Management System (CMS) used by a website"""
     try:
         headers = {
@@ -374,7 +550,7 @@ def detect_cms(url):
                 potential_vulnerabilities.append(f"WordPress {version} is outdated and may contain security vulnerabilities.")
         
         if detected_cms:
-            return {
+            result = {
                 'cms_detected': True,
                 'cms_name': detected_cms,
                 'version': version,
@@ -382,21 +558,35 @@ def detect_cms(url):
                 'severity': "High" if potential_vulnerabilities else "Low"
             }
         else:
-            return {
+            result = {
                 'cms_detected': False,
                 'cms_name': None,
                 'version': None,
                 'potential_vulnerabilities': [],
                 'severity': "Low"
             }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["cms"] = result
+            update_scan_progress(scan_data, "cms_detection", 10)
+        
+        return result
     except Exception as e:
-        return {
+        result = {
             'error': str(e),
             'cms_detected': False,
             'severity': 'Medium'
         }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["cms"] = result
+            update_scan_progress(scan_data, "cms_detection", 10)
+        
+        return result
 
-def analyze_cookies(url):
+def analyze_cookies(url, scan_data=None):
     """Analyze cookies set by a website"""
     try:
         headers = {
@@ -441,7 +631,7 @@ def analyze_cookies(url):
         else:
             severity = "High"
         
-        return {
+        result = {
             'total_cookies': total_cookies,
             'secure_cookies': secure_cookies,
             'httponly_cookies': httponly_cookies,
@@ -449,14 +639,28 @@ def analyze_cookies(url):
             'score': score,
             'severity': severity
         }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["cookies"] = result
+            update_scan_progress(scan_data, "cookie_analysis", 10)
+        
+        return result
     except Exception as e:
-        return {
+        result = {
             'error': str(e),
             'score': 0,
             'severity': 'Medium'
         }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["cookies"] = result
+            update_scan_progress(scan_data, "cookie_analysis", 10)
+        
+        return result
 
-def detect_web_framework(url):
+def detect_web_framework(url, scan_data=None):
     """Detect web framework used by a website"""
     try:
         headers = {
@@ -498,18 +702,32 @@ def detect_web_framework(url):
         # Remove duplicates
         frameworks = list(set(frameworks))
         
-        return {
+        result = {
             'frameworks': frameworks,
             'count': len(frameworks)
         }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["frameworks"] = result
+            update_scan_progress(scan_data, "framework_detection", 5)
+        
+        return result
     except Exception as e:
-        return {
+        result = {
             'error': str(e),
             'frameworks': [],
             'count': 0
         }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["frameworks"] = result
+            update_scan_progress(scan_data, "framework_detection", 5)
+        
+        return result
 
-def crawl_for_sensitive_content(url, max_urls=15):
+def crawl_for_sensitive_content(url, max_urls=15, scan_data=None):
     """Crawl website for potentially sensitive content"""
     try:
         sensitive_paths = [
@@ -538,6 +756,15 @@ def crawl_for_sensitive_content(url, max_urls=15):
                     sensitive_count += 1
             except:
                 continue
+            
+            # Update scan data periodically during the crawl
+            if scan_data and (len(found_paths) % 5 == 0 or len(found_paths) == 1):
+                scan_data["web_security"]["sensitive_content_partial"] = {
+                    'sensitive_paths_found_so_far': sensitive_count,
+                    'paths_so_far': found_paths,
+                    'progress': f"Checked {len(found_paths)}/{len(sensitive_paths[:max_urls])} paths"
+                }
+                update_scan_progress(scan_data, "sensitive_content", 1)
         
         # Determine severity based on number of sensitive paths found
         if sensitive_count > 5:
@@ -549,22 +776,36 @@ def crawl_for_sensitive_content(url, max_urls=15):
         else:
             severity = "Low"
         
-        return {
+        result = {
             'sensitive_paths_found': sensitive_count,
             'paths': found_paths,
             'severity': severity
         }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["sensitive_content"] = result
+            update_scan_progress(scan_data, "sensitive_content", 5)
+        
+        return result
     except Exception as e:
-        return {
+        result = {
             'error': str(e),
             'sensitive_paths_found': 0,
             'paths': [],
             'severity': 'Medium'
         }
+        
+        # Update scan data if provided
+        if scan_data:
+            scan_data["web_security"]["sensitive_content"] = result
+            update_scan_progress(scan_data, "sensitive_content", 5)
+        
+        return result
 
 # ---------------------------- EMAIL SECURITY FUNCTIONS ----------------------------
 
-def analyze_dns_configuration(domain):
+def analyze_dns_configuration(domain, scan_data=None):
     """Analyze DNS configuration for a domain"""
     try:
         # Check A records
@@ -622,885 +863,3 @@ def analyze_dns_configuration(domain):
                 severity = "Medium"
         
         # No NS records
-        if len(ns_records) == 0 or ns_records[0].startswith("Error"):
-            issues.append("No NS records found")
-            severity = "High"
-        
-        return {
-            'a_records': a_records,
-            'mx_records': mx_records,
-            'ns_records': ns_records,
-            'txt_records': txt_records,
-            'issues': issues,
-            'severity': severity
-        }
-    except Exception as e:
-        return {
-            'error': str(e),
-            'severity': 'Medium'
-        }
-
-def check_spf_status(domain):
-    """Check SPF record status for a domain"""
-    try:
-        # Query TXT records for the domain
-        answers = dns.resolver.resolve(domain, 'TXT')
-        
-        spf_record = None
-        for rdata in answers:
-            for txt_string in rdata.strings:
-                txt_record = txt_string.decode('utf-8')
-                if txt_record.startswith('v=spf1'):
-                    spf_record = txt_record
-                    break
-        
-        # Analyze SPF record
-        if not spf_record:
-            return "No SPF record found", "High"
-        
-        # Check for ~all (soft fail)
-        if '~all' in spf_record:
-            return f"SPF record found: {spf_record} (Soft fail)", "Medium"
-        
-        # Check for -all (hard fail, most secure)
-        if '-all' in spf_record:
-            return f"SPF record found: {spf_record} (Hard fail, secure)", "Low"
-        
-        # Check for ?all (neutral)
-        if '?all' in spf_record:
-            return f"SPF record found: {spf_record} (Neutral, not secure)", "High"
-        
-        # Check for +all (allow all, very insecure)
-        if '+all' in spf_record:
-            return f"SPF record found: {spf_record} (Allow all, very insecure)", "Critical"
-        
-        return f"SPF record found: {spf_record} (No explicit policy)", "Medium"
-    except Exception as e:
-        return f"Error checking SPF: {str(e)}", "High"
-
-def check_dmarc_record(domain):
-    """Check DMARC record status for a domain"""
-    try:
-        # Query TXT records for _dmarc.domain
-        dmarc_domain = f"_dmarc.{domain}"
-        try:
-            answers = dns.resolver.resolve(dmarc_domain, 'TXT')
-            
-            dmarc_record = None
-            for rdata in answers:
-                for txt_string in rdata.strings:
-                    txt_record = txt_string.decode('utf-8')
-                    if txt_record.startswith('v=DMARC1'):
-                        dmarc_record = txt_record
-                        break
-            
-            # Analyze DMARC record
-            if not dmarc_record:
-                return "No DMARC record found", "High"
-            
-            # Extract policy
-            policy_match = re.search(r'p=([^;]+)', dmarc_record)
-            policy = policy_match.group(1) if policy_match else "none"
-            
-            # Determine severity based on policy
-            if policy == "reject":
-                return f"DMARC record found: {dmarc_record} (Policy: reject, secure)", "Low"
-            elif policy == "quarantine":
-                return f"DMARC record found: {dmarc_record} (Policy: quarantine, medium security)", "Medium"
-            else:  # policy == "none"
-                return f"DMARC record found: {dmarc_record} (Policy: none, low security)", "High"
-        except dns.resolver.NXDOMAIN:
-            return "No DMARC record found (NXDOMAIN)", "High"
-        except Exception as e:
-            return f"Error querying DMARC: {str(e)}", "High"
-    except Exception as e:
-        return f"Error checking DMARC: {str(e)}", "High"
-
-def check_dkim_record(domain):
-    """Check DKIM record status for a domain"""
-    # Common DKIM selectors to check
-    selectors = ['default', 'dkim', 'mail', 'email', 'selector1', 'selector2', 'k1']
-    
-    try:
-        for selector in selectors:
-            dkim_domain = f"{selector}._domainkey.{domain}"
-            try:
-                answers = dns.resolver.resolve(dkim_domain, 'TXT')
-                
-                # If we got this far, a DKIM record exists
-                return f"DKIM record found for selector '{selector}'", "Low"
-            except dns.resolver.NXDOMAIN:
-                continue
-            except Exception:
-                continue
-        
-        # If we get here, no DKIM records were found
-        return "No DKIM records found for common selectors", "High"
-    except Exception as e:
-        return f"Error checking DKIM: {str(e)}", "High"
-
-# ----------------------------
-# ---------------------------- SYSTEM SECURITY FUNCTIONS ----------------------------
-
-def check_os_updates():
-    """Check if operating system updates are available (simulated)"""
-    # This is a simulation since we can't actually check OS updates in a web environment
-    simulated_results = [
-        {"message": "System is up to date", "severity": "Low"},
-        {"message": "Updates available, but not critical", "severity": "Medium"},
-        {"message": "Critical updates pending", "severity": "High"},
-        {"message": "System severely outdated", "severity": "Critical"}
-    ]
-    
-    # Use deterministic approach instead of random
-    current_hour = datetime.now().hour
-    result_index = current_hour % len(simulated_results)
-    
-    return simulated_results[result_index]
-
-def check_firewall_status():
-    """Check firewall status (simulated)"""
-    # This is a simulation since we can't actually check firewall status in a web environment
-    simulated_results = [
-        ("Firewall enabled and properly configured", "Low"),
-        ("Firewall enabled but needs configuration review", "Medium"),
-        ("Firewall enabled but has significant gaps", "High"),
-        ("Firewall disabled or not detected", "Critical")
-    ]
-    
-    # Use deterministic approach instead of random
-    current_minute = datetime.now().minute
-    result_index = current_minute % len(simulated_results)
-    
-    return simulated_results[result_index]
-
-def check_open_ports():
-    """Check for open ports (simulated)"""
-    # This is a simulation since we can't actually scan ports in a web environment
-    
-    # Deterministic approach based on current time
-    current_second = datetime.now().second
-    
-    if current_second < 15:
-        # Few open ports
-        count = 3
-        severity = "Low"
-        ports = [80, 443, 22]
-    elif current_second < 30:
-        # Some open ports
-        count = 6
-        severity = "Medium"
-        ports = [80, 443, 22, 25, 143, 993]
-    elif current_second < 45:
-        # Many open ports
-        count = 10
-        severity = "High"
-        ports = [80, 443, 22, 25, 143, 993, 3306, 8080, 21, 5900]
-    else:
-        # Too many open ports
-        count = 15
-        severity = "Critical"
-        ports = [80, 443, 22, 25, 143, 993, 3306, 8080, 21, 5900, 23, 445, 1433, 3389, 8443]
-    
-    return count, ports, severity
-
-def analyze_port_risks(open_ports):
-    """Analyze the risk level of open ports"""
-    risks = []
-    
-    high_risk_ports = {
-        3389: "Remote Desktop Protocol (RDP) - High security risk if exposed",
-        21: "FTP - Transmits credentials in plain text",
-        23: "Telnet - Insecure, transmits data in plain text",
-        5900: "VNC - Remote desktop access, often lacks encryption",
-        1433: "Microsoft SQL Server - Database access",
-        3306: "MySQL Database - Potential attack vector if unprotected",
-        445: "SMB - Windows file sharing, historically vulnerable",
-        139: "NetBIOS - Windows networking, potential attack vector"
-    }
-    
-    medium_risk_ports = {
-        80: "HTTP - Web server without encryption",
-        25: "SMTP - Email transmission",
-        110: "POP3 - Email retrieval (older protocol)",
-        143: "IMAP - Email retrieval (often unencrypted)",
-        8080: "Alternative HTTP port, often used for proxies or development"
-    }
-    
-    for port in open_ports:
-        if port in high_risk_ports:
-            risks.append((port, high_risk_ports[port], "High"))
-        elif port in medium_risk_ports:
-            risks.append((port, medium_risk_ports[port], "Medium"))
-        else:
-            risks.append((port, f"Unknown service on port {port}", "Low"))
-    
-    # Sort by severity (High first)
-    return sorted(risks, key=lambda x: 0 if x[2] == "High" else (1 if x[2] == "Medium" else 2))
-
-# ---------------------------- ANALYSIS AND REPORTING FUNCTIONS ----------------------------
-
-def calculate_risk_score(scan_results):
-    """Calculate overall risk score based on all scan results"""
-    try:
-        risk_factors = []
-        total_weight = 0
-        weighted_score = 0
-        
-        # Define risk factors and their weights
-        risk_weights = {
-            'ssl_certificate': 15,
-            'security_headers': 15,
-            'cms': 10,
-            'cookies': 5,
-            'sensitive_content': 20,
-            'email_security': 15,
-            'open_ports': 20
-        }
-        
-        # Process SSL certificate
-        if 'ssl_certificate' in scan_results and 'error' not in scan_results['ssl_certificate']:
-            ssl_severity = scan_results['ssl_certificate'].get('severity', 'Low')
-            ssl_score = 10 - SEVERITY.get(ssl_severity, 1)
-            risk_factors.append({
-                'name': 'SSL/TLS Certificate',
-                'score': ssl_score,
-                'weight': risk_weights['ssl_certificate'],
-                'weighted_score': ssl_score * risk_weights['ssl_certificate'] / 10
-            })
-            weighted_score += ssl_score * risk_weights['ssl_certificate']
-            total_weight += risk_weights['ssl_certificate']
-        
-        # Process security headers
-        if 'security_headers' in scan_results and 'error' not in scan_results['security_headers']:
-            header_score = scan_results['security_headers'].get('score', 0) / 10
-            risk_factors.append({
-                'name': 'Security Headers',
-                'score': header_score,
-                'weight': risk_weights['security_headers'],
-                'weighted_score': header_score * risk_weights['security_headers'] / 10
-            })
-            weighted_score += header_score * risk_weights['security_headers']
-            total_weight += risk_weights['security_headers']
-        
-        # Process CMS
-        if 'cms' in scan_results and 'error' not in scan_results['cms']:
-            cms_severity = scan_results['cms'].get('severity', 'Low')
-            cms_score = 10 - SEVERITY.get(cms_severity, 1)
-            risk_factors.append({
-                'name': 'Content Management System',
-                'score': cms_score,
-                'weight': risk_weights['cms'],
-                'weighted_score': cms_score * risk_weights['cms'] / 10
-            })
-            weighted_score += cms_score * risk_weights['cms']
-            total_weight += risk_weights['cms']
-        
-        # Process cookies
-        if 'cookies' in scan_results and 'error' not in scan_results['cookies']:
-            cookie_score = scan_results['cookies'].get('score', 0) / 10
-            risk_factors.append({
-                'name': 'Cookie Security',
-                'score': cookie_score,
-                'weight': risk_weights['cookies'],
-                'weighted_score': cookie_score * risk_weights['cookies'] / 10
-            })
-            weighted_score += cookie_score * risk_weights['cookies']
-            total_weight += risk_weights['cookies']
-        
-        # Process sensitive content
-        if 'sensitive_content' in scan_results and 'error' not in scan_results['sensitive_content']:
-            sensitive_severity = scan_results['sensitive_content'].get('severity', 'Low')
-            sensitive_score = 10 - SEVERITY.get(sensitive_severity, 1)
-            risk_factors.append({
-                'name': 'Sensitive Content Exposure',
-                'score': sensitive_score,
-                'weight': risk_weights['sensitive_content'],
-                'weighted_score': sensitive_score * risk_weights['sensitive_content'] / 10
-            })
-            weighted_score += sensitive_score * risk_weights['sensitive_content']
-            total_weight += risk_weights['sensitive_content']
-        
-        # Process email security
-        if 'email_security' in scan_results:
-            email_sec = scan_results['email_security']
-            if 'error' not in email_sec:
-                spf_severity = email_sec.get('spf', {}).get('severity', 'Low')
-                dmarc_severity = email_sec.get('dmarc', {}).get('severity', 'Low')
-                dkim_severity = email_sec.get('dkim', {}).get('severity', 'Low')
-                
-                avg_severity_value = (SEVERITY.get(spf_severity, 1) + 
-                                      SEVERITY.get(dmarc_severity, 1) + 
-                                      SEVERITY.get(dkim_severity, 1)) / 3
-                
-                email_score = 10 - avg_severity_value
-                risk_factors.append({
-                    'name': 'Email Security',
-                    'score': email_score,
-                    'weight': risk_weights['email_security'],
-                    'weighted_score': email_score * risk_weights['email_security'] / 10
-                })
-                weighted_score += email_score * risk_weights['email_security']
-                total_weight += risk_weights['email_security']
-        
-        # Process open ports
-        if 'network' in scan_results and 'open_ports' in scan_results['network']:
-            ports_severity = scan_results['network']['open_ports'].get('severity', 'Low')
-            ports_score = 10 - SEVERITY.get(ports_severity, 1)
-            risk_factors.append({
-                'name': 'Open Ports',
-                'score': ports_score,
-                'weight': risk_weights['open_ports'],
-                'weighted_score': ports_score * risk_weights['open_ports'] / 10
-            })
-            weighted_score += ports_score * risk_weights['open_ports']
-            total_weight += risk_weights['open_ports']
-        
-        # Calculate final score
-        overall_score = 0
-        if total_weight > 0:
-            overall_score = int((weighted_score / total_weight) * 100)
-        
-        # Determine risk level
-        if overall_score >= 90:
-            risk_level = "Low"
-        elif overall_score >= 70:
-            risk_level = "Medium"
-        elif overall_score >= 50:
-            risk_level = "High"
-        else:
-            risk_level = "Critical"
-        
-        return {
-            'overall_score': overall_score,
-            'risk_level': risk_level,
-            'risk_factors': risk_factors
-        }
-    except Exception as e:
-        return {
-            'error': str(e),
-            'overall_score': 0,
-            'risk_level': 'Unknown'
-        }
-
-def get_severity_level(score):
-    """Convert a numerical score to a severity level"""
-    if score <= 30:
-        return "Critical"
-    elif score <= 50:
-        return "High"
-    elif score <= 75:
-        return "Medium"
-    else:
-        return "Low"
-
-def get_recommendations(scan_results):
-    """Generate recommendations based on scan results"""
-    recommendations = []
-    
-    # Email security recommendations
-    if 'email_security' in scan_results:
-        email_sec = scan_results['email_security']
-        
-        # SPF recommendations
-        if 'spf' in email_sec and email_sec['spf']['severity'] in ['High', 'Critical']:
-            recommendations.append("Implement a proper SPF record with a hard fail (-all) policy to prevent email spoofing.")
-        
-        # DMARC recommendations
-        if 'dmarc' in email_sec and email_sec['dmarc']['severity'] in ['High', 'Critical']:
-            recommendations.append("Set up a DMARC record with a 'reject' or 'quarantine' policy to enhance email security.")
-        
-        # DKIM recommendations
-        if 'dkim' in email_sec and email_sec['dkim']['severity'] in ['High', 'Critical']:
-            recommendations.append("Implement DKIM signing for your domain to authenticate outgoing emails.")
-    
-    # Web security recommendations
-    if 'ssl_certificate' in scan_results and scan_results['ssl_certificate'].get('severity', 'Low') in ['High', 'Critical']:
-        recommendations.append("Update your SSL/TLS certificate and ensure proper configuration with modern protocols.")
-    
-    if 'security_headers' in scan_results and scan_results['security_headers'].get('severity', 'Low') in ['High', 'Critical']:
-        recommendations.append("Implement missing security headers to protect against common web vulnerabilities.")
-    
-    if 'cms' in scan_results and scan_results['cms'].get('severity', 'Low') in ['High', 'Critical']:
-        cms_name = scan_results['cms'].get('cms_name', '')
-        if cms_name:
-            recommendations.append(f"Update your {cms_name} installation to the latest version to patch security vulnerabilities.")
-    
-    if 'sensitive_content' in scan_results and scan_results['sensitive_content'].get('severity', 'Low') in ['High', 'Critical']:
-        recommendations.append("Restrict access to sensitive directories and files that could expose configuration details.")
-    
-    # Network recommendations
-    if 'network' in scan_results and 'open_ports' in scan_results['network']:
-        if scan_results['network']['open_ports'].get('severity', 'Low') in ['High', 'Critical']:
-            recommendations.append("Close unnecessary open ports to reduce attack surface. Use a properly configured firewall.")
-    
-    # Add general recommendations if specific ones are limited
-    if len(recommendations) < 3:
-        recommendations.append("Implement regular security scanning and monitoring for early detection of vulnerabilities.")
-        recommendations.append("Keep all software and systems updated with the latest security patches.")
-        recommendations.append("Use strong, unique passwords and consider implementing multi-factor authentication where possible.")
-    
-    return recommendations
-
-def generate_threat_scenario(scan_results):
-    """Generate a realistic threat scenario based on scan findings"""
-    threats = []
-    
-    # Check for specific high-risk issues
-    if 'email_security' in scan_results:
-        email_sec = scan_results['email_security']
-        if 'spf' in email_sec and email_sec['spf']['severity'] in ['High', 'Critical']:
-            threats.append({
-                'name': 'Email Spoofing Attack',
-                'description': 'Without proper SPF records, attackers could send emails that appear to come from your domain, leading to successful phishing attacks against your customers or partners.',
-                'impact': 'High',
-                'likelihood': 'Medium'
-            })
-    
-    if 'ssl_certificate' in scan_results and scan_results['ssl_certificate'].get('severity', 'High') == 'Critical':
-        threats.append({
-            'name': 'Man-in-the-Middle Attack',
-            'description': 'With an expired or improperly configured SSL certificate, attackers could intercept communications between your users and your website, potentially stealing sensitive information.',
-            'impact': 'High',
-            'likelihood': 'Medium'
-        })
-    
-    if 'network' in scan_results and 'open_ports' in scan_results['network']:
-        if scan_results['network']['open_ports'].get('severity', 'Low') in ['High', 'Critical']:
-            ports = scan_results['network']['open_ports'].get('list', [])
-            if 3389 in ports:  # RDP
-                threats.append({
-                    'name': 'Remote Desktop Brute Force Attack',
-                    'description': 'With Remote Desktop Protocol exposed, attackers could attempt brute force password attacks to gain unauthorized access to your systems.',
-                    'impact': 'Critical',
-                    'likelihood': 'High'
-                })
-            if 21 in ports or 23 in ports:  # FTP or Telnet
-                threats.append({
-                    'name': 'Credential Theft via Unencrypted Protocols',
-                    'description': 'Use of unencrypted protocols like FTP or Telnet could allow attackers to capture login credentials through network sniffing.',
-                    'impact': 'High',
-                    'likelihood': 'Medium'
-                })
-    
-    if 'cms' in scan_results and scan_results['cms'].get('cms_detected', False):
-        if scan_results['cms'].get('potential_vulnerabilities', []):
-            cms_name = scan_results['cms'].get('cms_name', 'CMS')
-            threats.append({
-                'name': f'{cms_name} Vulnerability Exploitation',
-                'description': f'Outdated {cms_name} installations often contain known vulnerabilities that attackers can exploit to gain unauthorized access or inject malicious code.',
-                'impact': 'High',
-                'likelihood': 'High'
-            })
-    
-    if 'sensitive_content' in scan_results and scan_results['sensitive_content'].get('severity', 'Low') in ['High', 'Critical']:
-        threats.append({
-            'name': 'Sensitive Data Exposure',
-            'description': 'Exposed configuration files, backup data, or development artifacts could provide attackers with valuable information to plan more targeted attacks.',
-            'impact': 'Medium',
-            'likelihood': 'Medium'
-        })
-    
-    # Add a generic threat if no specific threats were identified
-    if not threats:
-        threats.append({
-            'name': 'General Cyber Attack',
-            'description': 'Even with no critical vulnerabilities detected, organizations remain targets for common attacks like phishing, social engineering, or exploitation of newly discovered vulnerabilities.',
-            'impact': 'Medium',
-            'likelihood': 'Low'
-        })
-    
-    return threats
-
-def generate_html_report(scan_results, is_integrated=False):
-    """Generate an HTML report from scan results"""
-    try:
-        # Start HTML document
-        html = """
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Security Scan Report</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    line-height: 1.6;
-                    margin: 0;
-                    padding: 20px;
-                    color: #333;
-                    background-color: #f9f9f9;
-                }
-                .container {
-                    max-width: 1000px;
-                    margin: 0 auto;
-                    background: white;
-                    padding: 30px;
-                    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-                }
-                .header {
-                    background-color: #2c3e50;
-                    color: white;
-                    padding: 20px;
-                    text-align: center;
-                    margin-bottom: 20px;
-                    border-radius: 5px;
-                }
-                .logo {
-                    max-width: 200px;
-                    margin: 0 auto 20px auto;
-                    display: block;
-                }
-                h1 {
-                    margin: 0;
-                    font-size: 24px;
-                }
-                h2 {
-                    color: #2c3e50;
-                    border-bottom: 2px solid #eee;
-                    padding-bottom: 10px;
-                    margin-top: 30px;
-                }
-                h3 {
-                    color: #3498db;
-                    margin-top: 20px;
-                }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin: 20px 0;
-                }
-                th, td {
-                    padding: 12px 15px;
-                    text-align: left;
-                    border-bottom: 1px solid #ddd;
-                }
-                th {
-                    background-color: #f2f2f2;
-                }
-                tr:hover {
-                    background-color: #f5f5f5;
-                }
-                .severity {
-                    font-weight: bold;
-                    padding: 5px 10px;
-                    border-radius: 4px;
-                    display: inline-block;
-                }
-                .Critical {
-                    background-color: #ff4d4d;
-                    color: white;
-                }
-                .High {
-                    background-color: #ff9933;
-                    color: white;
-                }
-                .Medium {
-                    background-color: #ffcc00;
-                    color: #333;
-                }
-                .Low {
-                    background-color: #92d36e;
-                    color: #333;
-                }
-                .Info {
-                    background-color: #3498db;
-                    color: white;
-                }
-                .summary {
-                    background-color: #f8f9fa;
-                    padding: 20px;
-                    border-radius: 5px;
-                    margin: 20px 0;
-                }
-                .score-container {
-                    text-align: center;
-                    margin: 30px 0;
-                }
-                .score {
-                    font-size: 64px;
-                    font-weight: bold;
-                    line-height: 1;
-                }
-                .recommendation {
-                    background-color: #e8f4fc;
-                    padding: 15px;
-                    border-left: 5px solid #3498db;
-                    margin: 10px 0;
-                }
-                .threat {
-                    background-color: #fff3e0;
-                    padding: 15px;
-                    border-left: 5px solid #ff9800;
-                    margin: 10px 0;
-                }
-                .footer {
-                    margin-top: 50px;
-                    text-align: center;
-                    color: #777;
-                    font-size: 14px;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>Comprehensive Security Scan Report</h1>
-                    <p>Generated on """ + datetime.now().strftime("%Y-%m-%d at %H:%M:%S") + """</p>
-                </div>
-                
-                <div class="summary">
-                    <h2>Executive Summary</h2>
-        """
-        
-        # Add risk score if available
-        if 'risk_assessment' in scan_results and 'overall_score' in scan_results['risk_assessment']:
-            risk_score = scan_results['risk_assessment']['overall_score']
-            risk_level = scan_results['risk_assessment']['risk_level']
-            
-            # Determine color based on risk level
-            score_color = "#92d36e"  # Green (Low)
-            if risk_level == "Medium":
-                score_color = "#ffcc00"  # Yellow
-            elif risk_level == "High":
-                score_color = "#ff9933"  # Orange
-            elif risk_level == "Critical":
-                score_color = "#ff4d4d"  # Red
-            
-            html += f"""
-                    <div class="score-container">
-                        <div style="font-size: 18px;">Overall Risk Score</div>
-                        <div class="score" style="color: {score_color};">{risk_score}</div>
-                        <div><span class="severity {risk_level}">{risk_level} Risk</span></div>
-                    </div>
-            """
-        
-        # Add scan scope information
-        html += """
-                    <p><strong>Scan Type:</strong> Comprehensive Security Assessment</p>
-        """
-        
-        if 'target' in scan_results:
-            target = scan_results['target']
-            html += f"""
-                    <p><strong>Target:</strong> {target}</p>
-            """
-        
-        html += """
-                </div>
-                
-                <h2>Key Findings</h2>
-        """
-        
-        # Build a list of key findings
-        key_findings = []
-        
-        # Email security findings
-        if 'email_security' in scan_results:
-            email_sec = scan_results['email_security']
-            if 'error' not in email_sec:
-                for protocol in ['spf', 'dmarc', 'dkim']:
-                    if protocol in email_sec and email_sec[protocol]['severity'] in ['High', 'Critical']:
-                        status = email_sec[protocol]['status'] if 'status' in email_sec[protocol] else f"Issue with {protocol.upper()}"
-                        key_findings.append({
-                            'category': 'Email Security',
-                            'finding': status,
-                            'severity': email_sec[protocol]['severity']
-                        })
-        
-        # Web security findings
-        if 'ssl_certificate' in scan_results and 'error' not in scan_results['ssl_certificate']:
-            if scan_results['ssl_certificate']['severity'] in ['High', 'Critical']:
-                key_findings.append({
-                    'category': 'Web Security',
-                    'finding': scan_results['ssl_certificate']['status'],
-                    'severity': scan_results['ssl_certificate']['severity']
-                })
-        
-        if 'security_headers' in scan_results and 'error' not in scan_results['security_headers']:
-            if scan_results['security_headers']['severity'] in ['High', 'Critical']:
-                key_findings.append({
-                    'category': 'Web Security',
-                    'finding': f"Missing important security headers (Score: {scan_results['security_headers']['score']}/100)",
-                    'severity': scan_results['security_headers']['severity']
-                })
-        
-        if 'cms' in scan_results and 'error' not in scan_results['cms']:
-            if scan_results['cms']['severity'] in ['High', 'Critical'] and scan_results['cms']['cms_detected']:
-                vulnerabilities = scan_results['cms'].get('potential_vulnerabilities', [])
-                if vulnerabilities:
-                    key_findings.append({
-                        'category': 'Web Application',
-                        'finding': f"Vulnerable {scan_results['cms']['cms_name']} installation detected",
-                        'severity': scan_results['cms']['severity']
-                    })
-        
-        if 'sensitive_content' in scan_results and 'error' not in scan_results['sensitive_content']:
-            if scan_results['sensitive_content']['severity'] in ['High', 'Critical']:
-                paths = scan_results['sensitive_content'].get('paths', [])
-                path_count = len(paths)
-                key_findings.append({
-                    'category': 'Web Content',
-                    'finding': f"Exposed sensitive content ({path_count} paths discovered)",
-                    'severity': scan_results['sensitive_content']['severity']
-                })
-        
-        # Network findings
-        if 'network' in scan_results and 'open_ports' in scan_results['network']:
-            if scan_results['network']['open_ports']['severity'] in ['High', 'Critical']:
-                key_findings.append({
-                    'category': 'Network Security',
-                    'finding': f"Excessive open ports detected ({scan_results['network']['open_ports']['count']} ports)",
-                    'severity': scan_results['network']['open_ports']['severity']
-                })
-        
-        # System findings
-        if 'system' in scan_results:
-            if 'os_updates' in scan_results['system'] and scan_results['system']['os_updates']['severity'] in ['High', 'Critical']:
-                key_findings.append({
-                    'category': 'System Security',
-                    'finding': scan_results['system']['os_updates']['message'],
-                    'severity': scan_results['system']['os_updates']['severity']
-                })
-            
-            if 'firewall' in scan_results['system'] and scan_results['system']['firewall']['severity'] in ['High', 'Critical']:
-                key_findings.append({
-                    'category': 'System Security',
-                    'finding': scan_results['system']['firewall']['status'],
-                    'severity': scan_results['system']['firewall']['severity']
-                })
-        
-        # If we have key findings, add them to the report
-        if key_findings:
-            html += """
-                <table>
-                    <tr>
-                        <th>Category</th>
-                        <th>Finding</th>
-                        <th>Severity</th>
-                    </tr>
-            """
-            
-            # Sort findings by severity (Critical first, then High, etc.)
-            severity_order = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3, "Info": 4}
-            key_findings.sort(key=lambda x: severity_order.get(x['severity'], 999))
-            
-            for finding in key_findings:
-                html += f"""
-                    <tr>
-                        <td>{finding['category']}</td>
-                        <td>{finding['finding']}</td>
-                        <td><span class="severity {finding['severity']}">{finding['severity']}</span></td>
-                    </tr>
-                """
-            
-            html += """
-                </table>
-            """
-        else:
-            html += """
-                <p>No critical security issues were detected in this scan. Continue to monitor and maintain your security posture.</p>
-            """
-        
-        # Add detailed sections
-        
-        # Email Security Section
-        if 'email_security' in scan_results:
-            html += """
-                <h2>Email Security Assessment</h2>
-                <table>
-                    <tr>
-                        <th>Protocol</th>
-                        <th>Status</th>
-                        <th>Severity</th>
-                    </tr>
-            """
-            
-            email_sec = scan_results['email_security']
-            if 'error' not in email_sec:
-                for protocol in ['spf', 'dmarc', 'dkim']:
-                    if protocol in email_sec:
-                        status = email_sec[protocol]['status'] if 'status' in email_sec[protocol] else "Unknown"
-                        severity = email_sec[protocol]['severity'] if 'severity' in email_sec[protocol] else "Info"
-                        html += f"""
-                            <tr>
-                                <td>{protocol.upper()}</td>
-                                <td>{status}</td>
-                                <td><span class="severity {severity}">{severity}</span></td>
-                            </tr>
-                        """
-            
-            html += """
-                </table>
-            """
-        
-        # SSL/TLS Section
-        if 'ssl_certificate' in scan_results and 'error' not in scan_results['ssl_certificate']:
-            html += """
-                <h2>SSL/TLS Certificate Analysis</h2>
-                <table>
-                    <tr>
-                        <th>Attribute</th>
-                        <th>Value</th>
-                    </tr>
-            """
-            
-            ssl_cert = scan_results['ssl_certificate']
-            attributes = [
-                ('Status', 'status'),
-                ('Issuer', 'issuer'),
-                ('Subject', 'subject'),
-                ('Valid Until', 'valid_until'),
-                ('Days Remaining', 'days_remaining'),
-                ('Protocol Version', 'protocol_version')
-            ]
-            
-            for label, key in attributes:
-                if key in ssl_cert:
-                    html += f"""
-                        <tr>
-                            <td>{label}</td>
-                            <td>{ssl_cert[key]}</td>
-                        </tr>
-                    """
-            
-            # Add a severity row
-            html += f"""
-                <tr>
-                    <td>Severity</td>
-                    <td><span class="severity {ssl_cert.get('severity', 'Info')}">{ssl_cert.get('severity', 'Info')}</span></td>
-                </tr>
-            """
-            
-            html += """
-                </table>
-            """
-            # Security Headers Section
-            if 'security_headers' in scan_results and 'error' not in scan_results['security_headers']:
-                html += """
-            <h2>Security Headers Assessment</h2>
-            <p>Security headers help protect your website from various attacks like XSS, clickjacking, and more.</p>
-        
-            <div class="score-container">
-                <div style="font-size: 18px;">Security Headers Score</div>
-                <div class="score" style="font-size: 48px;">{0}/100</div>
-            </div>
-            """.format(scan_results['security_headers']['score'])
-            
-            try:
-                html += """
-            <div class="score-container">
-            <div style="font-size: 18px;">Security Headers Score</div>
-            <div class="score" style="font-size: 48px;">{0}/100</div>
-            </div>
-            """.format(scan_results['security_headers']['score'])
-            except Exception as e:
-                # Add error handling here
-                logging.error(f"Error formatting security headers score: {e}")
-                html += """
-            <div class="score-container">
-            <div style="font-size: 18px;">Security Headers Score</div>
-            <div class="score" style="font-size: 48px;">N/A</div>
-            </div>
-        """
