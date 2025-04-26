@@ -21,14 +21,6 @@ from bs4 import BeautifulSoup
 import dns.resolver
 from email_handler import send_email_report
 
-# Define the base directory
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Then use it for SCAN_HISTORY_DIR
-SCAN_HISTORY_DIR = os.path.join(BASE_DIR, 'scan_history')
-if not os.path.exists(SCAN_HISTORY_DIR):
-    os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
-  
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
@@ -77,6 +69,25 @@ GATEWAY_PORT_WARNINGS = {
     22: ("SSH", "Low"),
 }
 
+# Create directory for scan history
+SCAN_HISTORY_DIR = 'scan_history'
+if not os.path.exists(SCAN_HISTORY_DIR):
+    os.makedirs(SCAN_HISTORY_DIR)
+
+
+# Define the base directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Create directory for scan history
+SCAN_HISTORY_DIR = os.path.join(BASE_DIR, 'scan_history')
+if not os.path.exists(SCAN_HISTORY_DIR):
+    os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
+
+# Define a fallback directory that should be writable in most environments
+FALLBACK_DIR = '/tmp/scan_history'
+if not os.path.exists(FALLBACK_DIR):
+    os.makedirs(FALLBACK_DIR, exist_ok=True)
+    
 # ---------------------------- SCANNING FUNCTIONS ----------------------------
 
 def extract_domain_from_email(email):
