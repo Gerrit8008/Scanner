@@ -1563,3 +1563,31 @@ def generate_html_report(scan_results, is_integrated=False):
         </body>
         </html>
         """
+        
+# Make all functions available when importing the module
+__all__ = [
+    'extract_domain_from_email',
+    'server_lookup',
+    'get_client_and_gateway_ip',
+    'get_default_gateway_ip',
+    'scan_gateway_ports',
+    'check_ssl_certificate',
+    'check_security_headers',
+    'detect_cms',
+    'analyze_cookies',
+    'detect_web_framework',
+    'crawl_for_sensitive_content',
+    'analyze_dns_configuration',
+    'check_spf_status',
+    'check_dmarc_record',
+    'check_dkim_record',
+    'check_os_updates',
+    'check_firewall_status',
+    'check_open_ports',
+    'analyze_port_risks',
+    'calculate_risk_score',
+    'get_severity_level',
+    'get_recommendations',
+    'generate_threat_scenario',
+    'generate_html_report'
+]
