@@ -600,6 +600,7 @@ def run_consolidated_scan(lead_data):
     logging.info(f"Scan {scan_id} completed")
     return scan_results
 
+
 # ---------------------------- FLASK ROUTES ----------------------------
 
 @app.route('/')
@@ -791,7 +792,6 @@ def results():
     results_file = session.get('scan_results_file')
     
     logger.info(f"Results page accessed with scan_id from session: {scan_id}")
-    logger.debug(f"Results file path from session: {results_file}")
     
     if not scan_id:
         logger.warning("No scan_id in session, redirecting to scan page")
@@ -801,107 +801,41 @@ def results():
         # First check if we have a specific file path in session
         if results_file and os.path.exists(results_file):
             logger.debug(f"Using specific results file path from session: {results_file}")
-            logger.debug(f"File size: {os.path.getsize(results_file)} bytes")
-            
             with open(results_file, 'r') as f:
                 scan_results = json.load(f)
-                logger.debug(f"Successfully loaded JSON from {results_file}")
         else:
             # Fall back to default location
             default_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
             logger.debug(f"Looking for results file at default location: {default_file}")
             
-            if os.path.exists(default_file):
-                logger.debug(f"Default file exists. Size: {os.path.getsize(default_file)} bytes")
-            else:
-                logger.error(f"Scan results file not found: {default_file}")
-            
             if not os.path.exists(default_file):
+                logger.error(f"Scan results file not found: {default_file}")
                 # Try fallback location
-                fallback_dir = FALLBACK_DIR
+                fallback_dir = "/tmp/scan_history"
                 fallback_file = os.path.join(fallback_dir, f"scan_{scan_id}.json")
                 logger.debug(f"Trying fallback location: {fallback_file}")
                 
-                if os.path.exists(fallback_file):
-                    logger.debug(f"Fallback file exists. Size: {os.path.getsize(fallback_file)} bytes")
-                else:
-                    logger.error(f"Fallback results file not found: {fallback_file}")
-                
                 if not os.path.exists(fallback_file):
-                    # Do a directory listing to see what files are available
-                    try:
-                        primary_files = os.listdir(SCAN_HISTORY_DIR)
-                        logger.debug(f"Files in primary directory: {primary_files}")
-                    except Exception as e:
-                        logger.warning(f"Could not list primary directory: {e}")
-                    
-                    try:
-                        fallback_files = os.listdir(FALLBACK_DIR)
-                        logger.debug(f"Files in fallback directory: {fallback_files}")
-                    except Exception as e:
-                        logger.warning(f"Could not list fallback directory: {e}")
-                    
-                    logger.error("No results file found in any location")
-                    return render_template('error.html', error="Scan results not found. Please try scanning again.")
+                    logger.error(f"Fallback results file not found: {fallback_file}")
+                    # Clear the session and redirect to scan page with error
+                    session.pop('scan_id', None)
+                    session.pop('scan_results_file', None)
+                    return render_template('scan.html', error="Scan results not found. Please try scanning again.")
                 
                 with open(fallback_file, 'r') as f:
                     scan_results = json.load(f)
-                    logger.debug(f"Successfully loaded JSON from fallback location")
             else:
                 with open(default_file, 'r') as f:
                     scan_results = json.load(f)
-                    logger.debug(f"Successfully loaded JSON from default location")
         
         logger.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
         
         return render_template('results.html', scan=scan_results)
     except Exception as e:
         logger.error(f"Error loading scan results: {e}")
-        logger.debug(f"Exception traceback: {traceback.format_exc()}")
-        return render_template('error.html', error=f"Error loading scan results: {str(e)}")
-    """Display scan results"""
-    scan_id = session.get('scan_id')
-    results_file = session.get('scan_results_file')  # Check for fallback file location
-    
-    logging.debug(f"Results page accessed with scan_id from session: {scan_id}")
-    
-    if not scan_id:
-        logging.warning("No scan_id in session, redirecting to scan page")
-        return redirect(url_for('scan_page'))
-    
-    try:
-        # First check if we have a specific file path in session
-        if results_file and os.path.exists(results_file):
-            logging.debug(f"Using specific results file path from session: {results_file}")
-            with open(results_file, 'r') as f:
-                scan_results = json.load(f)
-        else:
-            # Fall back to default location
-            default_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
-            logging.debug(f"Looking for results file at default location: {default_file}")
-            
-            if not os.path.exists(default_file):
-                logging.error(f"Scan results file not found: {default_file}")
-                # Try fallback location
-                fallback_dir = "/tmp/scan_history"
-                fallback_file = os.path.join(fallback_dir, f"scan_{scan_id}.json")
-                logging.debug(f"Trying fallback location: {fallback_file}")
-                
-                if not os.path.exists(fallback_file):
-                    logging.error(f"Fallback results file not found: {fallback_file}")
-                    return render_template('error.html', error="Scan results not found. Please try scanning again.")
-                
-                with open(fallback_file, 'r') as f:
-                    scan_results = json.load(f)
-            else:
-                with open(default_file, 'r') as f:
-                    scan_results = json.load(f)
-        
-        logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
-        
-        return render_template('results.html', scan=scan_results)
-    except Exception as e:
-        logging.error(f"Error loading scan results: {e}")
+        # Clear the session on error
+        session.pop('scan_id', None)
+        session.pop('scan_results_file', None)
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
     
 @app.route('/api/scan', methods=['POST'])    
