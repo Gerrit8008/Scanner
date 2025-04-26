@@ -392,7 +392,8 @@ def save_scan_data(scan_data):
     is_render = os.environ.get('RENDER') == 'true'
     
     if is_render:
-        # Use the naming convention from your logs
+        # Using EXACTLY the naming convention from your application's logs
+        # Note that it's "scan_" prefix with NO results suffix
         filename = f"scan_{scan_id}.json"
     else:
         # Default naming convention
@@ -409,7 +410,7 @@ def save_scan_data(scan_data):
         logging.error(f"Failed to save scan data to {json_path}: {e}")
         
         # Attempt to save to fallback locations
-        for fallback_dir in [scan_data.get("fallback_save_directory"), os.getcwd(), "/tmp"]:
+        for fallback_dir in [scan_data.get("fallback_save_directory"), os.getcwd(), "/tmp/scan_history", "/tmp"]:
             if fallback_dir and fallback_dir != save_directory:
                 try:
                     os.makedirs(fallback_dir, exist_ok=True)
@@ -467,12 +468,13 @@ def finalize_scan(scan_data, results_html_path="results.html"):
                 if "current_save_directory" in scan_data and os.path.exists(scan_data["current_save_directory"]):
                     results_dir = scan_data["current_save_directory"]
                 else:
-                    results_dir = os.path.join(render_src_path, 'results')
+                    results_dir = os.path.join(render_src_path, 'scan_history')
             else:
                 # Fallback to /tmp which is usually writable
-                results_dir = '/tmp'
+                results_dir = '/tmp/scan_history'
             
-            # Create a filename with scan ID for uniqueness
+            # Create a filename with scan ID that matches the expected pattern
+            # Using "scan_results_" prefix based on application logs
             filename = f"scan_results_{scan_data['scan_id']}.html"
             absolute_path = os.path.join(results_dir, filename)
         else:
@@ -488,7 +490,7 @@ def finalize_scan(scan_data, results_html_path="results.html"):
             except Exception as dir_err:
                 logging.warning(f"Could not create directory {results_dir}: {dir_err}")
                 # Fall back to current save directory or /tmp
-                fallback_dir = scan_data.get("current_save_directory", "/tmp")
+                fallback_dir = scan_data.get("current_save_directory", "/tmp/scan_history")
                 filename = os.path.basename(absolute_path)
                 absolute_path = os.path.join(fallback_dir, filename)
                 
@@ -514,13 +516,18 @@ def finalize_scan(scan_data, results_html_path="results.html"):
         logging.error(f"Failed to write HTML report: {e}")
         
         # Try multiple fallback locations
-        for fallback_dir in [scan_data.get("current_save_directory"), os.getcwd(), "/tmp"]:
+        for fallback_dir in [scan_data.get("current_save_directory"), "/tmp/scan_history", os.getcwd(), "/tmp"]:
             if not fallback_dir:
                 continue
                 
             try:
                 os.makedirs(fallback_dir, exist_ok=True)
-                filename = f"security_scan_results_{scan_data['scan_id']}.html"
+                # Use consistent naming pattern
+                if is_render:
+                    filename = f"scan_results_{scan_data['scan_id']}.html"
+                else:
+                    filename = f"security_scan_results_{scan_data['scan_id']}.html"
+                    
                 fallback_path = os.path.join(fallback_dir, filename)
                 
                 with open(fallback_path, 'w') as f:
