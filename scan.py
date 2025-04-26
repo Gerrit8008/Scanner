@@ -1506,4 +1506,3 @@ def generate_html_report(scan_results, is_integrated=False):
             <div style="font-size: 18px;">Security Headers Score</div>
             <div class="score" style="font-size: 48px;">N/A</div>
         </div>
-        """
