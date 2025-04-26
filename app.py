@@ -2060,6 +2060,302 @@ def run_consolidated_scan(lead_data):
         logging.info("Generating HTML report...")
         html_report = generate_html_report(scan_results)
         
+        # Save scan results to multiple locations to ensure at least one works
+        logging.debug(f"Saving scan results for scan_id: {scan_id}")
+        
+        # Define multiple locations to try
+        locations = [
+            os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json"),
+            os.path.join('/tmp/scan_history', f"scan_{scan_id}.json"),
+            os.path.join('/tmp', f"scan_{scan_id}.json"),
+            os.path.join(os.getcwd(), 'scan_history', f"scan_{scan_id}.json")
+        ]
+        
+        # Try each location
+        success = False
+        for location in locations:
+            try:
+                # Make sure directory exists
+                os.makedirs(os.path.dirname(location), exist_ok=True)
+                
+                # Save the file
+                with open(location, 'w') as f:
+                    json.dump(scan_results, f, indent=2)
+                logging.info(f"Successfully saved scan results to: {location}")
+                
+                # Store the successful location in session for later retrieval
+                from flask import session
+                session['scan_results_file'] = location
+                success = True
+                
+                # Break after first successful save to avoid unnecessary writes
+                break
+            except Exception as e:
+                logging.warning(f"Failed to save to {location}: {e}")
+        
+        if not success:
+            logging.error("Failed to save scan results to any location")
+        
+        # Send email with the report if required
+        try:
+            if lead_data.get('email'):
+                from email_handler import send_email_report
+                email_sent = send_email_report(lead_data, html_report, is_html=True)
+                logging.info(f"Email report sent: {email_sent}")
+                scan_results['email_sent'] = email_sent
+        except Exception as email_error:
+            logging.error(f"Error sending email report: {email_error}")
+            scan_results['email_error'] = str(email_error)
+            
+        return scan_results
+        
+    except Exception as e:
+        logging.error(f"Error during scan execution: {e}")
+        scan_results['error'] = str(e)
+        
+        # Even if the scan fails, try to save what we have to multiple locations
+        locations = [
+            os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json"),
+            os.path.join('/tmp/scan_history', f"scan_{scan_id}.json"),
+            os.path.join('/tmp', f"scan_{scan_id}.json"),
+            os.path.join(os.getcwd(), 'scan_history', f"scan_{scan_id}.json")
+        ]
+        
+        saved = False
+        for location in locations:
+            try:
+                # Make sure directory exists
+                os.makedirs(os.path.dirname(location), exist_ok=True)
+                
+                # Save the file
+                with open(location, 'w') as f:
+                    json.dump(scan_results, f, indent=2)
+                logging.info(f"Partial scan results saved to: {location}")
+                
+                # Store the successful location in session for later retrieval
+                from flask import session
+                session['scan_results_file'] = location
+                saved = True
+                
+                # Break after first successful save
+                break
+            except Exception as save_error:
+                logging.warning(f"Failed to save partial results to {location}: {save_error}")
+        
+        if not saved:
+            logging.error("Failed to save partial scan results to any location")
+            
+        return scan_results
+    """
+    Run a complete security scan and generate one comprehensive report.
+    
+    Args:
+        lead_data (dict): User information and scan parameters
+    
+    Returns:
+        dict: Complete scan results
+    """
+    global SCAN_HISTORY_DIR  
+    
+    scan_id = str(uuid.uuid4())
+    timestamp = datetime.now().isoformat()
+    
+    logging.debug(f"Starting scan with ID: {scan_id}")
+    
+    # Initialize scan results structure
+    scan_results = {
+        'scan_id': scan_id,
+        'timestamp': timestamp,
+        'target': lead_data.get('target', ''),
+        'client_info': {
+            'os': lead_data.get('client_os', 'Unknown'),
+            'browser': lead_data.get('client_browser', 'Unknown'),
+            'windows_version': lead_data.get('windows_version', '')
+        }
+    }
+    
+    # 1. System Security Checks
+    try:
+        logging.info("Running system security checks...")
+        scan_results['system'] = {
+            'os_updates': check_os_updates(),
+            'firewall': {
+                'status': check_firewall_status()[0],
+                'severity': check_firewall_status()[1]
+            }
+        }
+    except Exception as e:
+        logging.error(f"Error during system security checks: {e}")
+        scan_results['system'] = {'error': str(e)}
+    
+    # 2. Network Security Checks
+    try:
+        logging.info("Running network security checks...")
+        ports_count, ports_list, ports_severity = check_open_ports()
+        scan_results['network'] = {
+            'open_ports': {
+                'count': ports_count,
+                'list': ports_list,
+                'severity': ports_severity
+            }
+        }
+        
+        # Gateway checks
+        gateway_info = get_default_gateway_ip()
+        gateway_scan_results = scan_gateway_ports(gateway_info)
+        scan_results['network']['gateway'] = {
+            'info': gateway_info,
+            'results': gateway_scan_results
+        }
+    except Exception as e:
+        logging.error(f"Error during network security checks: {e}")
+        scan_results['network'] = {'error': str(e)}
+    
+    # 3. Email Security Checks
+    try:
+        logging.info("Running email security checks...")
+        email = lead_data.get('email', '')
+        if "@" in email:
+            domain = extract_domain_from_email(email)
+            spf_status, spf_severity = check_spf_status(domain)
+            dmarc_status, dmarc_severity = check_dmarc_record(domain)
+            dkim_status, dkim_severity = check_dkim_record(domain)
+            
+            scan_results['email_security'] = {
+                'domain': domain,
+                'spf': {
+                    'status': spf_status,
+                    'severity': spf_severity
+                },
+                'dmarc': {
+                    'status': dmarc_status,
+                    'severity': dmarc_severity
+                },
+                'dkim': {
+                    'status': dkim_status,
+                    'severity': dkim_severity
+                }
+            }
+        else:
+            scan_results['email_security'] = {
+                'error': 'No valid email provided'
+            }
+    except Exception as e:
+        logging.error(f"Error during email security checks: {e}")
+        scan_results['email_security'] = {'error': str(e)}
+    
+    # 4. Web Security Checks (if target domain provided)
+    target = lead_data.get('target', '')
+    if target and target.strip():
+        try:
+            logging.info(f"Running web security checks for target: {target}...")
+            
+            # Determine if it's a domain or IP
+            is_domain = False
+            try:
+                socket.inet_aton(target)  # Will fail if target is not an IP address
+            except socket.error:
+                is_domain = True
+            
+            scan_results['is_domain'] = is_domain
+            
+            if is_domain:
+                # Normalize the domain
+                if target.startswith('http://') or target.startswith('https://'):
+                    parsed_url = urllib.parse.urlparse(target)
+                    domain = parsed_url.netloc
+                else:
+                    domain = target
+                
+                # Check if ports 80 or 443 are accessible
+                http_accessible = False
+                https_accessible = False
+                
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                        sock.settimeout(3)
+                        result = sock.connect_ex((domain, 80))
+                        http_accessible = (result == 0)
+                except:
+                    pass
+                    
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                        sock.settimeout(3)
+                        result = sock.connect_ex((domain, 443))
+                        https_accessible = (result == 0)
+                except:
+                    pass
+                    
+                scan_results['http_accessible'] = http_accessible
+                scan_results['https_accessible'] = https_accessible
+                
+                # Only perform web checks if HTTP or HTTPS is accessible
+                if http_accessible or https_accessible:
+                    target_url = f"https://{domain}" if https_accessible else f"http://{domain}"
+                    
+                    # SSL/TLS Certificate Analysis (only if HTTPS is accessible)
+                    if https_accessible:
+                        try:
+                            scan_results['ssl_certificate'] = check_ssl_certificate(domain)
+                        except Exception as e:
+                            logging.error(f"SSL check error: {e}")
+                            scan_results['ssl_certificate'] = {'error': str(e), 'status': 'error'}
+                    
+                    # HTTP Security Headers Assessment
+                    try:
+                        scan_results['security_headers'] = check_security_headers(target_url)
+                    except Exception as e:
+                        logging.error(f"Headers check error: {e}")
+                        scan_results['security_headers'] = {'error': str(e), 'score': 0}
+                    
+                    # CMS Detection
+                    try:
+                        scan_results['cms'] = detect_cms(target_url)
+                    except Exception as e:
+                        logging.error(f"CMS detection error: {e}")
+                        scan_results['cms'] = {'error': str(e), 'cms_detected': False}
+                    
+                    # Cookie Security Analysis
+                    try:
+                        scan_results['cookies'] = analyze_cookies(target_url)
+                    except Exception as e:
+                        logging.error(f"Cookie analysis error: {e}")
+                        scan_results['cookies'] = {'error': str(e), 'score': 0}
+                    
+                    # Web Application Framework Detection
+                    try:
+                        scan_results['frameworks'] = detect_web_framework(target_url)
+                    except Exception as e:
+                        logging.error(f"Framework detection error: {e}")
+                        scan_results['frameworks'] = {'error': str(e), 'frameworks': []}
+                    
+                    # Basic Content Crawling (look for sensitive paths)
+                    try:
+                        max_urls = 15
+                        scan_results['sensitive_content'] = crawl_for_sensitive_content(target_url, max_urls)
+                    except Exception as e:
+                        logging.error(f"Content crawling error: {e}")
+                        scan_results['sensitive_content'] = {'error': str(e), 'sensitive_paths_found': 0}
+        except Exception as e:
+            logging.error(f"Error during web security checks: {e}")
+            scan_results['web_error'] = str(e)
+    
+    # 5. Calculate risk score and recommendations
+    try:
+        logging.info("Calculating risk assessment...")
+        scan_results['risk_assessment'] = calculate_risk_score(scan_results)
+        scan_results['recommendations'] = get_recommendations(scan_results)
+        scan_results['threat_scenarios'] = generate_threat_scenario(scan_results)
+    except Exception as e:
+        logging.error(f"Error during risk assessment: {e}")
+        scan_results['risk_assessment'] = {'error': str(e)}
+    
+    # 6. Generate and send email report
+    try:
+        logging.info("Generating HTML report...")
+        html_report = generate_html_report(scan_results)
+        
         # Save scan results to file
         results_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
         logging.debug(f"Saving scan results to: {results_file}")
@@ -2179,49 +2475,81 @@ def scan_page():
     # For GET requests, just show the scan form
     return render_template('scan.html')
 
+# Update this in your app.py file
+
 @app.route('/results')
 def results():
     """Display scan results"""
     scan_id = session.get('scan_id')
-    results_file = session.get('scan_results_file')  # Check for fallback file location
+    results_file = session.get('scan_results_file')  # Check for specific file location
     
-    logging.debug(f"Results page accessed with scan_id from session: {scan_id}")
+    logging.info(f"Results page accessed with scan_id from session: {scan_id}")
     
     if not scan_id:
         logging.warning("No scan_id in session, redirecting to scan page")
         return redirect(url_for('scan_page'))
     
     try:
-        # First check if we have a specific file path in session
-        if results_file and os.path.exists(results_file):
-            logging.debug(f"Using specific results file path from session: {results_file}")
-            with open(results_file, 'r') as f:
-                scan_results = json.load(f)
-        else:
-            # Fall back to default location
-            default_file = os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json")
-            logging.debug(f"Looking for results file at default location: {default_file}")
-            
-            if not os.path.exists(default_file):
-                logging.error(f"Scan results file not found: {default_file}")
-                # Try fallback location
-                fallback_dir = "/tmp/scan_history"
-                fallback_file = os.path.join(fallback_dir, f"scan_{scan_id}.json")
-                logging.debug(f"Trying fallback location: {fallback_file}")
-                
-                if not os.path.exists(fallback_file):
-                    logging.error(f"Fallback results file not found: {fallback_file}")
-                    return render_template('error.html', error="Scan results not found. Please try scanning again.")
-                
-                with open(fallback_file, 'r') as f:
-                    scan_results = json.load(f)
-            else:
-                with open(default_file, 'r') as f:
-                    scan_results = json.load(f)
+        # Try multiple locations for the results file
+        possible_locations = [
+            results_file,  # First try the specific file path if stored in session
+            os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json"),
+            os.path.join('/tmp/scan_history', f"scan_{scan_id}.json"),
+            os.path.join('/tmp', f"scan_{scan_id}.json"),
+            os.path.join(os.getcwd(), 'scan_history', f"scan_{scan_id}.json")
+        ]
         
-        logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
+        # Filter out None values
+        possible_locations = [loc for loc in possible_locations if loc]
         
-        return render_template('results.html', scan=scan_results)
+        # Log all the locations we're trying
+        for location in possible_locations:
+            logging.info(f"Checking for results file at: {location}")
+            if os.path.exists(location):
+                logging.info(f"Found results file at: {location}")
+                with open(location, 'r') as f:
+                    scan_results = json.load(f)
+                logging.info(f"Successfully loaded scan results with keys: {list(scan_results.keys())}")
+                return render_template('results.html', scan=scan_results)
+        
+        # If we get here, we couldn't find the file
+        logging.error(f"Could not find scan results file in any location for scan_id: {scan_id}")
+        return render_template('error.html', error="Scan results not found. Please try scanning again.")
+    except Exception as e:
+        logging.error(f"Error loading scan results: {e}")
+        return render_template('error.html', error=f"Error loading scan results: {str(e)}")
+    """Display scan results"""
+    scan_id = session.get('scan_id')
+    
+    # Add extensive logging
+    logging.info(f"Results page accessed with scan_id from session: {scan_id}")
+    
+    if not scan_id:
+        logging.warning("No scan_id in session, redirecting to scan page")
+        return redirect(url_for('scan_page'))
+    
+    try:
+        # Try multiple locations for the results file
+        possible_locations = [
+            os.path.join(SCAN_HISTORY_DIR, f"scan_{scan_id}.json"),
+            os.path.join('/tmp/scan_history', f"scan_{scan_id}.json"),
+            os.path.join(os.getcwd(), 'scan_history', f"scan_{scan_id}.json"),
+            os.path.join('/tmp', f"scan_{scan_id}.json")
+        ]
+        
+        # Log all the locations we're trying
+        for location in possible_locations:
+            logging.info(f"Checking for results file at: {location}")
+            if os.path.exists(location):
+                logging.info(f"Found results file at: {location}")
+                with open(location, 'r') as f:
+                    scan_results = json.load(f)
+                logging.info(f"Successfully loaded scan results with keys: {list(scan_results.keys())}")
+                return render_template('results.html', scan=scan_results)
+        
+        # If we get here, we couldn't find the file
+        logging.error(f"Could not find scan results file in any location for scan_id: {scan_id}")
+        return render_template('error.html', error="Scan results not found. Please try scanning again.")
     except Exception as e:
         logging.error(f"Error loading scan results: {e}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
@@ -2269,7 +2597,7 @@ def api_scan():
             "status": "error",
             "message": f"An error occurred during the scan: {str(e)}"
         }), 500
-
+    
 @app.route('/about')
 def about():
     return render_template('about.html')
@@ -2294,18 +2622,17 @@ def healthcheck():
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
-@app.route('/debug')
-def debug():
-    """Debug endpoint to check Flask configuration"""
-    
+@app.route('/debug/session')
+def debug_session():
+    """Debug endpoint to check session data"""
     debug_info = {
-        "Python Version": sys.version,
+        "Session Data": dict(session),
         "Working Directory": os.getcwd(),
-        "Template Folder": app.template_folder,
-        "Templates Exist": os.path.exists(app.template_folder),
-        "Templates Available": os.listdir(app.template_folder) if os.path.exists(app.template_folder) else "N/A",
-        "Environment": app.config['ENV'],
-        "Debug Mode": app.config['DEBUG']
+        "SCAN_HISTORY_DIR": SCAN_HISTORY_DIR,
+        "Temp Directory": '/tmp',
+        "Scan Files in SCAN_HISTORY_DIR": os.listdir(SCAN_HISTORY_DIR) if os.path.exists(SCAN_HISTORY_DIR) else "Directory doesn't exist",
+        "Scan Files in /tmp": os.listdir('/tmp') if os.path.exists('/tmp') else "Directory doesn't exist",
+        "Environment Variables": {k: v for k, v in os.environ.items() if not k.lower().contains('key') and not k.lower().contains('secret') and not k.lower().contains('password')}
     }
     
     return jsonify(debug_info)
