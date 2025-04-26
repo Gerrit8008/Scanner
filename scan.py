@@ -254,7 +254,7 @@ def scan_gateway_ports(gateway_info):
 
 # ---------------------------- PROGRESSIVE SAVING FUNCTIONALITY ----------------------------
 
-def initialize_scan_data(target, scan_id=None):
+def initialize_scan_data(target, scan_id=None, save_dir=None):
     """Initialize the scan data structure and create a unique scan ID if not provided"""
     if scan_id is None:
         scan_id = str(uuid.uuid4())
@@ -266,6 +266,7 @@ def initialize_scan_data(target, scan_id=None):
         "end_time": None,
         "status": "in_progress",
         "completion_percentage": 0,
+        "save_directory": save_dir or SCAN_HISTORY_DIR,
         "email_security": {},
         "web_security": {},
         "network": {},
@@ -273,8 +274,16 @@ def initialize_scan_data(target, scan_id=None):
         "risk_assessment": {}
     }
     
-    # Ensure scan history directory exists
-    os.makedirs(SCAN_HISTORY_DIR, exist_ok=True)
+    # Ensure save directory exists
+    save_directory = scan_data["save_directory"]
+    try:
+        os.makedirs(save_directory, exist_ok=True)
+        logging.info(f"Using scan history directory: {save_directory}")
+    except Exception as e:
+        # If we can't create the directory, fall back to current directory
+        current_dir = os.getcwd()
+        logging.warning(f"Failed to create directory {save_directory}: {e}. Using current directory: {current_dir}")
+        scan_data["save_directory"] = current_dir
     
     # Save initial scan data
     save_scan_data(scan_data)
@@ -284,16 +293,26 @@ def initialize_scan_data(target, scan_id=None):
 def save_scan_data(scan_data):
     """Save the current scan data to a JSON file"""
     scan_id = scan_data["scan_id"]
-    json_path = os.path.join(SCAN_HISTORY_DIR, f"{scan_id}.json")
+    save_directory = scan_data.get("save_directory", os.getcwd())
+    json_path = os.path.join(save_directory, f"{scan_id}.json")
     
     try:
         with open(json_path, 'w') as f:
             json.dump(scan_data, f, indent=2)
         logging.info(f"Scan data saved to {json_path}")
-        return True
+        return True, json_path
     except Exception as e:
         logging.error(f"Failed to save scan data: {e}")
-        return False
+        # Attempt to save to current directory as fallback
+        try:
+            fallback_path = os.path.join(os.getcwd(), f"{scan_id}.json")
+            with open(fallback_path, 'w') as f:
+                json.dump(scan_data, f, indent=2)
+            logging.info(f"Scan data saved to fallback location: {fallback_path}")
+            return True, fallback_path
+        except Exception as e2:
+            logging.error(f"Failed to save data to fallback location: {e2}")
+            return False, None
 
 def update_scan_progress(scan_data, module_name, percentage_increase=10):
     """Update the scan progress and save the data"""
@@ -323,19 +342,56 @@ def finalize_scan(scan_data, results_html_path="results.html"):
     # Generate HTML report
     html_report = generate_html_report(scan_data)
     
-    # Write HTML report to the specified path
+    # Determine the best path for the results file
     try:
-        with open(results_html_path, 'w') as f:
+        # Try to resolve the provided path
+        absolute_path = os.path.abspath(results_html_path)
+        results_dir = os.path.dirname(absolute_path)
+        
+        # Check if the directory exists
+        if results_dir and not os.path.exists(results_dir):
+            try:
+                os.makedirs(results_dir, exist_ok=True)
+                logging.info(f"Created directory: {results_dir}")
+            except Exception as dir_err:
+                logging.warning(f"Could not create directory {results_dir}: {dir_err}")
+                # Fall back to current directory or scan directory
+                absolute_path = os.path.join(scan_data.get("save_directory", os.getcwd()), 
+                                            os.path.basename(results_html_path))
+        
+        # Write HTML report to the determined path
+        with open(absolute_path, 'w') as f:
             f.write(html_report)
-        logging.info(f"Scan report saved to {results_html_path}")
+        logging.info(f"Scan report saved to {absolute_path}")
+        
+        # Store the path in scan data
+        scan_data["results_html_path"] = absolute_path
         
         # Save final scan data
-        save_scan_data(scan_data)
+        success, json_path = save_scan_data(scan_data)
         
-        return True, results_html_path
+        if success:
+            return True, absolute_path
+        else:
+            return True, absolute_path, "Warning: Final scan data could not be saved"
     except Exception as e:
         logging.error(f"Failed to write HTML report: {e}")
-        return False, str(e)
+        
+        # Try to write to fallback location
+        try:
+            fallback_path = os.path.join(os.getcwd(), f"security_scan_results_{scan_data['scan_id']}.html")
+            with open(fallback_path, 'w') as f:
+                f.write(html_report)
+            logging.info(f"Scan report saved to fallback location: {fallback_path}")
+            
+            # Store the path in scan data
+            scan_data["results_html_path"] = fallback_path
+            save_scan_data(scan_data)
+            
+            return True, fallback_path
+        except Exception as e2:
+            logging.error(f"Failed to write report to fallback location: {e2}")
+            return False, str(e) + " AND " + str(e2)
 
 # ---------------------------- SSL AND WEB SECURITY FUNCTIONS ----------------------------
 
