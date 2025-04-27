@@ -728,6 +728,34 @@ def healthcheck():
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
+@app.route('/debug_scan/<scan_id>')
+def debug_scan(scan_id):
+    """Debug endpoint to view raw scan data"""
+    try:
+        scan_results = get_scan_results(scan_id)
+        if scan_results:
+            return jsonify({
+                "status": "success",
+                "scan_id": scan_id,
+                "data_available": True,
+                "keys": list(scan_results.keys()),
+                "partial_data": {k: scan_results[k] for k in list(scan_results.keys())[:5]}  # Show first 5 keys
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "scan_id": scan_id,
+                "data_available": False,
+                "message": "No scan results found for this ID"
+            })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "scan_id": scan_id,
+            "exception": str(e),
+            "traceback": traceback.format_exc()
+        })
+        
 @app.route('/debug')
 def debug():
     """Debug endpoint to check Flask configuration"""
@@ -755,6 +783,7 @@ def debug():
         debug_info["Database Connection"] = f"Failed: {str(e)}"
     
     return jsonify(debug_info)
+
 
 # ---------------------------- MAIN ENTRY POINT ----------------------------
 
