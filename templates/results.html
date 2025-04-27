@@ -307,6 +307,39 @@
         </div>
         {% endif %}
 
+		{% if scan.risk_assessment and scan.risk_assessment.risk_factors %}
+		<div class="card">
+		    <div class="card-header">
+		        Risk Factor Breakdown
+		    </div>
+		    <div class="card-body">
+		        <table class="table">
+		            <tr>
+		                <th>Risk Factor</th>
+		                <th>Score</th>
+		                <th>Weight</th>
+		                <th>Impact</th>
+		            </tr>
+		            {% for factor in scan.risk_assessment.risk_factors %}
+		            <tr>
+		                <td>{{ factor.name }}</td>
+		                <td>
+		                    <div class="progress">
+		                        <div class="progress-fill" style="width: {{ factor.score*10 }}%; background-color: 
+		                            {% if factor.score >= 8 %}#198754{% elif factor.score >= 5 %}#fd7e14{% else %}#dc3545{% endif %};">
+		                            {{ factor.score }}/10
+		                        </div>
+		                    </div>
+		                </td>
+		                <td>{{ factor.weight }}%</td>
+		                <td>{{ (factor.weighted_score/factor.weight*1000)|int / 10 }}%</td>
+		            </tr>
+		            {% endfor %}
+		        </table>
+		        <p class="text-muted">A higher score means better security for that factor.</p>
+		    </div>
+		</div>
+		{% endif %}
         <!-- Key Recommendations -->
         {% if scan.recommendations %}
         <div class="card">
@@ -537,7 +570,168 @@
                 </table>
                 {% endif %}
                 {% endif %}
+				<!-- Web Framework Detection -->
+				{% if scan.frameworks and scan.frameworks.count > 0 %}
+				<div class="card">
+				    <div class="card-header">
+				        Web Frameworks
+				    </div>
+				    <div class="card-body">
+				        <h3>Detected Frameworks</h3>
+				        <p>We detected the following web frameworks on your site:</p>
+				        <ul>
+				            {% for framework in scan.frameworks.frameworks %}
+				            <li>{{ framework }}</li>
+				            {% endfor %}
+				        </ul>
+				        <div class="alert alert-info">
+				            <strong>Note:</strong> Some frameworks may expose version information that can help attackers target known vulnerabilities. Make sure all frameworks are up to date.
+				        </div>
+				    </div>
+				</div>
+				{% endif %}
 
+				<!-- Cookie Security Analysis -->
+				{% if scan.cookies and 'error' not in scan.cookies %}
+				<div class="card">
+				    <div class="card-header">
+				        Cookie Security
+				    </div>
+				    <div class="card-body">
+				        <div class="summary-card">
+				            <h3>Cookie Security Score</h3>
+				            <div class="summary-value {% if scan.cookies.score >= 80 %}score-low{% elif scan.cookies.score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ scan.cookies.score }}</div>
+				            <div class="progress-bar">
+				                <div class="progress-fill" style="width: {{ scan.cookies.score|default(0) }}%; background-color: {% if scan.cookies.score is defined and scan.cookies.score >= 80 %}#198754{% elif scan.cookies.score is defined and scan.cookies.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
+				            </div>
+				        </div>
+				        
+				        <table class="table">
+				            <tr>
+				                <th>Total Cookies</th>
+				                <td>{{ scan.cookies.total_cookies }}</td>
+				            </tr>
+				            <tr>
+				                <th>Secure Cookies</th>
+				                <td>{{ scan.cookies.secure_cookies }} / {{ scan.cookies.total_cookies }}</td>
+				            </tr>
+				            <tr>
+				                <th>HttpOnly Cookies</th>
+				                <td>{{ scan.cookies.httponly_cookies }} / {{ scan.cookies.total_cookies }}</td>
+				            </tr>
+				            <tr>
+				                <th>SameSite Cookies</th>
+				                <td>{{ scan.cookies.samesite_cookies }} / {{ scan.cookies.total_cookies }}</td>
+				            </tr>
+				        </table>
+				        
+				        {% if scan.cookies.severity in ['High', 'Medium'] %}
+				        <div class="finding {% if scan.cookies.severity == 'High' %}high{% else %}medium{% endif %}">
+				            <div class="title">Cookie Security Issues <span class="severity {% if scan.cookies.severity == 'High' %}high{% else %}medium{% endif %}">{{ scan.cookies.severity }}</span></div>
+				            <p>Your website cookies are not properly secured. This could allow attackers to steal session information or perform cross-site request forgery attacks.</p>
+				        </div>
+				        {% endif %}
+				    </div>
+				</div>
+				{% endif %}
+
+				<!-- DNS Configuration -->
+				{% if scan.is_domain is defined and scan.is_domain and 'email_security' in scan %}
+				<div class="card">
+				    <div class="card-header">
+				        DNS Configuration
+				    </div>
+				    <div class="card-body">
+				        <p>Domain: {{ scan.email_security.domain }}</p>
+				        
+				        <table class="table">
+				            <tr>
+				                <th>Record Type</th>
+				                <th>Status</th>
+				            </tr>
+				            <tr>
+				                <td>SPF</td>
+				                <td>{{ scan.email_security.spf.status }}</td>
+				            </tr>
+				            <tr>
+				                <td>DMARC</td>
+				                <td>{{ scan.email_security.dmarc.status }}</td>
+				            </tr>
+				            <tr>
+				                <td>DKIM</td>
+				                <td>{{ scan.email_security.dkim.status }}</td>
+				            </tr>
+				        </table>
+				        
+				        <div class="alert alert-info">
+				            <strong>Note:</strong> Proper DNS configuration is essential for email deliverability and security. SPF, DKIM, and DMARC help prevent email spoofing and phishing attacks.
+				        </div>
+				    </div>
+				</div>
+				{% endif %}
+
+				<!-- Detailed Port Analysis -->
+				{% if scan.network and scan.network.open_ports and scan.network.open_ports.list|length > 0 %}
+				<div class="card">
+				    <div class="card-header">
+				        Detailed Port Analysis
+				    </div>
+				    <div class="card-body">
+				        <h3>Port Risk Assessment</h3>
+				        <table class="table">
+				            <tr>
+				                <th>Port</th>
+				                <th>Service</th>
+				                <th>Risk Level</th>
+				            </tr>
+				            {% for port in scan.network.open_ports.list %}
+				                <tr>
+				                    <td>{{ port }}</td>
+				                    <td>
+				                        {% if port == 21 %}
+				                            FTP - File Transfer Protocol
+				                        {% elif port == 22 %}
+				                            SSH - Secure Shell
+				                        {% elif port == 23 %}
+				                            Telnet - Insecure remote access
+				                        {% elif port == 25 %}
+				                            SMTP - Email transmission
+				                        {% elif port == 80 %}
+				                            HTTP - Web traffic (unencrypted)
+				                        {% elif port == 443 %}
+				                            HTTPS - Secure web traffic
+				                        {% elif port == 3389 %}
+				                            RDP - Remote Desktop Protocol
+				                        {% elif port == 5900 %}
+				                            VNC - Virtual Network Computing
+				                        {% elif port == 8080 %}
+				                            HTTP Alternate - Often used for proxies
+				                        {% elif port == 3306 %}
+				                            MySQL Database
+				                        {% else %}
+				                            Unknown service
+				                        {% endif %}
+				                    </td>
+				                    <td>
+				                        {% if port in [21, 23, 3389, 5900, 445, 139] %}
+				                            <span class="severity high">High Risk</span>
+				                        {% elif port in [80, 8080, 110, 143, 25] %}
+				                            <span class="severity medium">Medium Risk</span>
+				                        {% else %}
+				                            <span class="severity low">Low Risk</span>
+				                        {% endif %}
+				                    </td>
+				                </tr>
+				            {% endfor %}
+				        </table>
+				        
+				        <div class="alert alert-warning">
+				            <strong>Security Recommendation:</strong> Close any ports that are not actively needed for your operations, especially high-risk ports like Telnet (23), FTP (21), RDP (3389), and VNC (5900).
+				        </div>
+				    </div>
+				</div>
+				{% endif %}
+				
                 <!-- CMS Detection Results -->
                 {% if scan.cms and scan.cms.cms_detected %}
                 <h3 class="section-title">Content Management System (CMS)</h3>
