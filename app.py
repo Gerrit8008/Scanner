@@ -521,25 +521,11 @@ def scan_page():
             
             # Basic validation
             if not lead_data["email"]:
-                try:
-                    return render_template('scan.html', error="Please enter your email address to receive the scan report.")
-                except Exception as template_error:
-                    logging.error(f"Error rendering scan.html template: {template_error}")
-                    return f"""
-                    <html>
-                        <head><title>Error</title></head>
-                        <body>
-                            <h1>Please enter your email address</h1>
-                            <p>We need your email to send the scan report.</p>
-                            <a href="/scan">Try again</a>
-                        </body>
-                    </html>
-                    """
+                return render_template('scan.html', error="Please enter your email address to receive the scan report.")
             
             try:
                 # Save lead data to database
-                if not save_lead_data(lead_data):
-                    logging.warning("Failed to save lead data")
+                save_lead_data(lead_data)
                 
                 # Run the consolidated scan
                 logging.info("Starting scan execution...")
@@ -548,73 +534,22 @@ def scan_page():
                 # Check if scan_results contains valid data
                 if not scan_results or 'scan_id' not in scan_results:
                     logging.error("Scan did not return valid results")
-                    try:
-                        return render_template('scan.html', error="Scan failed to return valid results. Please try again.")
-                    except Exception as template_error:
-                        logging.error(f"Error rendering scan.html template: {template_error}")
-                        return f"""
-                        <html>
-                            <head><title>Error</title></head>
-                            <body>
-                                <h1>Scan Failed</h1>
-                                <p>The scan did not return valid results. Please try again.</p>
-                                <a href="/scan">Try again</a>
-                            </body>
-                        </html>
-                        """
+                    return render_template('scan.html', error="Scan failed to return valid results. Please try again.")
                 
-                # Store scan ID in session
-                session['scan_id'] = scan_results['scan_id']
+                # Store scan ID in session (traditional way)
                 session['scan_id'] = scan_results['scan_id']
                 logging.debug(f"Stored scan_id in session: {session['scan_id']}")
-                # List all keys in session for debugging
-                logging.debug(f"All session keys: {list(session.keys())}")
-                # Redirect to results page
-                return redirect(url_for('results'))
+                
+                # BYPASS SESSION: Redirect to results page with scan_id as query parameter
+                return redirect(url_for('results_direct', scan_id=scan_results['scan_id']))
             except Exception as e:
                 logging.error(f"Error processing scan: {e}")
                 logging.debug(f"Exception traceback: {traceback.format_exc()}")
-                try:
-                    return render_template('scan.html', error=f"An error occurred: {str(e)}")
-                except Exception as template_error:
-                    logging.error(f"Error rendering scan.html template: {template_error}")
-                    return f"""
-                    <html>
-                        <head><title>Error</title></head>
-                        <body>
-                            <h1>Error Processing Scan</h1>
-                            <p>An error occurred: {str(e)}</p>
-                            <a href="/scan">Try again</a>
-                        </body>
-                    </html>
-                    """
+                return render_template('scan.html', error=f"An error occurred: {str(e)}")
         
         # For GET requests, show the scan form
         error = request.args.get('error')
-        try:
-            return render_template('scan.html', error=error)
-        except Exception as template_error:
-            logging.error(f"Error rendering scan.html template for GET request: {template_error}")
-            return f"""
-            <html>
-                <head><title>Security Scanner</title></head>
-                <body>
-                    <h1>Security Scanner</h1>
-                    <form method="post" action="/scan">
-                        <div>
-                            <label for="email">Email (required):</label>
-                            <input type="email" id="email" name="email" required>
-                        </div>
-                        <div>
-                            <label for="target">Target Domain or IP:</label>
-                            <input type="text" id="target" name="target">
-                        </div>
-                        <button type="submit">Run Scan</button>
-                    </form>
-                    {f"<p style='color: red;'>{error}</p>" if error else ""}
-                </body>
-            </html>
-            """
+        return render_template('scan.html', error=error)
     except Exception as outer_error:
         logging.error(f"Unhandled exception in scan_page route: {outer_error}")
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
@@ -628,7 +563,6 @@ def scan_page():
             </body>
         </html>
         """
-        
 @app.route('/results')
 def results():
     """Display scan results"""
@@ -832,6 +766,213 @@ def api_scan():
             "message": f"An error occurred during the scan: {str(e)}"
         }), 500
 
+@app.route('/results_direct')
+def results_direct():
+    """Display scan results using query parameter (bypassing session)"""
+    scan_id = request.args.get('scan_id')
+    logging.info(f"Direct results page accessed with scan_id from query: {scan_id}")
+    
+    if not scan_id:
+        logging.warning("No scan_id in query parameters, redirecting to scan page")
+        return redirect(url_for('scan_page', error="No scan ID provided. Please run a new scan."))
+    
+    try:
+        # Get scan results from database
+        scan_results = get_scan_results(scan_id)
+        
+        if not scan_results:
+            logging.error(f"No scan results found for ID: {scan_id}")
+            return redirect(url_for('scan_page', error="Scan results not found. Please try running a new scan."))
+        
+        logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
+        
+        # Create a very simple HTML response to display the scan results
+        # This bypasses potential template issues
+        result_html = f"""
+        <html>
+            <head>
+                <title>Scan Results</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                    .section {{ margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; }}
+                </style>
+            </head>
+            <body>
+                <h1>Scan Results (Direct Display)</h1>
+                
+                <div class="section">
+                    <h2>Basic Information</h2>
+                    <p><strong>Scan ID:</strong> {scan_results.get('scan_id', 'Unknown')}</p>
+                    <p><strong>Timestamp:</strong> {scan_results.get('timestamp', 'Unknown')}</p>
+                    <p><strong>Target:</strong> {scan_results.get('target', 'Unknown')}</p>
+                </div>
+        """
+        
+        # Add risk assessment if available
+        if 'risk_assessment' in scan_results and isinstance(scan_results['risk_assessment'], dict):
+            result_html += f"""
+                <div class="section">
+                    <h2>Risk Assessment</h2>
+                    <p><strong>Overall Score:</strong> {scan_results['risk_assessment'].get('overall_score', 'Unknown')}</p>
+                    <p><strong>Risk Level:</strong> {scan_results['risk_assessment'].get('risk_level', 'Unknown')}</p>
+                </div>
+            """
+        
+        # Add recommendations if available
+        if 'recommendations' in scan_results and isinstance(scan_results['recommendations'], list):
+            result_html += """
+                <div class="section">
+                    <h2>Recommendations</h2>
+                    <ul>
+            """
+            for rec in scan_results['recommendations']:
+                result_html += f"<li>{rec}</li>\n"
+            
+            result_html += """
+                    </ul>
+                </div>
+            """
+        
+        # Add a section showing all available data keys
+        result_html += """
+                <div class="section">
+                    <h2>Available Data</h2>
+                    <p>The following data was collected during the scan:</p>
+                    <ul>
+        """
+        
+        for key in scan_results.keys():
+            result_html += f"<li>{key}</li>\n"
+        
+        result_html += """
+                    </ul>
+                </div>
+                
+                <a href="/scan">Run a new scan</a>
+            </body>
+        </html>
+        """
+        
+        return result_html
+    except Exception as e:
+        logging.error(f"Error in results_direct route: {e}")
+        logging.debug(f"Exception traceback: {traceback.format_exc()}")
+        return f"""
+        <html>
+            <head><title>Error</title></head>
+            <body>
+                <h1>Error Displaying Results</h1>
+                <p>An error occurred: {str(e)}</p>
+                <p>Scan ID: {scan_id}</p>
+                <a href="/scan">Run a new scan</a>
+            </body>
+        </html>
+        """
+
+@app.route('/debug_db')
+def debug_db():
+    """Debug endpoint to check database contents"""
+    try:
+        # Connect to the database
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get all tables
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [row[0] for row in cursor.fetchall()]
+        
+        # Get sample rows from each table
+        samples = {}
+        for table in tables:
+            try:
+                cursor.execute(f"SELECT * FROM {table} LIMIT 5")
+                rows = cursor.fetchall()
+                if rows:
+                    # Convert rows to dictionaries
+                    samples[table] = [dict(row) for row in rows]
+                else:
+                    samples[table] = []
+            except Exception as table_error:
+                samples[table] = f"Error: {str(table_error)}"
+        
+        conn.close()
+        
+        # Generate HTML response
+        output = f"""
+        <html>
+            <head>
+                <title>Database Debug</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                    table {{ border-collapse: collapse; width: 100%; }}
+                    th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                    th {{ background-color: #f2f2f2; }}
+                </style>
+            </head>
+            <body>
+                <h1>Database Debug Information</h1>
+                <p><strong>Database Path:</strong> {DB_PATH}</p>
+                <h2>Tables:</h2>
+                <ul>
+        """
+        
+        for table in tables:
+            row_count = len(samples[table]) if isinstance(samples[table], list) else "Error"
+            output += f"<li>{table} ({row_count} sample rows)</li>\n"
+        
+        output += "</ul>\n"
+        
+        # Show sample data from each table
+        for table in tables:
+            output += f"<h2>Sample data from {table}:</h2>\n"
+            
+            if isinstance(samples[table], list):
+                if samples[table]:
+                    # Get column names from first row
+                    columns = samples[table][0].keys()
+                    
+                    output += "<table>\n<tr>\n"
+                    for col in columns:
+                        output += f"<th>{col}</th>\n"
+                    output += "</tr>\n"
+                    
+                    # Add data rows
+                    for row in samples[table]:
+                        output += "<tr>\n"
+                        for col in columns:
+                            # Limit large values and convert non-strings to strings
+                            value = str(row[col])
+                            if len(value) > 100:
+                                value = value[:100] + "..."
+                            output += f"<td>{value}</td>\n"
+                        output += "</tr>\n"
+                    
+                    output += "</table>\n"
+                else:
+                    output += "<p>No data in this table</p>\n"
+            else:
+                output += f"<p>{samples[table]}</p>\n"
+        
+        output += """
+                <p><a href="/scan">Return to Scan Page</a></p>
+            </body>
+        </html>
+        """
+        
+        return output
+    except Exception as e:
+        return f"""
+        <html>
+            <head><title>Database Error</title></head>
+            <body>
+                <h1>Database Debug Error</h1>
+                <p>An error occurred while accessing the database: {str(e)}</p>
+                <p><pre>{traceback.format_exc()}</pre></p>
+            </body>
+        </html>
+        """
+                
 @app.route('/about')
 def about():
     return render_template('about.html')
@@ -871,7 +1012,74 @@ def debug_session():
         "test_value_set": session['test_value'],
         "all_keys": list(session.keys())
     })
+
+@app.route('/test_scan')
+def test_scan():
+    """Test scan execution directly"""
+    try:
+        # Create test lead data
+        test_data = {
+            'name': 'Test User',
+            'email': 'test@example.com',
+            'company': 'Test Company',
+            'phone': '555-1234',
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'client_os': 'Test OS',
+            'client_browser': 'Test Browser',
+            'windows_version': 'Test Windows',
+            'target': 'example.com'
+        }
         
+        # Run scan
+        logging.info("Starting test scan execution...")
+        scan_results = run_consolidated_scan(test_data)
+        
+        # Check if we got a valid result
+        if scan_results and 'scan_id' in scan_results:
+            # Try to save to database
+            try:
+                saved_id = save_scan_results(scan_results)
+                db_status = f"Successfully saved to database with ID: {saved_id}" if saved_id else "Failed to save to database"
+            except Exception as db_error:
+                db_status = f"Database error: {str(db_error)}"
+            
+            # Return success output
+            return f"""
+            <html>
+                <head><title>Test Scan Success</title></head>
+                <body>
+                    <h1>Test Scan Completed Successfully</h1>
+                    <p><strong>Scan ID:</strong> {scan_results['scan_id']}</p>
+                    <p><strong>Database Status:</strong> {db_status}</p>
+                    <p><strong>Available Keys:</strong> {', '.join(list(scan_results.keys()))}</p>
+                    <p><a href="/results_direct?scan_id={scan_results['scan_id']}">View Results</a></p>
+                </body>
+            </html>
+            """
+        else:
+            # Return error output
+            return f"""
+            <html>
+                <head><title>Test Scan Failed</title></head>
+                <body>
+                    <h1>Test Scan Failed</h1>
+                    <p>The scan did not return valid results.</p>
+                    <p><pre>{json.dumps(scan_results, indent=2, default=str) if scan_results else 'None'}</pre></p>
+                </body>
+            </html>
+            """
+    except Exception as e:
+        return f"""
+        <html>
+            <head><title>Test Scan Error</title></head>
+            <body>
+                <h1>Test Scan Error</h1>
+                <p>An error occurred during the test scan: {str(e)}</p>
+                <p><pre>{traceback.format_exc()}</pre></p>
+            </body>
+        </html>
+        """
+                
 @app.route('/debug')
 def debug():
     """Debug endpoint to check Flask configuration"""
