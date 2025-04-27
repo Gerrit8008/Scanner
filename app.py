@@ -914,7 +914,7 @@ def quick_scan():
         </body>
     </html>
     """
-    @app.route('/debug_post', methods=['POST'])
+@app.route('/debug_post', methods=['POST'])  
 def debug_post():
     """Debug endpoint to check POST data"""
     try:
