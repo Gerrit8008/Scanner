@@ -1,55 +1,35 @@
-# db.py - Database operations for the security scanner
-import sqlite3
+# In db.py
 import os
+import sqlite3
 import json
 import logging
 import traceback
 from datetime import datetime
 
-# Set up database path in /tmp for Render compatibility
-DB_PATH = '/tmp/security_scanner.db'
-
-def get_db_connection():
-    """Create a connection to the SQLite database"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row  # Return rows as dictionaries
-        return conn
-    except Exception as e:
-        logging.error(f"Database connection error: {e}")
-        logging.debug(traceback.format_exc())
-        return None
+# Define database path
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'security_scanner.db')
+# For debugging, print the path
+print(f"Database path: {DB_PATH}")
 
 def init_db():
     """Initialize the database with required tables"""
-    logging.info(f"Initializing database at {DB_PATH}...")
-    
-    # Ensure the directory exists
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    
-    conn = None
     try:
-        conn = get_db_connection()
-        if not conn:
-            logging.error("Could not initialize database - connection failed")
-            return False
-            
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
-        # Create scans table
+        # Create scans table if not exists
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS scans (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            scan_id TEXT UNIQUE NOT NULL,
-            timestamp TEXT NOT NULL,
-            target TEXT,
+            id TEXT PRIMARY KEY,
+            timestamp TEXT,
             email TEXT,
-            results TEXT,  -- JSON string of scan results
-            html_report TEXT  -- HTML report content
+            target TEXT,
+            results TEXT,
+            html_report TEXT
         )
         ''')
         
-        # Create leads table
+        # Create leads table if not exists
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS leads (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,196 +37,125 @@ def init_db():
             email TEXT,
             company TEXT,
             phone TEXT,
-            timestamp TEXT NOT NULL
+            timestamp TEXT
         )
         ''')
         
         conn.commit()
-        logging.info("Database initialized successfully")
+        conn.close()
+        logging.info(f"Database initialized at {DB_PATH}")
         return True
     except Exception as e:
-        logging.error(f"Error initializing database: {e}")
+        logging.error(f"Database initialization error: {e}")
         logging.debug(traceback.format_exc())
         return False
-    finally:
-        if conn:
-            conn.close()
 
 def save_scan_results(scan_results):
-    """Save scan results to the database
-    
-    Args:
-        scan_results (dict): The scan results to save
-        
-    Returns:
-        str: The scan_id if successful, None if failed
-    """
-    conn = None
+    """Save scan results to database"""
     try:
-        conn = get_db_connection()
-        if not conn:
-            logging.error("Could not save scan results - database connection failed")
-            return None
-            
-        cursor = conn.cursor()
-        
-        # Get required values from scan_results
+        # Ensure we have a scan_id
         scan_id = scan_results.get('scan_id')
         if not scan_id:
-            logging.error("Could not save scan results - missing scan_id")
+            logging.error("Cannot save scan results: No scan_id provided")
             return None
-            
+        
+        # Extract key fields for the main record
         timestamp = scan_results.get('timestamp', datetime.now().isoformat())
-        target = scan_results.get('target', '')
         email = scan_results.get('email', '')
+        target = scan_results.get('target', '')
         
-        # Convert full results to JSON string
-        results_json = json.dumps(scan_results)
-        
-        # Get HTML report if available
+        # Separate HTML report from other results to save separately
         html_report = scan_results.get('html_report', '')
         
-        # Insert into database
-        cursor.execute(
-            'INSERT OR REPLACE INTO scans (scan_id, timestamp, target, email, results, html_report) VALUES (?, ?, ?, ?, ?, ?)',
-            (scan_id, timestamp, target, email, results_json, html_report)
-        )
+        # Convert the rest to JSON
+        results_json = json.dumps(scan_results, default=str)
+        
+        # Connect to database
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Insert or replace the record
+        cursor.execute('''
+        INSERT OR REPLACE INTO scans (id, timestamp, email, target, results, html_report)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ''', (scan_id, timestamp, email, target, results_json, html_report))
         
         conn.commit()
+        conn.close()
         
-        # Verify the row was inserted
-        cursor.execute('SELECT 1 FROM scans WHERE scan_id = ?', (scan_id,))
-        result = cursor.fetchone()
-        
-        if result:
-            logging.info(f"Scan results saved to database with ID: {scan_id}")
-            return scan_id
-        else:
-            logging.error(f"Failed to save scan results - verification failed")
-            return None
+        logging.info(f"Scan results saved to database with ID: {scan_id}")
+        return scan_id
     except Exception as e:
         logging.error(f"Error saving scan results to database: {e}")
         logging.debug(traceback.format_exc())
         return None
-    finally:
-        if conn:
-            conn.close()
 
 def get_scan_results(scan_id):
-    """Retrieve scan results from the database
-    
-    Args:
-        scan_id (str): The scan ID to retrieve
-        
-    Returns:
-        dict: The scan results or None if not found
-    """
-    conn = None
+    """Retrieve scan results from database"""
     try:
-        conn = get_db_connection()
-        if not conn:
-            logging.error("Could not retrieve scan results - database connection failed")
+        if not scan_id:
+            logging.error("Cannot retrieve scan results: No scan_id provided")
             return None
-            
+        
+        # Connect to database
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row  # To access columns by name
         cursor = conn.cursor()
         
-        cursor.execute('SELECT results FROM scans WHERE scan_id = ?', (scan_id,))
+        # Query for the scan
+        cursor.execute('SELECT * FROM scans WHERE id = ?', (scan_id,))
         row = cursor.fetchone()
         
-        if row and row['results']:
-            # Parse the JSON string back to a dictionary
-            try:
-                scan_results = json.loads(row['results'])
-                logging.info(f"Retrieved scan results for ID: {scan_id}")
-                return scan_results
-            except json.JSONDecodeError as json_err:
-                logging.error(f"Error decoding JSON for scan {scan_id}: {json_err}")
-                return None
-        else:
+        if not row:
             logging.warning(f"No scan results found for ID: {scan_id}")
+            conn.close()
             return None
+        
+        # Parse the JSON results
+        results_json = row['results']
+        scan_results = json.loads(results_json)
+        
+        # Add the HTML report back (if available)
+        if row['html_report']:
+            scan_results['html_report'] = row['html_report']
+        
+        conn.close()
+        logging.info(f"Retrieved scan results for ID: {scan_id}")
+        return scan_results
     except Exception as e:
         logging.error(f"Error retrieving scan results from database: {e}")
         logging.debug(traceback.format_exc())
         return None
-    finally:
-        if conn:
-            conn.close()
 
 def save_lead_data(lead_data):
-    """Save lead data to the database
-    
-    Args:
-        lead_data (dict): Lead information
-        
-    Returns:
-        bool: True if successful, False if failed
-    """
-    conn = None
+    """Save lead data to database"""
     try:
-        conn = get_db_connection()
-        if not conn:
-            logging.error("Could not save lead data - database connection failed")
-            return False
-            
-        cursor = conn.cursor()
-        
-        # Get values
+        # Extract fields
         name = lead_data.get('name', '')
         email = lead_data.get('email', '')
         company = lead_data.get('company', '')
         phone = lead_data.get('phone', '')
         timestamp = lead_data.get('timestamp', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         
-        # Insert into database
-        cursor.execute(
-            'INSERT INTO leads (name, email, company, phone, timestamp) VALUES (?, ?, ?, ?, ?)',
-            (name, email, company, phone, timestamp)
-        )
+        # Connect to database
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Insert the record
+        cursor.execute('''
+        INSERT INTO leads (name, email, company, phone, timestamp)
+        VALUES (?, ?, ?, ?, ?)
+        ''', (name, email, company, phone, timestamp))
+        
+        # Get the ID of the inserted record
+        lead_id = cursor.lastrowid
         
         conn.commit()
+        conn.close()
         
-        logging.info(f"Lead data saved to database for: {email}")
-        return True
+        logging.info(f"Lead data saved to database with ID: {lead_id}")
+        return lead_id
     except Exception as e:
         logging.error(f"Error saving lead data to database: {e}")
         logging.debug(traceback.format_exc())
-        return False
-    finally:
-        if conn:
-            conn.close()
-
-def get_all_scans(limit=50):
-    """Get a list of all scans, newest first
-    
-    Args:
-        limit (int): Maximum number of scans to return
-        
-    Returns:
-        list: List of scan summary dictionaries
-    """
-    conn = None
-    try:
-        conn = get_db_connection()
-        if not conn:
-            logging.error("Could not retrieve scan list - database connection failed")
-            return []
-            
-        cursor = conn.cursor()
-        
-        cursor.execute(
-            'SELECT scan_id, timestamp, target, email FROM scans ORDER BY timestamp DESC LIMIT ?', 
-            (limit,)
-        )
-        rows = cursor.fetchall()
-        
-        scans = [dict(row) for row in rows]
-        logging.info(f"Retrieved {len(scans)} scans from database")
-        return scans
-    except Exception as e:
-        logging.error(f"Error retrieving scan list from database: {e}")
-        logging.debug(traceback.format_exc())
-        return []
-    finally:
-        if conn:
-            conn.close()
+        return None
