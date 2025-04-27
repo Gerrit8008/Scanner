@@ -512,12 +512,16 @@ def scan_page():
         
         try:
             # Save lead data to database
-            if not save_lead_data(lead_data):
-                logging.warning("Failed to save lead data")
+            logging.debug("About to save lead data")
+            saved_lead = save_lead_data(lead_data)
+            logging.debug(f"Result of save_lead_data: {saved_lead}")
             
             # Run the consolidated scan
             logging.info("Starting scan execution...")
             scan_results = run_consolidated_scan(lead_data)
+            
+            # Log the scan results structure to debug
+            logging.debug(f"Scan completed. Results keys: {list(scan_results.keys()) if scan_results else 'None'}")
             
             # Check if scan_results contains valid data
             if not scan_results or 'scan_id' not in scan_results:
@@ -529,43 +533,44 @@ def scan_page():
             logging.debug(f"Stored scan_id in session: {session['scan_id']}")
             
             # Redirect to results page
+            logging.debug("About to redirect to results page")
             return redirect(url_for('results'))
         except Exception as e:
             logging.error(f"Error processing scan: {e}")
             logging.debug(f"Exception traceback: {traceback.format_exc()}")
             return render_template('scan.html', error=f"An error occurred: {str(e)}")
-    
-    # For GET requests, show the scan form
-    error = request.args.get('error')
-    return render_template('scan.html', error=error)
-
 @app.route('/results')
 def results():
     """Display scan results"""
-    scan_id = session.get('scan_id')
-    logging.info(f"Results page accessed with scan_id from session: {scan_id}")
-    
-    if not scan_id:
-        logging.warning("No scan_id in session, redirecting to scan page")
-        return redirect(url_for('scan_page', error="No scan ID found. Please run a new scan."))
-    
     try:
-        # Get scan results from database
-        scan_results = get_scan_results(scan_id)
+        scan_id = session.get('scan_id')
+        logging.info(f"Results page accessed with scan_id from session: {scan_id}")
         
-        if not scan_results:
-            logging.error(f"No scan results found for ID: {scan_id}")
-            # Clear the session and redirect
-            session.pop('scan_id', None)
-            return redirect(url_for('scan_page', error="Scan results not found. Please try running a new scan."))
+        if not scan_id:
+            logging.warning("No scan_id in session, redirecting to scan page")
+            return redirect(url_for('scan_page', error="No scan ID found. Please run a new scan."))
         
-        logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
-        return render_template('results.html', scan=scan_results)
-    except Exception as e:
-        logging.error(f"Error loading scan results: {e}")
+        try:
+            # Get scan results from database
+            scan_results = get_scan_results(scan_id)
+            
+            if not scan_results:
+                logging.error(f"No scan results found for ID: {scan_id}")
+                # Clear the session and redirect
+                session.pop('scan_id', None)
+                return redirect(url_for('scan_page', error="Scan results not found. Please try running a new scan."))
+            
+            logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
+            return render_template('results.html', scan=scan_results)
+        except Exception as e:
+            logging.error(f"Error loading scan results: {e}")
+            logging.debug(f"Exception traceback: {traceback.format_exc()}")
+            return render_template('error.html', error=f"Error loading scan results: {str(e)}")
+    except Exception as outer_e:
+        logging.error(f"Unexpected error in results route: {outer_e}")
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
-        return render_template('error.html', error=f"Error loading scan results: {str(e)}")
-
+        return f"A critical error occurred: {str(outer_e)}", 500
+    
 @app.route('/db_check')
 def db_check():
     """Check if the database is set up and working properly"""
