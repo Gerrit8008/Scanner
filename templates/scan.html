@@ -381,16 +381,14 @@
         
         // Form submission - MODIFIED TO ACTUALLY SUBMIT THE FORM
         document.getElementById('combinedScanForm').addEventListener('submit', function(e) {
-            // Show loading indicator
+    // Don't prevent the default form submission
+    // e.preventDefault(); <- Remove this line
+    
+    // Just show the loading indicator
             document.getElementById('startScanBtn').disabled = true;
             document.getElementById('loadingIndicator').style.display = 'block';
-            
-            // Let the form submit normally - DON'T prevent default
-            // e.preventDefault(); - This line is removed to allow the form to submit
-            
-            // The form will now submit to the server immediately
         });
-        
+      
         // Animation functions remain for visual effect, but now are separate from form submission
         function showProgressAnimation() {
             document.getElementById('loadingIndicator').style.display = 'none';
