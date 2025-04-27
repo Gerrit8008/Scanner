@@ -565,88 +565,57 @@ def scan_page():
     """Main scan page - handles both form display and scan submission"""
     if request.method == 'POST':
         try:
-            # Get form data
-            name = request.form.get('name', '')
-            email = request.form.get('email', '')
-            company = request.form.get('company', '')
-            phone = request.form.get('phone', '')
+            # Get form data including client OS info
+            lead_data = {
+                'name': request.form.get('name', ''),
+                'email': request.form.get('email', ''),
+                'company': request.form.get('company', ''),
+                'phone': request.form.get('phone', ''),
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'client_os': request.form.get('client_os', 'Unknown'),
+                'client_browser': request.form.get('client_browser', 'Unknown'),
+                'windows_version': request.form.get('windows_version', ''),
+                'target': request.form.get('target', '')
+            }
+            
+            logging.debug(f"Received scan form data: {lead_data}")
             
             # Basic validation
-            if not email:
+            if not lead_data["email"]:
                 return render_template('scan.html', error="Please enter your email address to receive the scan report.")
             
-            # Generate a simple scan result
-            scan_id = str(uuid.uuid4())
-            timestamp = datetime.now().isoformat()
-            
-            # Return results directly as HTML
-            return f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Security Scan Results</title>
-                <style>
-                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                    .header {{ background-color: #808588; color: white; padding: 20px; text-align: center; margin-bottom: 30px; }}
-                    .section {{ padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 5px; }}
-                    .risk-medium {{ background-color: #fff3cd; padding: 10px; border-radius: 5px; }}
-                    .footer {{ background-color: #808588; color: white; padding: 15px; text-align: center; margin-top: 50px; }}
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>Security Scan Results</h1>
-                    <p>Generated on {timestamp}</p>
-                </div>
+            try:
+                # Save lead data to database
+                logging.info("Saving lead data...")
+                lead_id = save_lead_data(lead_data)
+                logging.info(f"Lead data saved with ID: {lead_id}")
                 
-                <div class="section">
-                    <h2>Scan Information</h2>
-                    <p><strong>Name:</strong> {name}</p>
-                    <p><strong>Email:</strong> {email}</p>
-                    <p><strong>Company:</strong> {company}</p>
-                </div>
+                # Run the full consolidated scan
+                logging.info(f"Starting scan for {lead_data.get('email')} targeting {lead_data.get('target')}...")
+                scan_results = run_consolidated_scan(lead_data)
                 
-                <div class="section">
-                    <h2>Risk Assessment</h2>
-                    <div class="risk-medium">
-                        <h3>Medium Risk</h3>
-                        <p>Score: 65/100</p>
-                    </div>
-                    <p>Your system has some security measures in place but could benefit from additional protections.</p>
-                </div>
+                # Check if scan_results contains valid data
+                if not scan_results or 'scan_id' not in scan_results:
+                    logging.error("Scan did not return valid results")
+                    return render_template('scan.html', error="Scan failed to return valid results. Please try again.")
                 
-                <div class="section">
-                    <h2>Recommendations</h2>
-                    <ul>
-                        <li>Keep all software updated with the latest security patches</li>
-                        <li>Use strong, unique passwords for all accounts</li>
-                        <li>Enable multi-factor authentication where available</li>
-                        <li>Configure email security with SPF, DKIM, and DMARC records</li>
-                        <li>Implement a regular backup strategy for critical data</li>
-                    </ul>
-                </div>
+                # Store scan ID in session for future reference
+                try:
+                    session['scan_id'] = scan_results['scan_id']
+                    logging.info(f"Stored scan_id in session: {scan_results['scan_id']}")
+                except Exception as session_error:
+                    logging.warning(f"Failed to store scan_id in session: {str(session_error)}")
                 
-                <div class="section">
-                    <h2>Email Security</h2>
-                    <p>Your email domain could benefit from improved security configurations:</p>
-                    <ul>
-                        <li>SPF: Implement strict SPF policy with -all directive</li>
-                        <li>DKIM: Set up DKIM signing for outgoing emails</li>
-                        <li>DMARC: Configure DMARC with a policy of at least quarantine</li>
-                    </ul>
-                </div>
+                # Render results directly instead of redirecting
+                logging.info("Rendering results page...")
+                return render_template('results.html', scan=scan_results)
                 
-                <a href="/scan">Run another scan</a>
-                
-                <div class="footer">
-                    <p>&copy; 2025 Central Georgia Technology. All rights reserved.</p>
-                </div>
-            </body>
-            </html>
-            """
-            
+            except Exception as scan_error:
+                logging.error(f"Error during scan: {str(scan_error)}")
+                logging.debug(f"Exception traceback: {traceback.format_exc()}")
+                return render_template('scan.html', error=f"An error occurred during the scan: {str(scan_error)}")
         except Exception as e:
-            logging.error(f"Error processing scan: {e}")
+            logging.error(f"Error processing scan form: {e}")
             logging.debug(f"Exception traceback: {traceback.format_exc()}")
             return render_template('scan.html', error=f"An error occurred: {str(e)}")
     
