@@ -569,7 +569,7 @@ def scan_page():
     
     # For GET requests, show the scan form
     error = request.args.get('error')
-    return render_template('scan.html', error=error)
+    return redirect(url_for('results_direct', scan_id=scan_results['scan_id']))
 
 @app.route('/results')
 def results():
