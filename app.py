@@ -164,6 +164,23 @@ logger = setup_logging()
 init_db()
 log_system_info()
 
+def get_scan_id_from_request():
+    """Get scan_id from session or query parameters"""
+    # Try to get from session first
+    scan_id = session.get('scan_id')
+    if scan_id:
+        logging.debug(f"Found scan_id in session: {scan_id}")
+        return scan_id
+    
+    # If not in session, try query parameters
+    scan_id = request.args.get('scan_id')
+    if scan_id:
+        logging.debug(f"Found scan_id in query parameters: {scan_id}")
+        return scan_id
+    
+    logging.warning("No scan_id found in session or query parameters")
+    return None
+
 # ---------------------------- MAIN SCANNING FUNCTION ----------------------------
 
 def run_consolidated_scan(lead_data):
@@ -502,137 +519,86 @@ def index():
 @app.route('/scan', methods=['GET', 'POST'])
 def scan_page():
     """Main scan page - handles both form display and scan submission"""
-    try:
-        if request.method == 'POST':
-            # Get form data including client OS info
-            lead_data = {
-                'name': request.form.get('name', ''),
-                'email': request.form.get('email', ''),
-                'company': request.form.get('company', ''),
-                'phone': request.form.get('phone', ''),
-                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'client_os': request.form.get('client_os', 'Unknown'),
-                'client_browser': request.form.get('client_browser', 'Unknown'),
-                'windows_version': request.form.get('windows_version', ''),
-                'target': request.form.get('target', '')
-            }
-            
-            logging.debug(f"Received scan form data: {lead_data}")
-            
-            # Basic validation
-            if not lead_data["email"]:
-                return render_template('scan.html', error="Please enter your email address to receive the scan report.")
-            
-            try:
-                # Save lead data to database
-                save_lead_data(lead_data)
-                
-                # Run the consolidated scan
-                logging.info("Starting scan execution...")
-                scan_results = run_consolidated_scan(lead_data)
-                
-                # Check if scan_results contains valid data
-                if not scan_results or 'scan_id' not in scan_results:
-                    logging.error("Scan did not return valid results")
-                    return render_template('scan.html', error="Scan failed to return valid results. Please try again.")
-                
-                # Store scan ID in session (traditional way)
-                session['scan_id'] = scan_results['scan_id']
-                logging.debug(f"Stored scan_id in session: {session['scan_id']}")
-                
-                # BYPASS SESSION: Redirect to results page with scan_id as query parameter
-                return redirect(url_for('results_direct', scan_id=scan_results['scan_id']))
-            except Exception as e:
-                logging.error(f"Error processing scan: {e}")
-                logging.debug(f"Exception traceback: {traceback.format_exc()}")
-                return render_template('scan.html', error=f"An error occurred: {str(e)}")
+    if request.method == 'POST':
+        # Get form data including client OS info
+        lead_data = {
+            'name': request.form.get('name', ''),
+            'email': request.form.get('email', ''),
+            'company': request.form.get('company', ''),
+            'phone': request.form.get('phone', ''),
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'client_os': request.form.get('client_os', 'Unknown'),
+            'client_browser': request.form.get('client_browser', 'Unknown'),
+            'windows_version': request.form.get('windows_version', ''),
+            'target': request.form.get('target', '')
+        }
         
-        # For GET requests, show the scan form
-        error = request.args.get('error')
-        return render_template('scan.html', error=error)
-    except Exception as outer_error:
-        logging.error(f"Unhandled exception in scan_page route: {outer_error}")
-        logging.debug(f"Exception traceback: {traceback.format_exc()}")
-        return f"""
-        <html>
-            <head><title>System Error</title></head>
-            <body>
-                <h1>System Error</h1>
-                <p>An unexpected error occurred. Please try again later.</p>
-                <a href="/">Return to Home</a>
-            </body>
-        </html>
-        """
+        logging.debug(f"Received scan form data: {lead_data}")
+        
+        # Basic validation
+        if not lead_data["email"]:
+            return render_template('scan.html', error="Please enter your email address to receive the scan report.")
+        
+        try:
+            # Save lead data to database
+            if not save_lead_data(lead_data):
+                logging.warning("Failed to save lead data")
+            
+            # Run the consolidated scan
+            logging.info("Starting scan execution...")
+            scan_results = run_consolidated_scan(lead_data)
+            
+            # Check if scan_results contains valid data
+            if not scan_results or 'scan_id' not in scan_results:
+                logging.error("Scan did not return valid results")
+                return render_template('scan.html', error="Scan failed to return valid results. Please try again.")
+            
+            # Try to store in session (but don't rely on it)
+            try:
+                session['scan_id'] = scan_results['scan_id']
+                logging.debug(f"Stored scan_id in session: {scan_results['scan_id']}")
+            except Exception as session_error:
+                logging.warning(f"Failed to store scan_id in session: {session_error}")
+            
+            # Redirect to direct results page instead of using session
+            return redirect(url_for('results_direct', scan_id=scan_results['scan_id']))
+        except Exception as e:
+            logging.error(f"Error processing scan: {e}")
+            logging.debug(f"Exception traceback: {traceback.format_exc()}")
+            return render_template('scan.html', error=f"An error occurred: {str(e)}")
+    
+    # For GET requests, show the scan form
+    error = request.args.get('error')
+    return render_template('scan.html', error=error)
+
 @app.route('/results')
 def results():
     """Display scan results"""
+    # Get scan_id from either session or query parameters
+    scan_id = get_scan_id_from_request()
+    logging.info(f"Results page accessed with scan_id: {scan_id}")
+    
+    if not scan_id:
+        logging.warning("No scan_id found, redirecting to scan page")
+        return redirect(url_for('scan_page', error="No scan ID found. Please run a new scan."))
+    
     try:
-        # Get all session keys for debugging
-        all_keys = list(session.keys())
-        logging.debug(f"All session keys: {all_keys}")
+        # Get scan results from database
+        scan_results = get_scan_results(scan_id)
         
-        scan_id = session.get('scan_id')
-        logging.info(f"Results page accessed with scan_id from session: {scan_id}")
+        if not scan_results:
+            logging.error(f"No scan results found for ID: {scan_id}")
+            # Clear the session and redirect
+            session.pop('scan_id', None)
+            return redirect(url_for('scan_page', error="Scan results not found. Please try running a new scan."))
         
-        if not scan_id:
-            logging.warning("No scan_id in session, redirecting to scan page")
-            return redirect(url_for('scan_page', error="No scan ID found. Please run a new scan."))
-        
-        try:
-            # Get scan results from database
-            scan_results = get_scan_results(scan_id)
-            
-            if not scan_results:
-                logging.error(f"No scan results found for ID: {scan_id}")
-                # Clear the session and redirect
-                session.pop('scan_id', None)
-                return redirect(url_for('scan_page', error="Scan results not found. Please try running a new scan."))
-            
-            logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
-            
-            try:
-                return render_template('results.html', scan=scan_results)
-            except Exception as render_error:
-                logging.error(f"Error rendering results template: {render_error}")
-                return f"""
-                <html>
-                    <head><title>Results Display Error</title></head>
-                    <body>
-                        <h1>Error Displaying Results</h1>
-                        <p>There was an error rendering the results page: {str(render_error)}</p>
-                        <p>Scan ID: {scan_id}</p>
-                        <p>Available Data Keys: {list(scan_results.keys())}</p>
-                    </body>
-                </html>
-                """
-        except Exception as e:
-            logging.error(f"Error loading scan results: {e}")
-            logging.debug(f"Exception traceback: {traceback.format_exc()}")
-            return f"""
-            <html>
-                <head><title>Error</title></head>
-                <body>
-                    <h1>Error Loading Results</h1>
-                    <p>An error occurred while loading scan results: {str(e)}</p>
-                    <p>Scan ID: {scan_id}</p>
-                    <a href="/scan">Run a new scan</a>
-                </body>
-            </html>
-            """
-    except Exception as outer_e:
-        logging.error(f"Unhandled exception in results route: {outer_e}")
+        logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
+        return render_template('results.html', scan=scan_results)
+    except Exception as e:
+        logging.error(f"Error loading scan results: {e}")
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
-        return f"""
-        <html>
-            <head><title>System Error</title></head>
-            <body>
-                <h1>System Error</h1>
-                <p>An unexpected error occurred: {str(outer_e)}</p>
-                <a href="/scan">Run a new scan</a>
-            </body>
-        </html>
-        """
-        
+        return render_template('error.html', error=f"Error loading scan results: {str(e)}")
+    
 @app.route('/db_check')
 def db_check():
     """Check if the database is set up and working properly"""
