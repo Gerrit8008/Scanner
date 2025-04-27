@@ -20,6 +20,8 @@
             padding: 20px;
             text-align: center;
             margin-bottom: 30px;
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+
         }
 		.logo {
 		    max-width: 150px;
@@ -355,6 +357,197 @@
             </div>
         </div>
         {% endif %}
+<!-- Host Operating System Information -->
+{% if scan.is_domain is defined and scan.is_domain %}
+<div class="card">
+    <div class="card-header">
+        Host Operating System
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Server Information</h3>
+                <table class="table">
+                    <tr>
+                        <th>Server OS</th>
+                        <td>
+                            {% if scan.server_info is defined and scan.server_info.os %}
+                                {{ scan.server_info.os }}
+                            {% else %}
+                                Unknown (Server information not disclosed)
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Web Server</th>
+                        <td>
+                            {% if scan.server_info is defined and scan.server_info.web_server %}
+                                {{ scan.server_info.web_server }}
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Server Version</th>
+                        <td>
+                            {% if scan.server_info is defined and scan.server_info.version %}
+                                {{ scan.server_info.version }}
+                            {% else %}
+                                Unknown (Hidden for security)
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h3>Security Status</h3>
+                <div class="finding {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">
+                    <div class="title">OS Updates <span class="severity {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">{{ scan.system.os_updates.severity }}</span></div>
+                    <p>{{ scan.system.os_updates.message }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+		<!-- Local Operating System Information -->
+<div class="card">
+    <div class="card-header">
+        Client System Information
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Your System</h3>
+                <table class="table">
+                    <tr>
+                        <th>Operating System</th>
+                        <td>{{ scan.client_info.os }}</td>
+                    </tr>
+                    {% if scan.client_info.windows_version %}
+                    <tr>
+                        <th>Windows Version</th>
+                        <td>{{ scan.client_info.windows_version }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Browser</th>
+                        <td>{{ scan.client_info.browser }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h3>Security Status</h3>
+                <div class="finding {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">
+                    <div class="title">System Updates <span class="severity {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">{{ scan.system.os_updates.severity }}</span></div>
+                    <p>{{ scan.system.os_updates.message }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+		<!-- CMS Information Section -->
+{% if scan.cms and scan.cms.cms_detected %}
+<div class="card">
+    <div class="card-header">
+        Content Management System (CMS)
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h3>CMS Details</h3>
+                <table class="table">
+                    <tr>
+                        <th>CMS Name</th>
+                        <td>{{ scan.cms.cms_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Version</th>
+                        <td>{{ scan.cms.version }}</td>
+                    </tr>
+                    <tr>
+                        <th>Risk Level</th>
+                        <td><span class="severity {% if scan.cms.severity == 'Low' %}low{% elif scan.cms.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.cms.severity }}</span></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                {% if scan.cms.potential_vulnerabilities %}
+                <h3>Potential Vulnerabilities</h3>
+                <div class="findings">
+                    {% for vuln in scan.cms.potential_vulnerabilities %}
+                    <div class="finding high">
+                        <div class="title">CMS Vulnerability <span class="severity high">High</span></div>
+                        <p>{{ vuln }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="finding low">
+                    <div class="title">CMS Security <span class="severity low">Low Risk</span></div>
+                    <p>No obvious vulnerabilities detected in your CMS installation.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="alert alert-info mt-3">
+            <strong>Note:</strong> Keeping your CMS updated is critical for security. Many websites are compromised through outdated CMS installations with known vulnerabilities.
+        </div>
+    </div>
+</div>
+{% endif %}
+		<!-- OS Update Status Summary -->
+<div class="card">
+    <div class="card-header">
+        Operating System Update Status
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="summary-card">
+                    <h3>Client OS</h3>
+                    <div class="summary-value {% if scan.system.os_updates.severity == 'Low' %}score-low{% elif scan.system.os_updates.severity == 'Medium' %}score-medium{% else %}score-high{% endif %}">
+                        {% if scan.system.os_updates.severity == 'Low' %}
+                            ✅
+                        {% elif scan.system.os_updates.severity == 'Medium' %}
+                            ⚠️
+                        {% else %}
+                            ❌
+                        {% endif %}
+                    </div>
+                    <p>{{ scan.system.os_updates.message }}</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="summary-card">
+                    <h3>Server OS</h3>
+                    <div class="summary-value {% if scan.server_info is defined and scan.server_info.updates_status == 'Up to Date' %}score-low{% elif scan.server_info is defined and scan.server_info.updates_status == 'Updates Available' %}score-medium{% else %}score-high{% endif %}">
+                        {% if scan.server_info is defined and scan.server_info.updates_status == 'Up to Date' %}
+                            ✅
+                        {% elif scan.server_info is defined and scan.server_info.updates_status == 'Updates Available' %}
+                            ⚠️
+                        {% else %}
+                            ❓
+                        {% endif %}
+                    </div>
+                    <p>
+                        {% if scan.server_info is defined and scan.server_info.updates_status %}
+                            {{ scan.server_info.updates_status }}
+                        {% else %}
+                            Update status unknown (Hidden by server)
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-warning mt-3">
+            <strong>Important:</strong> Keeping operating systems updated is your first line of defense against cyber attacks. Regular updates patch security vulnerabilities that hackers can exploit.
+        </div>
+    </div>
+</div>
 
         <!-- System Security Results -->
         {% if scan.system and 'error' not in scan.system %}
