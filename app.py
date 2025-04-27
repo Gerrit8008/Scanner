@@ -12,6 +12,7 @@ import json
 import sys
 import traceback
 import requests
+from datetime import timedelta
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -141,7 +142,12 @@ def log_system_info():
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+# Use a strong secret key - don't rely on environment variables in this case
+app.secret_key = 'your_strong_secret_key_here'  # Replace with a secure random string
+app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions in files
+app.config['SESSION_PERMANENT'] = True  # Make sessions permanent
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # Sessions last 1 hour
+CORS(app, supports_credentials=True)
 app.secret_key = os.environ.get('SECRET_KEY', 'your_temporary_secret_key')
 
 # Initialize limiter
@@ -167,7 +173,7 @@ def run_consolidated_scan(lead_data):
     
     logging.info(f"Starting scan with ID: {scan_id} for target: {lead_data.get('target', 'Unknown')}")
     
-    # Initialize scan results structure
+    # Initialize scan results structure 
     scan_results = {
         'scan_id': scan_id,
         'timestamp': timestamp,
@@ -179,6 +185,10 @@ def run_consolidated_scan(lead_data):
             'windows_version': lead_data.get('windows_version', '')
         }
     }
+    
+    # Add this debug line to check the initial scan results structure
+    logging.debug(f"Initial scan_results structure: {json.dumps(scan_results, default=str)}")
+    
     
     # 1. System Security Checks
     try:
@@ -462,6 +472,8 @@ def run_consolidated_scan(lead_data):
         scan_results['database_error'] = f"Database error: {str(db_error)}"
     
     logging.info(f"Scan {scan_id} completed")
+    logging.debug(f"Final scan_results keys: {list(scan_results.keys())}")
+
     return scan_results
 
 # ---------------------------- FLASK ROUTES ----------------------------
@@ -553,8 +565,10 @@ def scan_page():
                 
                 # Store scan ID in session
                 session['scan_id'] = scan_results['scan_id']
+                session['scan_id'] = scan_results['scan_id']
                 logging.debug(f"Stored scan_id in session: {session['scan_id']}")
-                
+                # List all keys in session for debugging
+                logging.debug(f"All session keys: {list(session.keys())}")
                 # Redirect to results page
                 return redirect(url_for('results'))
             except Exception as e:
@@ -614,10 +628,15 @@ def scan_page():
             </body>
         </html>
         """
+        
 @app.route('/results')
 def results():
     """Display scan results"""
     try:
+        # Get all session keys for debugging
+        all_keys = list(session.keys())
+        logging.debug(f"All session keys: {all_keys}")
+        
         scan_id = session.get('scan_id')
         logging.info(f"Results page accessed with scan_id from session: {scan_id}")
         
@@ -636,16 +655,50 @@ def results():
                 return redirect(url_for('scan_page', error="Scan results not found. Please try running a new scan."))
             
             logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
-            return render_template('results.html', scan=scan_results)
+            
+            try:
+                return render_template('results.html', scan=scan_results)
+            except Exception as render_error:
+                logging.error(f"Error rendering results template: {render_error}")
+                return f"""
+                <html>
+                    <head><title>Results Display Error</title></head>
+                    <body>
+                        <h1>Error Displaying Results</h1>
+                        <p>There was an error rendering the results page: {str(render_error)}</p>
+                        <p>Scan ID: {scan_id}</p>
+                        <p>Available Data Keys: {list(scan_results.keys())}</p>
+                    </body>
+                </html>
+                """
         except Exception as e:
             logging.error(f"Error loading scan results: {e}")
             logging.debug(f"Exception traceback: {traceback.format_exc()}")
-            return render_template('error.html', error=f"Error loading scan results: {str(e)}")
+            return f"""
+            <html>
+                <head><title>Error</title></head>
+                <body>
+                    <h1>Error Loading Results</h1>
+                    <p>An error occurred while loading scan results: {str(e)}</p>
+                    <p>Scan ID: {scan_id}</p>
+                    <a href="/scan">Run a new scan</a>
+                </body>
+            </html>
+            """
     except Exception as outer_e:
-        logging.error(f"Unexpected error in results route: {outer_e}")
+        logging.error(f"Unhandled exception in results route: {outer_e}")
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
-        return f"A critical error occurred: {str(outer_e)}", 500
-    
+        return f"""
+        <html>
+            <head><title>System Error</title></head>
+            <body>
+                <h1>System Error</h1>
+                <p>An unexpected error occurred: {str(outer_e)}</p>
+                <a href="/scan">Run a new scan</a>
+            </body>
+        </html>
+        """
+        
 @app.route('/db_check')
 def db_check():
     """Check if the database is set up and working properly"""
@@ -803,33 +856,21 @@ def healthcheck():
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
-@app.route('/debug_scan/<scan_id>')
-def debug_scan(scan_id):
-    """Debug endpoint to view raw scan data"""
-    try:
-        scan_results = get_scan_results(scan_id)
-        if scan_results:
-            return jsonify({
-                "status": "success",
-                "scan_id": scan_id,
-                "data_available": True,
-                "keys": list(scan_results.keys()),
-                "partial_data": {k: scan_results[k] for k in list(scan_results.keys())[:5]}  # Show first 5 keys
-            })
-        else:
-            return jsonify({
-                "status": "error",
-                "scan_id": scan_id,
-                "data_available": False,
-                "message": "No scan results found for this ID"
-            })
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "scan_id": scan_id,
-            "exception": str(e),
-            "traceback": traceback.format_exc()
-        })
+@app.route('/debug_session')
+def debug_session():
+    """Debug endpoint to verify session functionality"""
+    # Get existing scan_id if any
+    scan_id = session.get('scan_id')
+    
+    # Set a test value in session
+    session['test_value'] = str(datetime.now())
+    
+    return jsonify({
+        "session_working": True,
+        "current_scan_id": scan_id,
+        "test_value_set": session['test_value'],
+        "all_keys": list(session.keys())
+    })
         
 @app.route('/debug')
 def debug():
