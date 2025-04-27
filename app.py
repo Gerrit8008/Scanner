@@ -755,106 +755,59 @@ def api_scan():
 
 @app.route('/results_direct')
 def results_direct():
-    """Display scan results using query parameter (bypassing session)"""
+    """Display scan results directly from query parameter"""
     scan_id = request.args.get('scan_id')
-    logging.info(f"Direct results page accessed with scan_id from query: {scan_id}")
     
     if not scan_id:
-        logging.warning("No scan_id in query parameters, redirecting to scan page")
-        return redirect(url_for('scan_page', error="No scan ID provided. Please run a new scan."))
+        return "No scan ID provided", 400
     
     try:
-        # Get scan results from database
+        # Get results from database
         scan_results = get_scan_results(scan_id)
         
         if not scan_results:
-            logging.error(f"No scan results found for ID: {scan_id}")
-            return redirect(url_for('scan_page', error="Scan results not found. Please try running a new scan."))
+            return f"No results found for scan ID: {scan_id}", 404
         
-        logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
-        
-        # Create a very simple HTML response to display the scan results
-        # This bypasses potential template issues
-        result_html = f"""
+        # Return a simplified view of the results
+        return f"""
         <html>
             <head>
                 <title>Scan Results</title>
                 <style>
                     body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                    .section {{ margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; }}
+                    .section {{ margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }}
                 </style>
             </head>
             <body>
-                <h1>Scan Results (Direct Display)</h1>
+                <h1>Scan Results</h1>
                 
                 <div class="section">
-                    <h2>Basic Information</h2>
-                    <p><strong>Scan ID:</strong> {scan_results.get('scan_id', 'Unknown')}</p>
-                    <p><strong>Timestamp:</strong> {scan_results.get('timestamp', 'Unknown')}</p>
-                    <p><strong>Target:</strong> {scan_results.get('target', 'Unknown')}</p>
+                    <h2>Scan Information</h2>
+                    <p><strong>Scan ID:</strong> {scan_results['scan_id']}</p>
+                    <p><strong>Timestamp:</strong> {scan_results['timestamp']}</p>
+                    <p><strong>Email:</strong> {scan_results['email']}</p>
                 </div>
-        """
-        
-        # Add risk assessment if available
-        if 'risk_assessment' in scan_results and isinstance(scan_results['risk_assessment'], dict):
-            result_html += f"""
+                
                 <div class="section">
                     <h2>Risk Assessment</h2>
-                    <p><strong>Overall Score:</strong> {scan_results['risk_assessment'].get('overall_score', 'Unknown')}</p>
-                    <p><strong>Risk Level:</strong> {scan_results['risk_assessment'].get('risk_level', 'Unknown')}</p>
+                    <p><strong>Overall Score:</strong> {scan_results['risk_assessment']['overall_score']}</p>
+                    <p><strong>Risk Level:</strong> {scan_results['risk_assessment']['risk_level']}</p>
                 </div>
-            """
-        
-        # Add recommendations if available
-        if 'recommendations' in scan_results and isinstance(scan_results['recommendations'], list):
-            result_html += """
+                
                 <div class="section">
                     <h2>Recommendations</h2>
                     <ul>
-            """
-            for rec in scan_results['recommendations']:
-                result_html += f"<li>{rec}</li>\n"
-            
-            result_html += """
-                    </ul>
-                </div>
-            """
-        
-        # Add a section showing all available data keys
-        result_html += """
-                <div class="section">
-                    <h2>Available Data</h2>
-                    <p>The following data was collected during the scan:</p>
-                    <ul>
-        """
-        
-        for key in scan_results.keys():
-            result_html += f"<li>{key}</li>\n"
-        
-        result_html += """
+                        {''.join([f'<li>{r}</li>' for r in scan_results['recommendations']])}
                     </ul>
                 </div>
                 
-                <a href="/scan">Run a new scan</a>
+                <a href="/scan">Run another scan</a>
             </body>
         </html>
         """
-        
-        return result_html
     except Exception as e:
-        logging.error(f"Error in results_direct route: {e}")
-        logging.debug(f"Exception traceback: {traceback.format_exc()}")
-        return f"""
-        <html>
-            <head><title>Error</title></head>
-            <body>
-                <h1>Error Displaying Results</h1>
-                <p>An error occurred: {str(e)}</p>
-                <p>Scan ID: {scan_id}</p>
-                <a href="/scan">Run a new scan</a>
-            </body>
-        </html>
-        """
+        return f"Error loading results: {str(e)}", 500
+    
 @app.route('/quick_scan', methods=['GET', 'POST'])
 def quick_scan():
     """A simplified scan form for testing"""
@@ -1143,7 +1096,86 @@ def test_scan():
             </body>
         </html>
         """
-                
+
+@app.route('/debug_scan_test')
+def debug_scan_test():
+    """Run a simplified scan and redirect to results"""
+    try:
+        # Create test lead data
+        test_data = {
+            'name': 'Debug User',
+            'email': 'debug@example.com',
+            'company': 'Debug Company',
+            'phone': '555-1234',
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'client_os': 'Debug OS',
+            'client_browser': 'Debug Browser',
+            'windows_version': '',
+            'target': 'example.com'
+        }
+        
+        # Run simplified scan
+        scan_results = debug_scan(test_data)
+        
+        if scan_results and 'scan_id' in scan_results:
+            # Redirect to direct results page
+            return redirect(f"/results_direct?scan_id={scan_results['scan_id']}")
+        else:
+            return "Scan failed: No valid results returned", 500
+    except Exception as e:
+        return f"Scan failed with error: {str(e)}", 500
+            
+def debug_scan(lead_data):
+    """Debug version of the scan function with more verbose logging"""
+    scan_id = str(uuid.uuid4())
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    logging.info(f"[DEBUG SCAN] Starting scan with ID: {scan_id}")
+    logging.info(f"[DEBUG SCAN] Lead data: {lead_data}")
+    
+    # Create basic scan results structure
+    scan_results = {
+        'scan_id': scan_id,
+        'timestamp': timestamp,
+        'target': lead_data.get('target', ''),
+        'email': lead_data.get('email', ''),
+        'client_info': {
+            'os': lead_data.get('client_os', 'Unknown'),
+            'browser': lead_data.get('client_browser', 'Unknown'),
+            'windows_version': lead_data.get('windows_version', '')
+        },
+        # Add some minimal results for testing
+        'recommendations': [
+            'Keep all software updated with the latest security patches',
+            'Use strong, unique passwords for all accounts',
+            'Enable multi-factor authentication where available'
+        ],
+        'risk_assessment': {
+            'overall_score': 75,
+            'risk_level': 'Medium'
+        }
+    }
+    
+    logging.info(f"[DEBUG SCAN] Created basic scan results structure")
+    
+    # Skip actual scanning functionality for testing
+    
+    # Save the results directly
+    try:
+        logging.info(f"[DEBUG SCAN] Attempting to save scan results to database")
+        saved_id = save_scan_results(scan_results)
+        
+        if saved_id:
+            logging.info(f"[DEBUG SCAN] Successfully saved to database with ID: {saved_id}")
+        else:
+            logging.error(f"[DEBUG SCAN] Database save function returned None or False")
+    except Exception as e:
+        logging.error(f"[DEBUG SCAN] Database save error: {str(e)}")
+        logging.debug(f"[DEBUG SCAN] Exception traceback: {traceback.format_exc()}")
+    
+    logging.info(f"[DEBUG SCAN] Completed, returning results with scan_id: {scan_id}")
+    return scan_results
+               
 @app.route('/debug')
 def debug():
     """Debug endpoint to check Flask configuration"""
