@@ -520,48 +520,69 @@ def index():
 def scan_page():
     """Main scan page - handles both form display and scan submission"""
     if request.method == 'POST':
-        # Get form data including client OS info
-        lead_data = {
-            'name': request.form.get('name', ''),
-            'email': request.form.get('email', ''),
-            'company': request.form.get('company', ''),
-            'phone': request.form.get('phone', ''),
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'client_os': request.form.get('client_os', 'Unknown'),
-            'client_browser': request.form.get('client_browser', 'Unknown'),
-            'windows_version': request.form.get('windows_version', ''),
-            'target': request.form.get('target', '')
-        }
-        
-        logging.debug(f"Received scan form data: {lead_data}")
-        
-        # Basic validation
-        if not lead_data["email"]:
-            return render_template('scan.html', error="Please enter your email address to receive the scan report.")
-        
         try:
-            # Save lead data to database
-            if not save_lead_data(lead_data):
-                logging.warning("Failed to save lead data")
+            # Get form data
+            lead_data = {
+                'name': request.form.get('name', ''),
+                'email': request.form.get('email', ''),
+                'company': request.form.get('company', ''),
+                'phone': request.form.get('phone', ''),
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'client_os': request.form.get('client_os', 'Unknown'),
+                'client_browser': request.form.get('client_browser', 'Unknown'),
+                'windows_version': request.form.get('windows_version', ''),
+                'target': request.form.get('target', '')
+            }
             
-            # Run the consolidated scan
-            logging.info("Starting scan execution...")
+            logging.debug(f"Received scan form data: {lead_data}")
+            
+            # Basic validation
+            if not lead_data["email"]:
+                return render_template('scan.html', error="Please enter your email address to receive the scan report.")
+            
+            # Save lead data
+            saved_lead = save_lead_data(lead_data)
+            logging.debug(f"Result of save_lead_data: {saved_lead}")
+            
+            # Run the scan with detailed logging
+            logging.info(f"Starting scan execution for {lead_data['email']}...")
+            
+            # This is the critical line - run the scan
             scan_results = run_consolidated_scan(lead_data)
             
-            # Check if scan_results contains valid data
-            if not scan_results or 'scan_id' not in scan_results:
-                logging.error("Scan did not return valid results")
-                return render_template('scan.html', error="Scan failed to return valid results. Please try again.")
+            # Add detailed logging
+            if scan_results:
+                logging.info(f"Scan completed with ID: {scan_results.get('scan_id', 'MISSING')}")
+                logging.info(f"Available keys: {list(scan_results.keys())}")
+            else:
+                logging.error("Scan results are None")
+                return render_template('scan.html', error="Scan failed to complete. Please try again.")
             
-            # Try to store in session (but don't rely on it)
+            # Save scan results to database with detailed logging
+            try:
+                logging.info(f"Saving scan results to database for ID: {scan_results['scan_id']}")
+                saved_scan_id = save_scan_results(scan_results)
+                logging.info(f"Save result: {saved_scan_id}")
+                
+                if not saved_scan_id:
+                    logging.error("Failed to save scan results to database")
+                    return render_template('scan.html', error="Failed to save scan results. Please try again.")
+            except Exception as db_error:
+                logging.error(f"Exception during database save: {str(db_error)}")
+                logging.debug(f"Exception traceback: {traceback.format_exc()}")
+                return render_template('scan.html', error=f"Database error: {str(db_error)}")
+            
+            # Try to store scan_id in session
             try:
                 session['scan_id'] = scan_results['scan_id']
-                logging.debug(f"Stored scan_id in session: {scan_results['scan_id']}")
+                logging.info(f"Stored scan_id in session: {scan_results['scan_id']}")
             except Exception as session_error:
-                logging.warning(f"Failed to store scan_id in session: {session_error}")
+                logging.error(f"Failed to store scan_id in session: {str(session_error)}")
             
-            # Redirect to direct results page instead of using session
-            return redirect(url_for('results_direct', scan_id=scan_results['scan_id']))
+            # Always redirect to the direct URL
+            direct_url = url_for('results_direct', scan_id=scan_results['scan_id'])
+            logging.info(f"Redirecting to: {direct_url}")
+            return redirect(direct_url)
         except Exception as e:
             logging.error(f"Error processing scan: {e}")
             logging.debug(f"Exception traceback: {traceback.format_exc()}")
@@ -569,7 +590,7 @@ def scan_page():
     
     # For GET requests, show the scan form
     error = request.args.get('error')
-    return redirect(url_for('results_direct', scan_id=scan_results['scan_id']))
+    return render_template('scan.html', error=error)
 
 @app.route('/results')
 def results():
@@ -834,7 +855,84 @@ def results_direct():
             </body>
         </html>
         """
-
+@app.route('/quick_scan', methods=['GET', 'POST'])
+def quick_scan():
+    """A simplified scan form for testing"""
+    if request.method == 'POST':
+        try:
+            email = request.form.get('email', '')
+            target = request.form.get('target', '')
+            
+            if not email:
+                return "Email is required", 400
+            
+            # Create minimal test data
+            test_data = {
+                'name': 'Test User',
+                'email': email,
+                'company': 'Test Company',
+                'phone': '555-1234',
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'client_os': 'Test OS',
+                'client_browser': 'Test Browser',
+                'windows_version': '',
+                'target': target
+            }
+            
+            logging.info(f"Starting quick scan for {email}...")
+            scan_results = run_consolidated_scan(test_data)
+            
+            if not scan_results or 'scan_id' not in scan_results:
+                return "Scan failed to complete", 500
+            
+            # Save to database
+            saved_id = save_scan_results(scan_results)
+            if not saved_id:
+                return "Failed to save scan results", 500
+            
+            # Redirect to results
+            return redirect(url_for('results_direct', scan_id=scan_results['scan_id']))
+        except Exception as e:
+            logging.error(f"Error in quick_scan: {e}")
+            return f"Error: {str(e)}", 500
+    
+    # Simple form for GET requests
+    return """
+    <html>
+        <head><title>Quick Scan Test</title></head>
+        <body>
+            <h1>Quick Scan Test</h1>
+            <form method="post">
+                <div>
+                    <label>Email: <input type="email" name="email" required></label>
+                </div>
+                <div>
+                    <label>Target (optional): <input type="text" name="target"></label>
+                </div>
+                <button type="submit">Run Quick Scan</button>
+            </form>
+        </body>
+    </html>
+    """
+    @app.route('/debug_post', methods=['POST'])
+def debug_post():
+    """Debug endpoint to check POST data"""
+    try:
+        # Log all form data
+        form_data = {key: request.form.get(key) for key in request.form}
+        logging.info(f"Received POST data: {form_data}")
+        
+        # Return a success response
+        return jsonify({
+            "status": "success",
+            "received_data": form_data
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "error": str(e)
+        })
+        
 @app.route('/debug_db')
 def debug_db():
     """Debug endpoint to check database contents"""
