@@ -1127,7 +1127,31 @@ def test_scan():
             </body>
         </html>
         """
-
+@app.route('/debug_submit', methods=['POST'])
+def debug_submit():
+    """Debug endpoint to test form submission"""
+    try:
+        test_email = request.form.get('test_email', 'unknown@example.com')
+        
+        return f"""
+        <html>
+            <head>
+                <title>Debug Form Submission</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                </style>
+            </head>
+            <body>
+                <h1>Form Submission Successful</h1>
+                <p>Received test email: {test_email}</p>
+                <p>This confirms that basic form submission is working.</p>
+                <a href="/scan">Return to scan page</a>
+            </body>
+        </html>
+        """
+    except Exception as e:
+        return f"Error: {str(e)}"
+        
 @app.route('/debug_scan_test')
 def debug_scan_test():
     """Run a simplified scan and redirect to results"""
