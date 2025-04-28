@@ -1,3 +1,4 @@
+
 # app.py - Main Flask application
 import logging
 import os
@@ -416,42 +417,42 @@ def run_consolidated_scan(lead_data):
             logging.info(f"Using domain for scanning: {target}")
                 
                 # Check if ports 80 or 443 are accessible
-                http_accessible = False
-                https_accessible = False
+            http_accessible = False
+            https_accessible = False
                 
-                try:
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                        sock.settimeout(3)
-                        result = sock.connect_ex((domain, 80))
-                        http_accessible = (result == 0)
-                        logging.debug(f"HTTP (port 80) accessible: {http_accessible}")
-                except Exception as http_error:
-                    logging.error(f"Error checking HTTP accessibility: {http_error}")
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(3)
+                    result = sock.connect_ex((domain, 80))
+                    http_accessible = (result == 0)
+                    logging.debug(f"HTTP (port 80) accessible: {http_accessible}")
+            except Exception as http_error:
+                logging.error(f"Error checking HTTP accessibility: {http_error}")
                     
-                try:
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                        sock.settimeout(3)
-                        result = sock.connect_ex((domain, 443))
-                        https_accessible = (result == 0)
-                        logging.debug(f"HTTPS (port 443) accessible: {https_accessible}")
-                except Exception as https_error:
-                    logging.error(f"Error checking HTTPS accessibility: {https_error}")
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(3)
+                    result = sock.connect_ex((domain, 443))
+                    https_accessible = (result == 0)
+                    logging.debug(f"HTTPS (port 443) accessible: {https_accessible}")
+            except Exception as https_error:
+                logging.error(f"Error checking HTTPS accessibility: {https_error}")
                     
-                scan_results['http_accessible'] = http_accessible
-                scan_results['https_accessible'] = https_accessible
+            scan_results['http_accessible'] = http_accessible
+            scan_results['https_accessible'] = https_accessible
                 
-                # Only perform web checks if HTTP or HTTPS is accessible
-                if http_accessible or https_accessible:
-                    target_url = f"https://{domain}" if https_accessible else f"http://{domain}"
-                    logging.info(f"Using target URL: {target_url}")
+            # Only perform web checks if HTTP or HTTPS is accessible
+            if http_accessible or https_accessible:
+                target_url = f"https://{domain}" if https_accessible else f"http://{domain}"
+                logging.info(f"Using target URL: {target_url}")
                     
-                    # SSL/TLS Certificate Analysis (only if HTTPS is accessible)
-                    if https_accessible:
-                        try:
-                            logging.debug(f"Checking SSL certificate for {domain}")
-                            scan_results['ssl_certificate'] = check_ssl_certificate(domain)
-                            logging.debug(f"SSL certificate check completed")
-                        except Exception as e:
+                # SSL/TLS Certificate Analysis (only if HTTPS is accessible)
+                if https_accessible:
+                    try:
+                        logging.debug(f"Checking SSL certificate for {domain}")
+                        scan_results['ssl_certificate'] = check_ssl_certificate(domain)
+                        logging.debug(f"SSL certificate check completed")
+                    except Exception as e:
                             logging.error(f"SSL check error for {domain}: {e}")
                             logging.debug(f"Exception traceback: {traceback.format_exc()}")
                             scan_results['ssl_certificate'] = {'error': str(e), 'status': 'error', 'severity': 'High'}
@@ -509,10 +510,10 @@ def run_consolidated_scan(lead_data):
                 else:
                     logging.warning(f"Neither HTTP nor HTTPS is accessible for {domain}, skipping web checks")
                     scan_results['web_accessibility_error'] = "Neither HTTP nor HTTPS ports are accessible"
-        except Exception as e:
-            logging.error(f"Error during web security checks: {e}")
-            logging.debug(f"Exception traceback: {traceback.format_exc()}")
-            scan_results['web_error'] = str(e)
+    except Exception as e:
+                    logging.error(f"Error during web security checks: {e}")
+                    logging.debug(f"Exception traceback: {traceback.format_exc()}")
+                    scan_results['web_error'] = str(e)
     else:
         logging.info("No target domain/IP provided, skipping web security checks")
     
