@@ -1018,13 +1018,29 @@
         // Email report functionality - UPDATED
     document.getElementById('emailReportBtn').addEventListener('click', function(e) {
         e.preventDefault();
+    
+        // Debug - check if the button event listener is working
+        console.log("Email button clicked");
+    
         const email = prompt("Enter your email address to receive this report:");
         if (email && email.includes('@')) {
+            // Debug - check if scan-id element exists
+            const scanIdElement = document.getElementById('scan-id');
+            if (!scanIdElement) {
+                console.error("Error: scan-id element not found in the DOM");
+                alert("Error: Could not find scan ID information. Please try again later.");
+                return;
+            }
+        
             // Get the scan_id from the page data
-            const scanId = document.getElementById('scan-id').value;
+            const scanId = scanIdElement.value;
+        
+            // Debug - check scan-id value
+            console.log("Found scan ID element with value:", scanId);
         
             if (!scanId) {
-                alert("Error: Scan ID not found. Please reload the page.");
+                console.error("Error: scan-id element exists but has no value");
+                alert("Error: Scan ID is missing. Please try again later.");
                 return;
             }
         
@@ -1033,7 +1049,7 @@
             this.textContent = "Sending...";
             this.disabled = true;
         
-            // Add debug logging
+            // Log request details
             console.log(`Sending email request for scan ID: ${scanId} to email: ${email}`);
         
             // Send the API request
@@ -1049,22 +1065,28 @@
             })
             .then(response => {
                 console.log("Response status:", response.status);
+                if (!response.ok) {
+                console.error("Server responded with error status:", response.status);
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
                 return response.json();
             })
             .then(data => {
-                console.log("API response:", data);
+                console.log("API response data:", data);
                 if (data.status === 'success') {
                     alert("Report has been sent to " + email);
                 } else {
+                    console.error("API returned error:", data.message || "Unknown error");
                     alert("Error: " + (data.message || "Failed to send email"));
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Error during fetch operation:', error);
                 alert("Failed to send the report. Please try again later.");
             })
             .finally(() => {
                 // Reset button state
+                console.log("Resetting button state");
                 this.textContent = originalText;
                 this.disabled = false;
             });
