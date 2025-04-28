@@ -186,6 +186,7 @@ def get_scan_id_from_request():
     logging.warning("No scan_id found in session or query parameters")
     return None
 
+# This should already be in your app.py
 @app.route('/api/email_report', methods=['POST'])
 def email_report_endpoint():
     """Email the scan report to the user and admin"""
@@ -193,7 +194,10 @@ def email_report_endpoint():
         scan_id = request.form.get('scan_id')
         email = request.form.get('email')
         
+        logging.info(f"Email report requested for scan_id: {scan_id}, email: {email}")
+        
         if not scan_id or not email:
+            logging.warning("Missing scan_id or email in request")
             return jsonify({
                 "status": "error",
                 "message": "Missing scan_id or email"
@@ -203,6 +207,7 @@ def email_report_endpoint():
         scan_results = get_scan_results(scan_id)
         
         if not scan_results:
+            logging.warning(f"Scan results not found for ID: {scan_id}")
             return jsonify({
                 "status": "error",
                 "message": "Scan results not found"
@@ -221,14 +226,17 @@ def email_report_endpoint():
         report_text = scan_results.get('html_report', 'No report available')
         
         # Send the email
+        logging.info(f"Sending email report to {email}")
         email_sent = send_email_report(lead_data, report_text)
         
         if email_sent:
+            logging.info(f"Email successfully sent to {email}")
             return jsonify({
                 "status": "success",
                 "message": "Report has been emailed successfully"
             })
         else:
+            logging.error(f"Failed to send email to {email}")
             return jsonify({
                 "status": "error",
                 "message": "Failed to send email. Please check server logs."
