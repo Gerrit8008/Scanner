@@ -256,6 +256,10 @@ def api_email_report():
         logging.debug(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)})
 
+def get_domain_from_email(email):
+    """Extract domain from email address for scanning"""
+    return extract_domain_from_email(email)
+    
 # ---------------------------- MAIN SCANNING FUNCTION ----------------------------
 
 def run_consolidated_scan(lead_data):
@@ -394,32 +398,22 @@ def run_consolidated_scan(lead_data):
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
         scan_results['email_security'] = {'error': str(e)}
     
-    # 4. Web Security Checks (if target domain provided)
-    target = lead_data.get('target', '')
-    if target and target.strip():
-        try:
-            logging.info(f"Running web security checks for target: {target}...")
-            
-            # Determine if it's a domain or IP
-            is_domain = False
-            try:
-                socket.inet_aton(target)  # Will fail if target is not an IP address
-                logging.debug(f"Target {target} is an IP address")
-            except socket.error:
-                is_domain = True
-                logging.debug(f"Target {target} is a domain name")
-            
-            scan_results['is_domain'] = is_domain
-            
-            if is_domain:
-                # Normalize the domain
-                if target.startswith('http://') or target.startswith('https://'):
-                    parsed_url = urllib.parse.urlparse(target)
-                    domain = parsed_url.netloc
-                    logging.debug(f"Parsed domain from URL: {domain}")
-                else:
-                    domain = target
-                    logging.debug(f"Using target as domain: {domain}")
+    # 4. Web Security Checks - MODIFIED to prioritize domain from email
+    try:
+        logging.info("Running web security checks...")
+    
+        # Extract domain from email for scanning
+        email = lead_data.get('email', '')
+        extracted_domain = None
+        if "@" in email:
+            extracted_domain = extract_domain_from_email(email)
+            logging.debug(f"Extracted domain from email: {extracted_domain}")
+    
+        # Use extracted domain or fall back to target
+        target = extracted_domain or lead_data.get('target', '')
+    
+        if target and target.strip():
+            logging.info(f"Using domain for scanning: {target}")
                 
                 # Check if ports 80 or 443 are accessible
                 http_accessible = False
@@ -655,10 +649,16 @@ def scan_page():
                 'client_os': request.form.get('client_os', 'Unknown'),
                 'client_browser': request.form.get('client_browser', 'Unknown'),
                 'windows_version': request.form.get('windows_version', ''),
-                'target': request.form.get('target', '')
+                # Don't need to get 'target' from form as we'll extract from email
+                'target': ''  # Leave blank to ensure we use email domain
             }
             
-            logging.debug(f"Received scan form data: {lead_data}")
+            # Update this part
+            if lead_data["email"]:
+                # Extract domain from email and use it as target
+                domain = extract_domain_from_email(lead_data["email"])
+                lead_data["target"] = domain
+                logging.info(f"Using domain extracted from email: {domain}")
             
             # Basic validation
             if not lead_data["email"]:
@@ -852,7 +852,7 @@ def api_scan():
             "client_os": request.form.get('client_os', 'Unknown'),
             "client_browser": request.form.get('client_browser', 'Unknown'),
             "windows_version": request.form.get('windows_version', ''),
-            "target": request.form.get('target', '')
+            "target": ''  # Start with empty target
         }
         
         # Basic validation
@@ -861,6 +861,11 @@ def api_scan():
                 "status": "error",
                 "message": "Please provide an email address to receive the scan report."
             }), 400
+        
+        # Extract domain from email and use as target
+        domain = extract_domain_from_email(lead_data["email"])
+        lead_data["target"] = domain
+        logging.info(f"Using domain extracted from email: {domain}")
             
         # Save lead data
         save_lead_data(lead_data)
@@ -939,14 +944,15 @@ def results_direct():
     
 @app.route('/quick_scan', methods=['GET', 'POST'])
 def quick_scan():
-    """A simplified scan form for testing"""
     if request.method == 'POST':
         try:
             email = request.form.get('email', '')
-            target = request.form.get('target', '')
             
             if not email:
                 return "Email is required", 400
+            
+            # Extract domain from email
+            domain = extract_domain_from_email(email)
             
             # Create minimal test data
             test_data = {
@@ -958,7 +964,7 @@ def quick_scan():
                 'client_os': 'Test OS',
                 'client_browser': 'Test Browser',
                 'windows_version': '',
-                'target': target
+                'target': domain  # Use extracted domain
             }
             
             logging.info(f"Starting quick scan for {email}...")
