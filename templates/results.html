@@ -279,6 +279,7 @@
         <img src="/static/images/logo.png" alt="Company Logo" class="logo">
         <h1>Comprehensive Security Scan Results</h1>
         <p>{{ scan.timestamp|default('April 25, 2025') }}</p>
+	<input type="hidden" id="scan-id" value="{{ scan.scan_id }}">
     </div>
 
     <div class="container results-container">
