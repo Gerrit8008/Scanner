@@ -1,734 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprehensive Security Scan Results</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f9fa;
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-        .header {
-            background-color: #808588;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 30px;
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-
-        }
-		.logo {
-		    max-width: 150px;
-		    margin-bottom: 15px;
-		}
-        .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .results-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .result-card {
-            margin-bottom: 30px;
-        }
-        .warning-alert {
-            background-color: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-        }
-        .severity-critical, .severity-high {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .severity-medium {
-            color: #fd7e14;
-            font-weight: bold;
-        }
-        .severity-low {
-            color: #198754;
-            font-weight: bold;
-        }
-        .footer {
-            background-color: #808588;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            margin-top: 50px;
-        }
-        pre {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            white-space: pre-wrap;
-            font-family: monospace;
-        }
-        .report-section {
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .contact-us {
-            background-color: #FF6900;
-            color: white;
-            border: none;
-            font-weight: bold;
-        }
-        .card {
-            background-color: #fff;
-            padding: 1.5rem;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-        .card-header {
-            background-color: #FF6900;
-            color: white;
-            font-weight: bold;
-            padding: 10px 15px;
-        }
-        .risk-score {
-            text-align: center;
-            padding: 2rem;
-        }
-        .score-value {
-            font-size: 4rem;
-            font-weight: bold;
-            line-height: 1;
-            margin-bottom: 0.5rem;
-        }
-        .score-label {
-            font-size: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .score-low { color: #198754; }
-        .score-medium { color: #fd7e14; }
-        .score-high { color: #dc3545; }
-        .score-critical { color: #721c24; }
-        .section-title {
-            color: #FF6900;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 0.5rem;
-            font-size: 1.5rem;
-            margin-top: 0;
-        }
-        .findings {
-            margin-bottom: 2rem;
-        }
-        .finding {
-            padding: 1rem;
-            border-left: 4px solid #3498db;
-            background-color: #f1f9ff;
-            margin-bottom: 1rem;
-        }
-        .finding.critical {
-            border-left-color: #721c24;
-            background-color: #fadbd8;
-        }
-        .finding.high {
-            border-left-color: #dc3545;
-            background-color: #fce5e1;
-        }
-        .finding.medium {
-            border-left-color: #fd7e14;
-            background-color: #fef5e7;
-        }
-        .finding.low {
-            border-left-color: #198754;
-            background-color: #e9f7ef;
-        }
-        .finding .title {
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-        .severity {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 3px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #fff;
-            margin-left: 0.5rem;
-        }
-        .severity.critical { background-color: #721c24; }
-        .severity.high { background-color: #dc3545; }
-        .severity.medium { background-color: #fd7e14; }
-        .severity.low { background-color: #198754; }
-        .recommendations {
-            background-color: #e8f4f8;
-            padding: 1rem;
-            border-radius: 5px;
-            margin-top: 1rem;
-        }
-        .btn {
-            display: inline-block;
-            background-color: #3498db;
-            color: #fff;
-            text-decoration: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
-            font-weight: bold;
-            margin-right: 1rem;
-            margin-bottom: 1rem;
-            transition: background-color 0.3s;
-        }
-        .btn:hover {
-            background-color: #2980b9;
-        }
-        .btn-primary {
-            background-color: #FF6900;
-        }
-        .btn-primary:hover {
-            background-color: #E05C00;
-        }
-        .summary {
-            display: flex;
-            flex-wrap: wrap;
-            margin: 0 -1rem;
-        }
-        .summary-card {
-            flex: 1 1 250px;
-            margin: 1rem;
-            padding: 1.5rem;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .summary-value {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-        .progress-bar {
-            height: 8px;
-            background-color: #ecf0f1;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 0.5rem;
-        }
-        .progress-fill {
-            height: 100%;
-            border-radius: 4px;
-        }
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1.5rem;
-        }
-        .table th, .table td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        .table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-        }
-        .table tr:hover td {
-            background-color: #f1f9ff;
-        }
-        @media (max-width: 768px) {
-            .summary-card {
-                flex: 1 1 100%;
-            }
-        }
-        .print-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 100;
-            background-color: #FF6900;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        .print-button:hover {
-            background-color: #E05C00;
-        }
-        @media print {
-            .print-button {
-                display: none;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <img src="/static/images/logo.png" alt="Company Logo" class="logo">
-        <h1>Comprehensive Security Scan Results</h1>
-        <p>{{ scan.timestamp|default('April 25, 2025') }}</p>
-	<input type="hidden" id="scan-id" value="{{ scan.scan_id }}">
-    </div>
-
-    <div class="container results-container">
-        <!-- Overall Risk Score -->
-        <div class="card risk-score">
-            {% if scan.risk_assessment and scan.risk_assessment.overall_score is defined %}
-            <div class="score-value {% if scan.risk_assessment.risk_level == 'Low' %}score-low{% elif scan.risk_assessment.risk_level == 'Medium' %}score-medium{% elif scan.risk_assessment.risk_level == 'High' %}score-high{% else %}score-critical{% endif %}">{{ scan.risk_assessment.overall_score }}</div>
-            <div class="score-label {% if scan.risk_assessment.risk_level == 'Low' %}score-low{% elif scan.risk_assessment.risk_level == 'Medium' %}score-medium{% elif scan.risk_assessment.risk_level == 'High' %}score-high{% else %}score-critical{% endif %}">{{ scan.risk_assessment.risk_level }} Risk</div>
-            {% else %}
-            <div class="score-value score-medium">N/A</div>
-            <div class="score-label score-medium">Risk Level Unknown</div>
-            {% endif %}
-        </div>
-        
-        <!-- Warning Alert for Critical Issues -->
-        {% if scan.risk_assessment and scan.risk_assessment.overall_score < 50 %}
-        <div id="warningAlert" class="alert alert-danger warning-alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>WARNING: Critical vulnerabilities detected!</strong> Contact us immediately for assistance with the critical security issues identified below.
-            <div class="mt-3">
-                <a href="tel:+14704810400" class="btn btn-danger">
-                    <i class="bi bi-telephone-fill me-2"></i> Call Now: 470-481-0400
-                </a>
-                <a href="mailto:sales@cengatech.com" class="btn btn-danger ms-2">
-                    <i class="bi bi-envelope-fill me-2"></i> Email Us
-                </a>
-            </div>
-        </div>
-        {% endif %}
-
-		{% if scan.risk_assessment and scan.risk_assessment.risk_factors %}
-		<div class="card">
-		    <div class="card-header">
-		        Risk Factor Breakdown
-		    </div>
-		    <div class="card-body">
-		        <table class="table">
-		            <tr>
-		                <th>Risk Factor</th>
-		                <th>Score</th>
-		                <th>Weight</th>
-		                <th>Impact</th>
-		            </tr>
-		            {% for factor in scan.risk_assessment.risk_factors %}
-		            <tr>
-		                <td>{{ factor.name }}</td>
-		                <td>
-		                    <div class="progress">
-		                        <div class="progress-fill" style="width: {{ factor.score*10 }}%; background-color: 
-		                            {% if factor.score >= 8 %}#198754{% elif factor.score >= 5 %}#fd7e14{% else %}#dc3545{% endif %};">
-		                            {{ factor.score }}/10
-		                        </div>
-		                    </div>
-		                </td>
-		                <td>{{ factor.weight }}%</td>
-		                <td>{{ (factor.weighted_score/factor.weight*1000)|int / 10 }}%</td>
-		            </tr>
-		            {% endfor %}
-		        </table>
-		        <p class="text-muted">A higher score means better security for that factor.</p>
-		    </div>
-		</div>
-		{% endif %}
-        <!-- Key Recommendations -->
-        {% if scan.recommendations %}
-        <div class="card">
-            <div class="card-header">
-                Key Recommendations
-            </div>
-            <div class="card-body">
-                <ul>
-                    {% for recommendation in scan.recommendations %}
-                    <li><strong>{{ recommendation }}</strong></li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-        {% endif %}
-<!-- Host Operating System Information -->
-{% if scan.is_domain is defined and scan.is_domain %}
-<div class="card">
-    <div class="card-header">
-        Host Operating System
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <h3>Server Information</h3>
-                <table class="table">
-                    <tr>
-                        <th>Server OS</th>
-                        <td>
-                            {% if scan.server_info is defined and scan.server_info.os %}
-                                {{ scan.server_info.os }}
-                            {% else %}
-                                Unknown (Server information not disclosed)
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Web Server</th>
-                        <td>
-                            {% if scan.server_info is defined and scan.server_info.web_server %}
-                                {{ scan.server_info.web_server }}
-                            {% else %}
-                                Unknown
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Server Version</th>
-                        <td>
-                            {% if scan.server_info is defined and scan.server_info.version %}
-                                {{ scan.server_info.version }}
-                            {% else %}
-                                Unknown (Hidden for security)
-                            {% endif %}
-                        </td>
-                    </tr>
-                </table>
-            </div>
-            <div class="col-md-6">
-                <h3>Security Status</h3>
-                <div class="finding {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">
-                    <div class="title">OS Updates <span class="severity {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">{{ scan.system.os_updates.severity }}</span></div>
-                    <p>{{ scan.system.os_updates.message }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-		<!-- Local Operating System Information -->
-<div class="card">
-    <div class="card-header">
-        Client System Information
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <h3>Your System</h3>
-                <table class="table">
-                    <tr>
-                        <th>Operating System</th>
-                        <td>{{ scan.client_info.os }}</td>
-                    </tr>
-                    {% if scan.client_info.windows_version %}
-                    <tr>
-                        <th>Windows Version</th>
-                        <td>{{ scan.client_info.windows_version }}</td>
-                    </tr>
-                    {% endif %}
-                    <tr>
-                        <th>Browser</th>
-                        <td>{{ scan.client_info.browser }}</td>
-                    </tr>
-                </table>
-            </div>
-            <div class="col-md-6">
-                <h3>Security Status</h3>
-                <div class="finding {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">
-                    <div class="title">System Updates <span class="severity {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">{{ scan.system.os_updates.severity }}</span></div>
-                    <p>{{ scan.system.os_updates.message }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-		<!-- CMS Information Section -->
-{% if scan.cms and scan.cms.cms_detected %}
-<div class="card">
-    <div class="card-header">
-        Content Management System (CMS)
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <h3>CMS Details</h3>
-                <table class="table">
-                    <tr>
-                        <th>CMS Name</th>
-                        <td>{{ scan.cms.cms_name }}</td>
-                    </tr>
-                    <tr>
-                        <th>Version</th>
-                        <td>{{ scan.cms.version }}</td>
-                    </tr>
-                    <tr>
-                        <th>Risk Level</th>
-                        <td><span class="severity {% if scan.cms.severity == 'Low' %}low{% elif scan.cms.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.cms.severity }}</span></td>
-                    </tr>
-                </table>
-            </div>
-            <div class="col-md-6">
-                {% if scan.cms.potential_vulnerabilities %}
-                <h3>Potential Vulnerabilities</h3>
-                <div class="findings">
-                    {% for vuln in scan.cms.potential_vulnerabilities %}
-                    <div class="finding high">
-                        <div class="title">CMS Vulnerability <span class="severity high">High</span></div>
-                        <p>{{ vuln }}</p>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="finding low">
-                    <div class="title">CMS Security <span class="severity low">Low Risk</span></div>
-                    <p>No obvious vulnerabilities detected in your CMS installation.</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="alert alert-info mt-3">
-            <strong>Note:</strong> Keeping your CMS updated is critical for security. Many websites are compromised through outdated CMS installations with known vulnerabilities.
-        </div>
-    </div>
-</div>
-{% endif %}
-		<!-- OS Update Status Summary -->
-<div class="card">
-    <div class="card-header">
-        Operating System Update Status
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <div class="summary-card">
-                    <h3>Client OS</h3>
-                    <div class="summary-value {% if scan.system.os_updates.severity == 'Low' %}score-low{% elif scan.system.os_updates.severity == 'Medium' %}score-medium{% else %}score-high{% endif %}">
-                        {% if scan.system.os_updates.severity == 'Low' %}
-                            ✅
-                        {% elif scan.system.os_updates.severity == 'Medium' %}
-                            ⚠️
-                        {% else %}
-                            ❌
-                        {% endif %}
-                    </div>
-                    <p>{{ scan.system.os_updates.message }}</p>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="summary-card">
-                    <h3>Server OS</h3>
-                    <div class="summary-value {% if scan.server_info is defined and scan.server_info.updates_status == 'Up to Date' %}score-low{% elif scan.server_info is defined and scan.server_info.updates_status == 'Updates Available' %}score-medium{% else %}score-high{% endif %}">
-                        {% if scan.server_info is defined and scan.server_info.updates_status == 'Up to Date' %}
-                            ✅
-                        {% elif scan.server_info is defined and scan.server_info.updates_status == 'Updates Available' %}
-                            ⚠️
-                        {% else %}
-                            ❓
-                        {% endif %}
-                    </div>
-                    <p>
-                        {% if scan.server_info is defined and scan.server_info.updates_status %}
-                            {{ scan.server_info.updates_status }}
-                        {% else %}
-                            Update status unknown (Hidden by server)
-                        {% endif %}
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="alert alert-warning mt-3">
-            <strong>Important:</strong> Keeping operating systems updated is your first line of defense against cyber attacks. Regular updates patch security vulnerabilities that hackers can exploit.
-        </div>
-    </div>
-</div>
-
-        <!-- System Security Results -->
-        {% if scan.system and 'error' not in scan.system %}
-        <div class="card">
-            <div class="card-header">
-                System Security
-            </div>
-            <div class="card-body">
-                <table class="table">
-                    <tr>
-                        <th>Check</th>
-                        <th>Status</th>
-                        <th>Risk Level</th>
-                    </tr>
-                    <tr>
-                        <td>Operating System Updates</td>
-                        <td>{{ scan.system.os_updates.message }}</td>
-                        <td><span class="severity {% if scan.system.os_updates.severity == 'Low' %}low{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.system.os_updates.severity }}</span></td>
-                    </tr>
-                    <tr>
-                        <td>Firewall</td>
-                        <td>{{ scan.system.firewall.status }}</td>
-                        <td><span class="severity {% if scan.system.firewall.severity == 'Low' %}low{% elif scan.system.firewall.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.system.firewall.severity }}</span></td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Email Security Results -->
-        {% if scan.email_security and 'error' not in scan.email_security %}
-        <div class="card">
-            <div class="card-header">
-                Email Security
-            </div>
-            <div class="card-body">
-                <table class="table">
-                    <tr>
-                        <th>Check</th>
-                        <th>Status</th>
-                        <th>Risk Level</th>
-                    </tr>
-                    {% if scan.email_security.spf %}
-                    <tr>
-                        <td>SPF Record</td>
-                        <td>{{ scan.email_security.spf.status }}</td>
-                        <td><span class="severity {% if scan.email_security.spf.severity == 'Low' %}low{% elif scan.email_security.spf.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.email_security.spf.severity }}</span></td>
-                    </tr>
-                    {% endif %}
-                    {% if scan.email_security.dmarc %}
-                    <tr>
-                        <td>DMARC Record</td>
-                        <td>{{ scan.email_security.dmarc.status }}</td>
-                        <td><span class="severity {% if scan.email_security.dmarc.severity == 'Low' %}low{% elif scan.email_security.dmarc.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.email_security.dmarc.severity }}</span></td>
-                    </tr>
-                    {% endif %}
-                    {% if scan.email_security.dkim %}
-                    <tr>
-                        <td>DKIM Record</td>
-                        <td>{{ scan.email_security.dkim.status }}</td>
-                        <td><span class="severity {% if scan.email_security.dkim.severity == 'Low' %}low{% elif scan.email_security.dkim.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.email_security.dkim.severity }}</span></td>
-                    </tr>
-                    {% endif %}
-                </table>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Network Security Results -->
-        {% if scan.network and 'error' not in scan.network %}
-        <div class="card">
-            <div class="card-header">
-                Network Security
-            </div>
-            <div class="card-body">
-                {% if scan.network.open_ports %}
-                <div class="finding {% if scan.network.open_ports.severity == 'High' %}high{% elif scan.network.open_ports.severity == 'Medium' %}medium{% else %}low{% endif %}">
-                    <div class="title">Open Ports <span class="severity {% if scan.network.open_ports.severity == 'Low' %}low{% elif scan.network.open_ports.severity == 'Medium' %}medium{% else %}high{% endif %}">{{ scan.network.open_ports.severity }}</span></div>
-                    <p>Number of open ports detected: {{ scan.network.open_ports.count }}</p>
-                </div>
-                
-                <h3>Open Ports List</h3>
-                <table class="table">
-                    <tr>
-                        <th>Port</th>
-                        <th>Risk Level</th>
-                    </tr>
-                    {% for port in scan.network.open_ports.list %}
-                    <tr>
-                        <td>{{ port }}</td>
-                        <td>
-                            {% if port in [21, 22, 23, 25, 3389, 5900, 445, 139] %}
-                            <span class="severity high">High</span>
-                            {% elif port in [80, 8080, 110, 143] %}
-                            <span class="severity medium">Medium</span>
-                            {% else %}
-                            <span class="severity low">Low</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </table>
-                {% endif %}
-                
-                {% if scan.network.gateway %}
-                <div class="finding high">
-                    <div class="title">Gateway Security <span class="severity high">High</span></div>
-                    <p>{{ scan.network.gateway.info }}</p>
-                    {% if scan.network.gateway.results %}
-                    <div class="recommendations">
-                        <strong>Gateway Issues:</strong>
-                        <ul>
-                            {% for result in scan.network.gateway.results %}
-                            <li>{{ result[0] }} ({{ result[1] }})</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- SSL/TLS Certificate section -->
-        {% if scan.ssl_certificate and 'error' not in scan.ssl_certificate %}
-        <div class="card">
-            <div class="card-header">
-                Web Security
-            </div>
-            <div class="card-body">
-                <!-- SSL/TLS Certificate Results -->
-                <h3 class="section-title">SSL/TLS Certificate</h3>
-                
-                <table class="table">
-                    <tr>
-                        <th>Issuer</th>
-                        <td>{{ scan.ssl_certificate.issuer }}</td>
-                    </tr>
-                    <tr>
-                        <th>Status</th>
-                        <td>
-                            <span class="severity {% if scan.ssl_certificate.status == 'Valid' %}low{% else %}high{% endif %}">{{ scan.ssl_certificate.status|upper }}</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Valid Until</th>
-                        <td>{{ scan.ssl_certificate.valid_until }}</td>
-                    </tr>
-                    <tr>
-                        <th>Days Remaining</th>
-                        <td>{{ scan.ssl_certificate.days_remaining }}</td>
-                    </tr>
-                    <tr>
-                        <th>Protocol</th>
-                        <td>{{ scan.ssl_certificate.protocol_version }}</td>
-                    </tr>
-                    <tr>
-                        <th>Weak Protocol</th>
-                        <td>
-                            <span class="severity {% if scan.ssl_certificate.weak_protocol %}high{% else %}low{% endif %}">{{ 'Yes' if scan.ssl_certificate.weak_protocol else 'No' }}</span>
-                        </td>
-                    </tr>
-                </table>
-                
-                {% if scan.ssl_certificate.is_expired or scan.ssl_certificate.expiring_soon or scan.ssl_certificate.weak_protocol %}
-                <div class="findings">
-                    {% if scan.ssl_certificate.is_expired %}
-                    <div class="finding high">
-                        <div class="title">Expired SSL Certificate <span class="severity high">High</span></div>
-                        <p>Your SSL certificate has expired and needs to be renewed immediately.</p>
-                    </div>
-                    {% elif scan.ssl_certificate.expiring_soon %}
-                    <div class="finding medium">
-                        <div class="title">SSL Certificate Expiring Soon <span class="severity medium">Medium</span></div>
-                        <p>Your SSL certificate will expire in {{ scan.ssl_certificate.days_remaining }} days.</p>
-                    </div>
-                    {% endif %}
-                    
-                    {% if scan.ssl_certificate.weak_protocol %}
+{% if scan.ssl_certificate.weak_protocol %}
                     <div class="finding high">
                         <div class="title">Weak SSL/TLS Protocol <span class="severity high">High</span></div>
                         <p>Your server is using {{ scan.ssl_certificate.protocol_version }}, which is considered insecure. Upgrade to TLS 1.2 or higher.</p>
@@ -745,7 +15,8 @@
                     <h3>Security Headers Score</h3>
                     <div class="summary-value {% if scan.security_headers.score >= 80 %}score-low{% elif scan.security_headers.score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ scan.security_headers.score }}</div>
                     <div class="progress-bar">
-						<div class="progress-fill" style="width: {{ scan.security_headers.score|default(0) }}%; background-color: {% if scan.security_headers.score is defined and scan.security_headers.score >= 80 %}#198754{% elif scan.security_headers.score is defined and scan.security_headers.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %};"></div>                    </div>
+                        <div class="progress-fill" style="width: {{ scan.security_headers.score|default(0) }}%; background-color: {% if scan.security_headers.score is defined and scan.security_headers.score >= 80 %}#198754{% elif scan.security_headers.score is defined and scan.security_headers.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
+                    </div>
                 </div>
                 
                 {% if scan.security_headers.headers %}
@@ -764,168 +35,59 @@
                 </table>
                 {% endif %}
                 {% endif %}
-				<!-- Web Framework Detection -->
-				{% if scan.frameworks and scan.frameworks.count > 0 %}
-				<div class="card">
-				    <div class="card-header">
-				        Web Frameworks
-				    </div>
-				    <div class="card-body">
-				        <h3>Detected Frameworks</h3>
-				        <p>We detected the following web frameworks on your site:</p>
-				        <ul>
-				            {% for framework in scan.frameworks.frameworks %}
-				            <li>{{ framework }}</li>
-				            {% endfor %}
-				        </ul>
-				        <div class="alert alert-info">
-				            <strong>Note:</strong> Some frameworks may expose version information that can help attackers target known vulnerabilities. Make sure all frameworks are up to date.
-				        </div>
-				    </div>
-				</div>
-				{% endif %}
+                
+                <!-- Web Framework Detection -->
+                {% if scan.frameworks and scan.frameworks.count > 0 %}
+                <h3 class="section-title">Web Frameworks</h3>
+                <p>We detected the following web frameworks on your site:</p>
+                <ul>
+                    {% for framework in scan.frameworks.frameworks %}
+                    <li>{{ framework }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="alert alert-info">
+                    <strong>Note:</strong> Some frameworks may expose version information that can help attackers target known vulnerabilities. Make sure all frameworks are up to date.
+                </div>
+                {% endif %}
 
-				<!-- Cookie Security Analysis -->
-				{% if scan.cookies and 'error' not in scan.cookies %}
-				<div class="card">
-				    <div class="card-header">
-				        Cookie Security
-				    </div>
-				    <div class="card-body">
-				        <div class="summary-card">
-				            <h3>Cookie Security Score</h3>
-				            <div class="summary-value {% if scan.cookies.score >= 80 %}score-low{% elif scan.cookies.score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ scan.cookies.score }}</div>
-				            <div class="progress-bar">
-				                <div class="progress-fill" style="width: {{ scan.cookies.score|default(0) }}%; background-color: {% if scan.cookies.score is defined and scan.cookies.score >= 80 %}#198754{% elif scan.cookies.score is defined and scan.cookies.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
-				            </div>
-				        </div>
-				        
-				        <table class="table">
-				            <tr>
-				                <th>Total Cookies</th>
-				                <td>{{ scan.cookies.total_cookies }}</td>
-				            </tr>
-				            <tr>
-				                <th>Secure Cookies</th>
-				                <td>{{ scan.cookies.secure_cookies }} / {{ scan.cookies.total_cookies }}</td>
-				            </tr>
-				            <tr>
-				                <th>HttpOnly Cookies</th>
-				                <td>{{ scan.cookies.httponly_cookies }} / {{ scan.cookies.total_cookies }}</td>
-				            </tr>
-				            <tr>
-				                <th>SameSite Cookies</th>
-				                <td>{{ scan.cookies.samesite_cookies }} / {{ scan.cookies.total_cookies }}</td>
-				            </tr>
-				        </table>
-				        
-				        {% if scan.cookies.severity in ['High', 'Medium'] %}
-				        <div class="finding {% if scan.cookies.severity == 'High' %}high{% else %}medium{% endif %}">
-				            <div class="title">Cookie Security Issues <span class="severity {% if scan.cookies.severity == 'High' %}high{% else %}medium{% endif %}">{{ scan.cookies.severity }}</span></div>
-				            <p>Your website cookies are not properly secured. This could allow attackers to steal session information or perform cross-site request forgery attacks.</p>
-				        </div>
-				        {% endif %}
-				    </div>
-				</div>
-				{% endif %}
-
-				<!-- DNS Configuration -->
-				{% if scan.is_domain is defined and scan.is_domain and 'email_security' in scan %}
-				<div class="card">
-				    <div class="card-header">
-				        DNS Configuration
-				    </div>
-				    <div class="card-body">
-				        <p>Domain: {{ scan.email_security.domain }}</p>
-				        
-				        <table class="table">
-				            <tr>
-				                <th>Record Type</th>
-				                <th>Status</th>
-				            </tr>
-				            <tr>
-				                <td>SPF</td>
-				                <td>{{ scan.email_security.spf.status }}</td>
-				            </tr>
-				            <tr>
-				                <td>DMARC</td>
-				                <td>{{ scan.email_security.dmarc.status }}</td>
-				            </tr>
-				            <tr>
-				                <td>DKIM</td>
-				                <td>{{ scan.email_security.dkim.status }}</td>
-				            </tr>
-				        </table>
-				        
-				        <div class="alert alert-info">
-				            <strong>Note:</strong> Proper DNS configuration is essential for email deliverability and security. SPF, DKIM, and DMARC help prevent email spoofing and phishing attacks.
-				        </div>
-				    </div>
-				</div>
-				{% endif %}
-
-				<!-- Detailed Port Analysis -->
-				{% if scan.network and scan.network.open_ports and scan.network.open_ports.list|length > 0 %}
-				<div class="card">
-				    <div class="card-header">
-				        Detailed Port Analysis
-				    </div>
-				    <div class="card-body">
-				        <h3>Port Risk Assessment</h3>
-				        <table class="table">
-				            <tr>
-				                <th>Port</th>
-				                <th>Service</th>
-				                <th>Risk Level</th>
-				            </tr>
-				            {% for port in scan.network.open_ports.list %}
-				                <tr>
-				                    <td>{{ port }}</td>
-				                    <td>
-				                        {% if port == 21 %}
-				                            FTP - File Transfer Protocol
-				                        {% elif port == 22 %}
-				                            SSH - Secure Shell
-				                        {% elif port == 23 %}
-				                            Telnet - Insecure remote access
-				                        {% elif port == 25 %}
-				                            SMTP - Email transmission
-				                        {% elif port == 80 %}
-				                            HTTP - Web traffic (unencrypted)
-				                        {% elif port == 443 %}
-				                            HTTPS - Secure web traffic
-				                        {% elif port == 3389 %}
-				                            RDP - Remote Desktop Protocol
-				                        {% elif port == 5900 %}
-				                            VNC - Virtual Network Computing
-				                        {% elif port == 8080 %}
-				                            HTTP Alternate - Often used for proxies
-				                        {% elif port == 3306 %}
-				                            MySQL Database
-				                        {% else %}
-				                            Unknown service
-				                        {% endif %}
-				                    </td>
-				                    <td>
-				                        {% if port in [21, 23, 3389, 5900, 445, 139] %}
-				                            <span class="severity high">High Risk</span>
-				                        {% elif port in [80, 8080, 110, 143, 25] %}
-				                            <span class="severity medium">Medium Risk</span>
-				                        {% else %}
-				                            <span class="severity low">Low Risk</span>
-				                        {% endif %}
-				                    </td>
-				                </tr>
-				            {% endfor %}
-				        </table>
-				        
-				        <div class="alert alert-warning">
-				            <strong>Security Recommendation:</strong> Close any ports that are not actively needed for your operations, especially high-risk ports like Telnet (23), FTP (21), RDP (3389), and VNC (5900).
-				        </div>
-				    </div>
-				</div>
-				{% endif %}
-				
+                <!-- Cookie Security Analysis -->
+                {% if scan.cookies and 'error' not in scan.cookies %}
+                <h3 class="section-title">Cookie Security</h3>
+                <div class="summary-card">
+                    <h3>Cookie Security Score</h3>
+                    <div class="summary-value {% if scan.cookies.score >= 80 %}score-low{% elif scan.cookies.score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ scan.cookies.score }}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ scan.cookies.score|default(0) }}%; background-color: {% if scan.cookies.score is defined and scan.cookies.score >= 80 %}#198754{% elif scan.cookies.score is defined and scan.cookies.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
+                    </div>
+                </div>
+                
+                <table class="table">
+                    <tr>
+                        <th>Total Cookies</th>
+                        <td>{{ scan.cookies.total_cookies }}</td>
+                    </tr>
+                    <tr>
+                        <th>Secure Cookies</th>
+                        <td>{{ scan.cookies.secure_cookies }} / {{ scan.cookies.total_cookies }}</td>
+                    </tr>
+                    <tr>
+                        <th>HttpOnly Cookies</th>
+                        <td>{{ scan.cookies.httponly_cookies }} / {{ scan.cookies.total_cookies }}</td>
+                    </tr>
+                    <tr>
+                        <th>SameSite Cookies</th>
+                        <td>{{ scan.cookies.samesite_cookies }} / {{ scan.cookies.total_cookies }}</td>
+                    </tr>
+                </table>
+                
+                {% if scan.cookies.severity in ['High', 'Medium'] %}
+                <div class="finding {% if scan.cookies.severity == 'High' %}high{% else %}medium{% endif %}">
+                    <div class="title">Cookie Security Issues <span class="severity {% if scan.cookies.severity == 'High' %}high{% else %}medium{% endif %}">{{ scan.cookies.severity }}</span></div>
+                    <p>Your website cookies are not properly secured. This could allow attackers to steal session information or perform cross-site request forgery attacks.</p>
+                </div>
+                {% endif %}
+                {% endif %}
+                
                 <!-- CMS Detection Results -->
                 {% if scan.cms and scan.cms.cms_detected %}
                 <h3 class="section-title">Content Management System (CMS)</h3>
@@ -947,6 +109,103 @@
                 </div>
                 {% endif %}
                 {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- DNS Configuration -->
+        {% if scan.is_domain is defined and scan.is_domain and 'email_security' in scan %}
+        <div class="card">
+            <div class="card-header">
+                DNS Configuration
+            </div>
+            <div class="card-body">
+                <p>Domain: {{ scan.email_security.domain }}</p>
+                
+                <table class="table">
+                    <tr>
+                        <th>Record Type</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>SPF</td>
+                        <td>{{ scan.email_security.spf.status }}</td>
+                    </tr>
+                    <tr>
+                        <td>DMARC</td>
+                        <td>{{ scan.email_security.dmarc.status }}</td>
+                    </tr>
+                    <tr>
+                        <td>DKIM</td>
+                        <td>{{ scan.email_security.dkim.status }}</td>
+                    </tr>
+                </table>
+                
+                <div class="alert alert-info">
+                    <strong>Note:</strong> Proper DNS configuration is essential for email deliverability and security. SPF, DKIM, and DMARC help prevent email spoofing and phishing attacks.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Detailed Port Analysis -->
+        {% if scan.network and scan.network.open_ports and scan.network.open_ports.list|length > 0 %}
+        <div class="card">
+            <div class="card-header">
+                Detailed Port Analysis
+            </div>
+            <div class="card-body">
+                <h3>Port Risk Assessment</h3>
+                <table class="table">
+                    <tr>
+                        <th>Port</th>
+                        <th>Service</th>
+                        <th>Risk Level</th>
+                    </tr>
+                    {% for port in scan.network.open_ports.list %}
+                        <tr>
+                            <td>{{ port }}</td>
+                            <td>
+                                {% if port == 21 %}
+                                    FTP - File Transfer Protocol
+                                {% elif port == 22 %}
+                                    SSH - Secure Shell
+                                {% elif port == 23 %}
+                                    Telnet - Insecure remote access
+                                {% elif port == 25 %}
+                                    SMTP - Email transmission
+                                {% elif port == 80 %}
+                                    HTTP - Web traffic (unencrypted)
+                                {% elif port == 443 %}
+                                    HTTPS - Secure web traffic
+                                {% elif port == 3389 %}
+                                    RDP - Remote Desktop Protocol
+                                {% elif port == 5900 %}
+                                    VNC - Virtual Network Computing
+                                {% elif port == 8080 %}
+                                    HTTP Alternate - Often used for proxies
+                                {% elif port == 3306 %}
+                                    MySQL Database
+                                {% else %}
+                                    Unknown service
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if port in [21, 23, 3389, 5900, 445, 139] %}
+                                    <span class="severity high">High Risk</span>
+                                {% elif port in [80, 8080, 110, 143, 25] %}
+                                    <span class="severity medium">Medium Risk</span>
+                                {% else %}
+                                    <span class="severity low">Low Risk</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+                
+                <div class="alert alert-warning">
+                    <strong>Security Recommendation:</strong> Close any ports that are not actively needed for your operations, especially high-risk ports like Telnet (23), FTP (21), RDP (3389), and VNC (5900).
+                </div>
             </div>
         </div>
         {% endif %}
@@ -990,19 +249,20 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Technical Details Section -->
+        <div class="card mt-5">
+            <div class="card-header d-flex justify-content-between">
+                <span>Technical Details</span>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#debugData">Show/Hide</button>
+            </div>
+            <div class="collapse" id="debugData">
+                <div class="card-body">
+                    <pre>{{ scan|tojson(indent=2) }}</pre>
+                </div>
+            </div>
+        </div>
     </div>
-	    <div class="card mt-5">
-	        <div class="card-header d-flex justify-content-between">
-	            <span>Technical Details</span>
-	            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#debugData">Show/Hide</button>
-	        </div>
-	        <div class="collapse" id="debugData">
-	            <div class="card-body">
-	                <pre>{{ scan|tojson(indent=2) }}</pre>
-	            </div>
-	        </div>
-	    </div>
-	</div>
 
     <div class="footer">
         <p>&copy; 2025 Central Georgia Technology. All rights reserved.</p>
@@ -1014,87 +274,63 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Print functionality
-            document.getElementById('printReportBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                window.print();
-            });
-            
-            document.getElementById('floatingPrintBtn').addEventListener('click', function() {
-                window.print();
-            });
-            
-            // Email report functionality
-            document.getElementById('emailReportBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                const email = prompt("Enter your email address to receive this report:");
-                if (email && email.includes('@')) {
-                    alert("Report will be sent to " + email + " shortly.");
-                    // In a real implementation, this would call an API endpoint to email the report
-                } else if (email) {
-                    alert("Please enter a valid email address.");
-                }
-            });
+    document.addEventListener('DOMContentLoaded', function() {
+        // Print functionality
+        document.getElementById('printReportBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.print();
         });
-    </script>
-	// Update this script in your results.html file
-document.addEventListener('DOMContentLoaded', function() {
-    // Print functionality
-    document.getElementById('printReportBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        window.print();
-    });
-    
-    document.getElementById('floatingPrintBtn').addEventListener('click', function() {
-        window.print();
-    });
-    
-    // Email report functionality - UPDATED
-    document.getElementById('emailReportBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        const email = prompt("Enter your email address to receive this report:");
-        if (email && email.includes('@')) {
-            // Get the scan_id from the page data
-            const scanId = document.getElementById('scan-id').value; // Make sure to add this hidden field
-            
-            // Show loading state
-            const originalText = this.textContent;
-            this.textContent = "Sending...";
-            this.disabled = true;
-            
-            // Send the API request
-            fetch('/api/email_report', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    'scan_id': scanId,
-                    'email': email
+        
+        document.getElementById('floatingPrintBtn').addEventListener('click', function() {
+            window.print();
+        });
+        
+        // Email report functionality - UPDATED
+        document.getElementById('emailReportBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            const email = prompt("Enter your email address to receive this report:");
+            if (email && email.includes('@')) {
+                // Get the scan_id from the page data
+                const scanId = document.getElementById('scan-id').value;
+                
+                // Show loading state
+                const originalText = this.textContent;
+                this.textContent = "Sending...";
+                this.disabled = true;
+                
+                // Send the API request
+                fetch('/api/email_report', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'scan_id': scanId,
+                        'email': email
+                    })
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    alert("Report has been sent to " + email);
-                } else {
-                    alert("Error: " + (data.message || "Failed to send email"));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert("Failed to send the report. Please try again later.");
-            })
-            .finally(() => {
-                // Reset button state
-                this.textContent = originalText;
-                this.disabled = false;
-            });
-        } else if (email) {
-            alert("Please enter a valid email address.");
-        }
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert("Report has been sent to " + email);
+                    } else {
+                        alert("Error: " + (data.message || "Failed to send email"));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("Failed to send the report. Please try again later.");
+                })
+                .finally(() => {
+                    // Reset button state
+                    this.textContent = originalText;
+                    this.disabled = false;
+                });
+            } else if (email) {
+                alert("Please enter a valid email address.");
+            }
+        });
     });
-});
+    </script>
 </body>
 </html>
