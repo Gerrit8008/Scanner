@@ -145,58 +145,6 @@ def log_system_info():
     
     logger.info("-----------------------------")
 
-# Use a strong secret key - don't rely on environment variables in this case
-app.secret_key = 'your_strong_secret_key_here'  # Replace with a secure random string
-app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions in files
-app.config['SESSION_PERMANENT'] = True  # Make sessions permanent
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # Sessions last 1 hour
-CORS(app, supports_credentials=True)
-app.secret_key = os.environ.get('SECRET_KEY', 'your_temporary_secret_key')
-
-# Initialize limiter
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://"
-)
-logging.warning("Using in-memory storage for rate limiting. Not recommended for production.")
-
-# Initialize logging and database
-logger = setup_logging()
-init_db()
-log_system_info()
-
-# Add this near the top of your app.py file
-@app.before_first_request
-def log_registered_routes():
-    routes = []
-    for rule in app.url_map.iter_rules():
-        routes.append(f"{rule.endpoint}: {', '.join(rule.methods)} - {rule.rule}")
-    logging.info("Registered routes: %s", routes)
-    
-def get_scan_id_from_request():
-    """Get scan_id from session or query parameters"""
-    # Try to get from session first
-    scan_id = session.get('scan_id')
-    if scan_id:
-        logging.debug(f"Found scan_id in session: {scan_id}")
-        return scan_id
-    
-    # If not in session, try query parameters
-    scan_id = request.args.get('scan_id')
-    if scan_id:
-        logging.debug(f"Found scan_id in query parameters: {scan_id}")
-        return scan_id
-    
-    logging.warning("No scan_id found in session or query parameters")
-    return None
-
-# Add this if running directly
-if __name__ == '__main__':
-    db.init_db()  # Initialize database if needed
-    app.run(debug=True)
-    
 # Use this updated initialization code
 def create_app():
     """Create and configure the Flask application"""
@@ -230,6 +178,35 @@ def create_app():
 
 # Initialize app
 app, limiter = create_app()
+
+# Set up logging and log system info
+logger = setup_logging()
+log_system_info()
+
+# Add this to check registered routes
+@app.before_first_request
+def log_registered_routes():
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append(f"{rule.endpoint}: {', '.join(rule.methods)} - {rule.rule}")
+    logging.info("Registered routes: %s", routes)
+
+def get_scan_id_from_request():
+    """Get scan_id from session or query parameters"""
+    # Try to get from session first
+    scan_id = session.get('scan_id')
+    if scan_id:
+        logging.debug(f"Found scan_id in session: {scan_id}")
+        return scan_id
+    
+    # If not in session, try query parameters
+    scan_id = request.args.get('scan_id')
+    if scan_id:
+        logging.debug(f"Found scan_id in query parameters: {scan_id}")
+        return scan_id
+    
+    logging.warning("No scan_id found in session or query parameters")
+    return None
 
 @app.route('/api/email_report', methods=['POST'])
 def api_email_report():
@@ -278,10 +255,6 @@ def api_email_report():
         logging.error(f"Error in email report API: {e}")
         logging.debug(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)})
-
-# Set up logging and log system info
-logger = setup_logging()
-log_system_info()
 
 # ---------------------------- MAIN SCANNING FUNCTION ----------------------------
 
@@ -643,6 +616,7 @@ def simple_scan():
         """
     except Exception as e:
         return f"Error: {str(e)}"
+        
 # ---------------------------- FLASK ROUTES ----------------------------
 
 @app.route('/')
