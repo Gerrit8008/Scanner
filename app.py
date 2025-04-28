@@ -169,6 +169,14 @@ logger = setup_logging()
 init_db()
 log_system_info()
 
+# Add this near the top of your app.py file
+@app.before_first_request
+def log_registered_routes():
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append(f"{rule.endpoint}: {', '.join(rule.methods)} - {rule.rule}")
+    logging.info("Registered routes: %s", routes)
+    
 def get_scan_id_from_request():
     """Get scan_id from session or query parameters"""
     # Try to get from session first
