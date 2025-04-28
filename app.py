@@ -289,13 +289,17 @@ def run_consolidated_scan(lead_data):
     
     logging.info(f"Starting scan with ID: {scan_id} for target: {lead_data.get('target', 'Unknown')}")
     
-    # Initialize scan results structure 
+    # Initialize scan results structure - UPDATED to include more client info
     scan_results = {
         'scan_id': scan_id,
         'timestamp': timestamp,
         'target': lead_data.get('target', ''),
         'email': lead_data.get('email', ''),
         'client_info': {
+            'name': lead_data.get('name', 'Unknown User'),
+            'email': lead_data.get('email', ''),
+            'company': lead_data.get('company', 'Unknown Company'),
+            'phone': lead_data.get('phone', ''),
             'os': lead_data.get('client_os', 'Unknown'),
             'browser': lead_data.get('client_browser', 'Unknown'),
             'windows_version': lead_data.get('windows_version', '')
@@ -705,7 +709,25 @@ def scan_page():
                 except Exception as session_error:
                     logging.warning(f"Failed to store scan_id in session: {str(session_error)}")
                 
-                # Render results directly instead of redirecting
+                # Automatically send report to admin email
+                try:
+                    from email_handler import send_email_report
+                    # Also automatically send report to admin
+                    admin_email = os.environ.get('ADMIN_EMAIL', 'your_email@example.com')  # Set your admin email
+                    admin_lead_data = lead_data.copy()
+                    admin_lead_data['email'] = admin_email
+                    
+                    logging.info(f"Automatically sending report to admin at {admin_email}")
+                    email_sent = send_email_report(admin_lead_data, scan_results.get('html_report', 'No report available'))
+                    
+                    if email_sent:
+                        logging.info("Report automatically sent to admin")
+                    else:
+                        logging.warning("Failed to automatically send report to admin")
+                except Exception as email_error:
+                    logging.error(f"Error sending automatic email report: {email_error}")
+                
+                # Render results directly
                 logging.info("Rendering results page...")
                 return render_template('results.html', scan=scan_results)
                 
