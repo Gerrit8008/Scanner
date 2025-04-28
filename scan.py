@@ -857,6 +857,12 @@ def calculate_risk_score(scan_results):
             'open_ports': 20
         }
         
+        # Get domain from email if present
+        target_domain = scan_results.get('target', '')
+        if 'email' in scan_results and not target_domain:
+            email = scan_results.get('email', '')
+            target_domain = extract_domain_from_email(email)
+            
         # Process SSL certificate
         if 'ssl_certificate' in scan_results and 'error' not in scan_results['ssl_certificate']:
             ssl_severity = scan_results['ssl_certificate'].get('severity', 'Low')
