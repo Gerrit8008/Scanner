@@ -17,6 +17,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from email_handler import send_email_report
 
 # Import scan functionality
 from scan import (
@@ -181,6 +182,62 @@ def get_scan_id_from_request():
     logging.warning("No scan_id found in session or query parameters")
     return None
 
+@app.route('/api/email_report', methods=['POST'])
+def email_report_endpoint():
+    """Email the scan report to the user and admin"""
+    try:
+        scan_id = request.form.get('scan_id')
+        email = request.form.get('email')
+        
+        if not scan_id or not email:
+            return jsonify({
+                "status": "error",
+                "message": "Missing scan_id or email"
+            }), 400
+            
+        # Get the scan results from database
+        scan_results = get_scan_results(scan_id)
+        
+        if not scan_results:
+            return jsonify({
+                "status": "error",
+                "message": "Scan results not found"
+            }), 404
+            
+        # Create a lead data dict for the email function
+        lead_data = {
+            "name": scan_results.get('client_info', {}).get('name', 'Unknown User'),
+            "email": email,
+            "company": scan_results.get('client_info', {}).get('company', 'Unknown Company'),
+            "phone": scan_results.get('client_info', {}).get('phone', ''),
+            "timestamp": scan_results.get('timestamp', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        }
+        
+        # Generate a text version of the HTML report or use the existing one
+        report_text = scan_results.get('html_report', 'No report available')
+        
+        # Send the email
+        email_sent = send_email_report(lead_data, report_text)
+        
+        if email_sent:
+            return jsonify({
+                "status": "success",
+                "message": "Report has been emailed successfully"
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Failed to send email. Please check server logs."
+            }), 500
+            
+    except Exception as e:
+        logging.error(f"Error sending email report: {e}")
+        logging.debug(f"Exception traceback: {traceback.format_exc()}")
+        return jsonify({
+            "status": "error",
+            "message": f"An error occurred: {str(e)}"
+        }), 500
+        
 # ---------------------------- MAIN SCANNING FUNCTION ----------------------------
 
 def run_consolidated_scan(lead_data):
