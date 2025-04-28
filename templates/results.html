@@ -1038,5 +1038,63 @@
             });
         });
     </script>
+	// Update this script in your results.html file
+document.addEventListener('DOMContentLoaded', function() {
+    // Print functionality
+    document.getElementById('printReportBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        window.print();
+    });
+    
+    document.getElementById('floatingPrintBtn').addEventListener('click', function() {
+        window.print();
+    });
+    
+    // Email report functionality - UPDATED
+    document.getElementById('emailReportBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        const email = prompt("Enter your email address to receive this report:");
+        if (email && email.includes('@')) {
+            // Get the scan_id from the page data
+            const scanId = document.getElementById('scan-id').value; // Make sure to add this hidden field
+            
+            // Show loading state
+            const originalText = this.textContent;
+            this.textContent = "Sending...";
+            this.disabled = true;
+            
+            // Send the API request
+            fetch('/api/email_report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'scan_id': scanId,
+                    'email': email
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert("Report has been sent to " + email);
+                } else {
+                    alert("Error: " + (data.message || "Failed to send email"));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Failed to send the report. Please try again later.");
+            })
+            .finally(() => {
+                // Reset button state
+                this.textContent = originalText;
+                this.disabled = false;
+            });
+        } else if (email) {
+            alert("Please enter a valid email address.");
+        }
+    });
+});
 </body>
 </html>
