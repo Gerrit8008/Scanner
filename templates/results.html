@@ -1,4 +1,59 @@
-{% if scan.ssl_certificate.weak_protocol %}
+<!-- SSL/TLS Certificate section -->
+        {% if scan.ssl_certificate and 'error' not in scan.ssl_certificate %}
+        <div class="card">
+            <div class="card-header">
+                Web Security
+            </div>
+            <div class="card-body">
+                <!-- SSL/TLS Certificate Results -->
+                <h3 class="section-title">SSL/TLS Certificate</h3>
+                
+                <table class="table">
+                    <tr>
+                        <th>Issuer</th>
+                        <td>{{ scan.ssl_certificate.issuer }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td>
+                            <span class="severity {% if scan.ssl_certificate.status == 'Valid' %}low{% else %}high{% endif %}">{{ scan.ssl_certificate.status|upper }}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Valid Until</th>
+                        <td>{{ scan.ssl_certificate.valid_until }}</td>
+                    </tr>
+                    <tr>
+                        <th>Days Remaining</th>
+                        <td>{{ scan.ssl_certificate.days_remaining }}</td>
+                    </tr>
+                    <tr>
+                        <th>Protocol</th>
+                        <td>{{ scan.ssl_certificate.protocol_version }}</td>
+                    </tr>
+                    <tr>
+                        <th>Weak Protocol</th>
+                        <td>
+                            <span class="severity {% if scan.ssl_certificate.weak_protocol %}high{% else %}low{% endif %}">{{ 'Yes' if scan.ssl_certificate.weak_protocol else 'No' }}</span>
+                        </td>
+                    </tr>
+                </table>
+                
+                {% if scan.ssl_certificate.is_expired or scan.ssl_certificate.expiring_soon or scan.ssl_certificate.weak_protocol %}
+                <div class="findings">
+                    {% if scan.ssl_certificate.is_expired %}
+                    <div class="finding high">
+                        <div class="title">Expired SSL Certificate <span class="severity high">High</span></div>
+                        <p>Your SSL certificate has expired and needs to be renewed immediately.</p>
+                    </div>
+                    {% elif scan.ssl_certificate.expiring_soon %}
+                    <div class="finding medium">
+                        <div class="title">SSL Certificate Expiring Soon <span class="severity medium">Medium</span></div>
+                        <p>Your SSL certificate will expire in {{ scan.ssl_certificate.days_remaining }} days.</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if scan.ssl_certificate.weak_protocol %}
                     <div class="finding high">
                         <div class="title">Weak SSL/TLS Protocol <span class="severity high">High</span></div>
                         <p>Your server is using {{ scan.ssl_certificate.protocol_version }}, which is considered insecure. Upgrade to TLS 1.2 or higher.</p>
@@ -6,6 +61,112 @@
                     {% endif %}
                 </div>
                 {% endif %}
+
+                <!-- Security Headers Results -->
+                {% if scan.security_headers and 'error' not in scan.security_headers %}
+                <h3 class="section-title">HTTP Security Headers</h3>
+                
+                <div class="summary-card">
+                    <h3>Security Headers Score</h3>
+                    <div class="summary-value {% if scan.security_headers.score >= 80 %}score-low{% elif scan.security_headers.score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ scan.security_headers.score }}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ scan.security_headers.score|default(0) }}%; background-color: {% if scan.security_headers.score is defined and scan.security_headers.score >= 80 %}#198754{% elif scan.security_headers.score is defined and scan.security_headers.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
+                    </div>
+                </div>
+                
+                {% if scan.security_headers.headers %}
+                <h4>Security Headers</h4>
+                <table class="table">
+                    <tr>
+                        <th>Header</th>
+                        <th>Status</th>
+                    </tr>
+                    {% for header, found in scan.security_headers.headers.items() %}
+                    <tr>
+                        <td>{{ header }}</td>
+                        <td>{% if found %}✅ Present{% else %}❌ Missing{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% endif %}
+                {% endif %}
+                
+                <!-- Web Framework Detection -->
+                {% if scan.frameworks and scan.frameworks.count > 0 %}
+                <h3 class="section-title">Web Frameworks</h3>
+                <p>We detected the following web frameworks on your site:</p>
+                <ul>
+                    {% for framework in scan.frameworks.frameworks %}
+                    <li>{{ framework }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="alert alert-info">
+                    <strong>Note:</strong> Some frameworks may expose version information that can help attackers target known vulnerabilities. Make sure all frameworks are up to date.
+                </div>
+                {% endif %}
+
+                <!-- Cookie Security Analysis -->
+                {% if scan.cookies and 'error' not in scan.cookies %}
+                <h3 class="section-title">Cookie Security</h3>
+                <div class="summary-card">
+                    <h3>Cookie Security Score</h3>
+                    <div class="summary-value {% if scan.cookies.score >= 80 %}score-low{% elif scan.cookies.score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ scan.cookies.score }}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ scan.cookies.score|default(0) }}%; background-color: {% if scan.cookies.score is defined and scan.cookies.score >= 80 %}#198754{% elif scan.cookies.score is defined and scan.cookies.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
+                    </div>
+                </div>
+                
+                <table class="table">
+                    <tr>
+                        <th>Total Cookies</th>
+                        <td>{{ scan.cookies.total_cookies }}</td>
+                    </tr>
+                    <tr>
+                        <th>Secure Cookies</th>
+                        <td>{{ scan.cookies.secure_cookies }} / {{ scan.cookies.total_cookies }}</td>
+                    </tr>
+                    <tr>
+                        <th>HttpOnly Cookies</th>
+                        <td>{{ scan.cookies.httponly_cookies }} / {{ scan.cookies.total_cookies }}</td>
+                    </tr>
+                    <tr>
+                        <th>SameSite Cookies</th>
+                        <td>{{ scan.cookies.samesite_cookies }} / {{ scan.cookies.total_cookies }}</td>
+                    </tr>
+                </table>
+                
+                {% if scan.cookies.severity in ['High', 'Medium'] %}
+                <div class="finding {% if scan.cookies.severity == 'High' %}high{% else %}medium{% endif %}">
+                    <div class="title">Cookie Security Issues <span class="severity {% if scan.cookies.severity == 'High' %}high{% else %}medium{% endif %}">{{ scan.cookies.severity }}</span></div>
+                    <p>Your website cookies are not properly secured. This could allow attackers to steal session information or perform cross-site request forgery attacks.</p>
+                </div>
+                {% endif %}
+                {% endif %}
+                
+                <!-- CMS Detection Results -->
+                {% if scan.cms and scan.cms.cms_detected %}
+                <h3 class="section-title">Content Management System (CMS)</h3>
+                
+                <div class="summary-card">
+                    <h3>{{ scan.cms.cms_name }}</h3>
+                    <p>Version: {{ scan.cms.version }}</p>
+                </div>
+                
+                {% if scan.cms.potential_vulnerabilities %}
+                <h4>Potential Vulnerabilities</h4>
+                <div class="findings">
+                    {% for vuln in scan.cms.potential_vulnerabilities %}
+                    <div class="finding high">
+                        <div class="title">CMS Vulnerability <span class="severity high">High</span></div>
+                        <p>{{ vuln }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
 
                 <!-- Security Headers Results -->
                 {% if scan.security_headers and 'error' not in scan.security_headers %}
