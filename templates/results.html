@@ -728,7 +728,7 @@
                     </div>
                     {% endif %}
                     
-                    {% if scan.ssl_certificate.weak{% if scan.ssl_certificate.weak_protocol %}
+                    {% if scan.ssl_certificate.weak_protocol %}
                     <div class="finding high">
                         <div class="title">Weak SSL/TLS Protocol <span class="severity high">High</span></div>
                         <p>Your server is using {{ scan.ssl_certificate.protocol_version }}, which is considered insecure. Upgrade to TLS 1.2 or higher.</p>
@@ -745,7 +745,8 @@
                     <h3>Security Headers Score</h3>
                     <div class="summary-value {% if scan.security_headers.score >= 80 %}score-low{% elif scan.security_headers.score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ scan.security_headers.score }}</div>
                     <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{ scan.security_headers.score|default(0) }}%; background-color: {% if scan.security_headers.score is defined and scan.security_headers.score >= 80 %}#198754{% elif scan.security_headers.score is defined and scan.security_headers.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %}"></div>                    </div>
+                        <div class="progress-fill" style="width: {{ scan.security_headers.score|default(0) }}%; background-color: {% if scan.security_headers.score is defined and scan.security_headers.score >= 80 %}#198754{% elif scan.security_headers.score is defined and scan.security_headers.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %}"></div>
+                    </div>
                 </div>
                 
                 {% if scan.security_headers.headers %}
@@ -786,7 +787,7 @@
                     <h3>Cookie Security Score</h3>
                     <div class="summary-value {% if scan.cookies.score >= 80 %}score-low{% elif scan.cookies.score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ scan.cookies.score }}</div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: {{ scan.cookies.score|default(0) }}%; background-color: {% if scan.cookies.score is defined and scan.cookies.score >= 80 %}#198754{% elif scan.cookies.score is defined and scan.cookies.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
+                        <div class="progress-fill" style="width: {{ scan.cookies.score|default(0) }}%; background-color: {% if scan.cookies.score is defined and scan.cookies.score >= 80 %}#198754{% elif scan.cookies.score is defined and scan.cookies.score >= 60 %}#fd7e14{% else %}#dc3545{% endif %}"></div>
                     </div>
                 </div>
                 
