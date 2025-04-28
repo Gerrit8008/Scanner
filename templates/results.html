@@ -1016,16 +1016,14 @@
         });
         
         // Email report functionality - UPDATED
-    // Make sure this runs after the DOM is fully loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get reference to the email button
+       // Get reference to the email button
         const emailBtn = document.getElementById('emailReportBtn');
     
-    // Check if button exists on page
+        // Check if button exists on page
         if (emailBtn) {
             console.log("Email button found, attaching event listener");
         
-        // Add click event listener
+            // Add click event listener
             emailBtn.addEventListener('click', function(event) {
             // Prevent the default action (form submission/page refresh)
                 event.preventDefault();
