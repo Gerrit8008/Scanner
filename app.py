@@ -194,12 +194,14 @@ def api_email_report():
         scan_id = request.form.get('scan_id')
         email = request.form.get('email')
         
+        logging.info(f"Email report requested for scan_id: {scan_id} to email: {email}")
+        
         if not scan_id or not email:
             logging.error("Missing required parameters (scan_id or email)")
             return jsonify({"status": "error", "message": "Missing required parameters"})
         
-        # Get scan data from database
-        scan_data = db.get_scan_results(scan_id)
+        # Get scan data from database using the imported function, not db module
+        scan_data = get_scan_results(scan_id)
         
         if not scan_data:
             logging.error(f"Scan data not found for ID: {scan_id}")
@@ -208,9 +210,9 @@ def api_email_report():
         # Create a lead_data dictionary for the email function
         lead_data = {
             "email": email,
-            "name": "",  # You might want to add a name field to your form
-            "company": "",  # Same for company
-            "phone": "",
+            "name": scan_data.get('client_info', {}).get('name', ''),
+            "company": scan_data.get('client_info', {}).get('company', ''),
+            "phone": scan_data.get('client_info', {}).get('phone', ''),
             "timestamp": scan_data.get('timestamp', '')
         }
         
@@ -218,15 +220,19 @@ def api_email_report():
         html_report = scan_data.get('html_report', '')
         
         # Send email using your existing function
-        email_sent = email_handler.send_email_report(lead_data, html_report)
+        logging.info(f"Attempting to send email report to {email}")
+        email_sent = send_email_report(lead_data, html_report)
         
         if email_sent:
+            logging.info(f"Email report successfully sent to {email}")
             return jsonify({"status": "success"})
         else:
+            logging.error(f"Failed to send email report to {email}")
             return jsonify({"status": "error", "message": "Failed to send email"})
             
     except Exception as e:
         logging.error(f"Error in email report API: {e}")
+        logging.debug(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)})
 
 # Add this if running directly
