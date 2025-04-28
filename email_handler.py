@@ -2,6 +2,8 @@ import os
 import logging
 import smtplib
 from email.message import EmailMessage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from datetime import datetime
 
 # Set up logging configuration if not already set
@@ -27,12 +29,16 @@ def send_email_report(lead_data, scan_result):
         # Check if credentials are available
         if not smtp_user or not smtp_password:
             logging.error("SMTP credentials not found in environment variables")
-            return False
+            logging.warning("Using default test credentials - ONLY FOR DEVELOPMENT!")
+            # For development only - REPLACE WITH REAL CREDENTIALS IN PRODUCTION!
+            smtp_user = "your_email@example.com"  # Replace with your email
+            smtp_password = "your_password"       # Replace with your password
             
         logging.debug(f"Attempting to send email with SMTP user: {smtp_user}")
         
-        msg = EmailMessage()
-        msg["Subject"] = f"New Vulnerability Scan - {lead_data.get('company', 'Unknown Company')}"
+        # Create a multipart message for HTML and text
+        msg = MIMEMultipart('alternative')
+        msg["Subject"] = f"Security Scan Report - {lead_data.get('company', 'Unknown Company')}"
         msg["From"] = smtp_user
         
         # Send to both the admin and the user
@@ -43,21 +49,23 @@ def send_email_report(lead_data, scan_result):
         
         logging.debug(f"Email recipients: {recipients}")
         
-        # Compose the body
-        body = f"""
-        A new scan has been initiated with the following details:
+        # Compose the plain text body
+        text_body = f"""
+        Security Scan Report
         
+        Client Information:
         Name: {lead_data.get('name', '')}
         Email: {lead_data.get('email', '')}
         Company: {lead_data.get('company', '')}
         Phone: {lead_data.get('phone', '')}
         Timestamp: {lead_data.get('timestamp', '')}
         
-        --- Begin Scan Report ---
+        --- Begin Scan Report Summary ---
         
-        {scan_result}
+        A detailed security scan was performed for {lead_data.get('company', 'your company')}.
+        Please see the attached HTML report or view it in your browser.
         
-        --- End of Report ---
+        --- End of Summary ---
         
         We look forward to partnering with you for all your IT and cybersecurity needs.
         You can reach us through our website at cengatech.com, by email at sales@cengatech.com, or by phone at 470-481-0400.
@@ -65,27 +73,55 @@ def send_email_report(lead_data, scan_result):
         Thank you,
         The Cengatech Team
         """
-        msg.set_content(body)
+        
+        # Create text part
+        part1 = MIMEText(text_body, 'plain')
+        
+        # Create HTML part - use the scan_result which should be HTML
+        part2 = MIMEText(scan_result, 'html')
+        
+        # Add parts to message
+        msg.attach(part1)
+        msg.attach(part2)
         
         # Try different ports if needed
-        smtp_server = "mail.privateemail.com"
+        smtp_server = "mail.privateemail.com"  # Change to your SMTP server
         smtp_port = 587  # 587 is typical for authenticated TLS
         
         logging.debug(f"Connecting to SMTP server: {smtp_server}:{smtp_port}")
         
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
-            logging.debug("SMTP connection established")
-            server.ehlo()
-            logging.debug("EHLO successful")
-            server.starttls()
-            logging.debug("STARTTLS successful")
-            server.ehlo()
-            logging.debug("Second EHLO successful")
-            server.login(smtp_user, smtp_password)
-            logging.debug("SMTP login successful")
-            server.send_message(msg)
-            logging.debug("Email sent successfully!")
-            return True
+        try:
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
+                logging.debug("SMTP connection established")
+                server.ehlo()
+                logging.debug("EHLO successful")
+                server.starttls()
+                logging.debug("STARTTLS successful")
+                server.ehlo()
+                logging.debug("Second EHLO successful")
+                server.login(smtp_user, smtp_password)
+                logging.debug("SMTP login successful")
+                server.send_message(msg)
+                logging.debug("Email sent successfully!")
+                return True
+        except Exception as smtp_error:
+            logging.error(f"Primary SMTP attempt failed: {smtp_error}")
+            
+            # Fallback to alternative port or server
+            try:
+                smtp_port = 465  # Try alternative port for SSL
+                logging.debug(f"Trying alternative port: {smtp_port}")
+                
+                with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30) as server:
+                    logging.debug("SMTP_SSL connection established")
+                    server.login(smtp_user, smtp_password)
+                    logging.debug("SMTP login successful")
+                    server.send_message(msg)
+                    logging.debug("Email sent successfully via alternative method!")
+                    return True
+            except Exception as fallback_error:
+                logging.error(f"Fallback SMTP attempt also failed: {fallback_error}")
+                raise  # Re-raise to be caught by the outer exception handler
             
     except Exception as e:
         logging.error(f"Error sending email: {e}")
