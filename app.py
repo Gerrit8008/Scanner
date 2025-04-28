@@ -186,62 +186,53 @@ def get_scan_id_from_request():
     logging.warning("No scan_id found in session or query parameters")
     return None
 
+
 @app.route('/api/email_report', methods=['POST'])
-def email_report_endpoint():
-    """Email the scan report to the user and admin"""
+def api_email_report():
     try:
+        # Get data from request
         scan_id = request.form.get('scan_id')
         email = request.form.get('email')
         
         if not scan_id or not email:
-            return jsonify({
-                "status": "error",
-                "message": "Missing scan_id or email"
-            }), 400
-            
-        # Get the scan results from database
-        scan_results = get_scan_results(scan_id)
+            logging.error("Missing required parameters (scan_id or email)")
+            return jsonify({"status": "error", "message": "Missing required parameters"})
         
-        if not scan_results:
-            return jsonify({
-                "status": "error",
-                "message": "Scan results not found"
-            }), 404
-            
-        # Create a lead data dict for the email function
+        # Get scan data from database
+        scan_data = db.get_scan_results(scan_id)
+        
+        if not scan_data:
+            logging.error(f"Scan data not found for ID: {scan_id}")
+            return jsonify({"status": "error", "message": "Scan data not found"})
+        
+        # Create a lead_data dictionary for the email function
         lead_data = {
-            "name": scan_results.get('client_info', {}).get('name', 'Unknown User'),
             "email": email,
-            "company": scan_results.get('client_info', {}).get('company', 'Unknown Company'),
-            "phone": scan_results.get('client_info', {}).get('phone', ''),
-            "timestamp": scan_results.get('timestamp', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            "name": "",  # You might want to add a name field to your form
+            "company": "",  # Same for company
+            "phone": "",
+            "timestamp": scan_data.get('timestamp', '')
         }
         
-        # Generate a text version of the HTML report or use the existing one
-        report_text = scan_results.get('html_report', 'No report available')
+        # Get the HTML report from scan data
+        html_report = scan_data.get('html_report', '')
         
-        # Send the email
-        email_sent = send_email_report(lead_data, report_text)
+        # Send email using your existing function
+        email_sent = email_handler.send_email_report(lead_data, html_report)
         
         if email_sent:
-            return jsonify({
-                "status": "success",
-                "message": "Report has been emailed successfully"
-            })
+            return jsonify({"status": "success"})
         else:
-            return jsonify({
-                "status": "error",
-                "message": "Failed to send email. Please check server logs."
-            }), 500
+            return jsonify({"status": "error", "message": "Failed to send email"})
             
     except Exception as e:
-        logging.error(f"Error sending email report: {e}")
-        logging.debug(f"Exception traceback: {traceback.format_exc()}")
-        return jsonify({
-            "status": "error",
-            "message": f"An error occurred: {str(e)}"
-        }), 500
+        logging.error(f"Error in email report API: {e}")
+        return jsonify({"status": "error", "message": str(e)})
 
+# Add this if running directly
+if __name__ == '__main__':
+    db.init_db()  # Initialize database if needed
+    app.run(debug=True)
 # Use this updated initialization code
 def create_app():
     """Create and configure the Flask application"""
