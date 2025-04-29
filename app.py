@@ -222,7 +222,7 @@ def api_email_report():
             logging.error("Missing required parameters (scan_id or email)")
             return jsonify({"status": "error", "message": "Missing required parameters"})
         
-        # Get scan data from database using the imported function, not db module
+        # Get scan data from database 
         scan_data = get_scan_results(scan_id)
         
         if not scan_data:
@@ -238,10 +238,20 @@ def api_email_report():
             "timestamp": scan_data.get('timestamp', '')
         }
         
-        # Get the HTML report from scan data
+        # Get or re-render the HTML report
+        # Option 1: Get from scan data if already stored
         html_report = scan_data.get('html_report', '')
         
-        # Send email using your updated function with three parameters
+        # Option 2: Or re-render the template with the scan data
+        if not html_report:
+            try:
+                html_report = render_template('results.html', scan=scan_data)
+                logging.info("HTML report rendered from template")
+            except Exception as render_error:
+                logging.error(f"Error rendering HTML report: {render_error}")
+                # Continue with whatever HTML we have, even if it's empty
+        
+        # Send email using the updated function
         logging.info(f"Attempting to send email report to {email}")
         email_sent = send_email_report(lead_data, scan_data, html_report)
         
@@ -256,8 +266,7 @@ def api_email_report():
         logging.error(f"Error in email report API: {e}")
         logging.debug(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)})
-
-# You may also need to update the automatic email function if it exists
+        
 def send_automatic_report_to_admin(scan_results):
     """Send scan report automatically to admin email"""
     try:
