@@ -26,6 +26,7 @@ from scan import (
     extract_domain_from_email,
     server_lookup,
     get_client_and_gateway_ip,
+    categorize_risks_by_services,
     get_default_gateway_ip,
     scan_gateway_ports,
     check_ssl_certificate,
