@@ -47,6 +47,196 @@ GATEWAY_PORT_WARNINGS = {
 
 # ---------------------------- UTILITY FUNCTIONS ----------------------------
 
+# New function to organize risks by MSP service categories
+def categorize_risks_by_services(scan_results):
+    """Categorize all detected risks into MSP service categories"""
+    service_categories = {
+        'endpoint_security': {
+            'name': 'Endpoint Security',
+            'description': 'Protection for your computers, mobile devices, and other network endpoints',
+            'findings': [],
+            'risk_level': 'Low',
+            'score': 0,
+            'max_score': 0
+        },
+        'network_defense': {
+            'name': 'Network Defense',
+            'description': 'Protection for your network infrastructure and internet connectivity',
+            'findings': [],
+            'risk_level': 'Low',
+            'score': 0,
+            'max_score': 0
+        },
+        'data_protection': {
+            'name': 'Data Protection',
+            'description': 'Solutions to secure, backup, and manage your critical business data',
+            'findings': [],
+            'risk_level': 'Low',
+            'score': 0,
+            'max_score': 0
+        },
+        'access_management': {
+            'name': 'Access Management',
+            'description': 'Controls to ensure only authorized users access your systems',
+            'findings': [],
+            'risk_level': 'Low',
+            'score': 0,
+            'max_score': 0
+        }
+    }
+    
+    # Map findings to categories
+    
+    # 1. Endpoint Security findings
+    if 'system' in scan_results:
+        # OS Updates
+        if 'os_updates' in scan_results['system']:
+            severity = scan_results['system']['os_updates'].get('severity', 'Low')
+            score = SEVERITY.get(severity, 1)
+            service_categories['endpoint_security']['findings'].append({
+                'name': 'Operating System Updates',
+                'description': scan_results['system']['os_updates'].get('message', ''),
+                'severity': severity,
+                'score': score,
+                'service_solution': 'Managed Updates & Patching' 
+            })
+            service_categories['endpoint_security']['score'] += score
+            service_categories['endpoint_security']['max_score'] += 10
+        
+        # Firewall Status
+        if 'firewall' in scan_results['system']:
+            severity = scan_results['system']['firewall'].get('severity', 'Low')
+            score = SEVERITY.get(severity, 1)
+            service_categories['endpoint_security']['findings'].append({
+                'name': 'Firewall Configuration',
+                'description': scan_results['system']['firewall'].get('status', ''),
+                'severity': severity,
+                'score': score,
+                'service_solution': 'Endpoint Protection & Firewall Management'
+            })
+            service_categories['endpoint_security']['score'] += score
+            service_categories['endpoint_security']['max_score'] += 10
+    
+    # 2. Network Defense findings
+    if 'network' in scan_results:
+        # Open Ports
+        if 'open_ports' in scan_results['network']:
+            severity = scan_results['network']['open_ports'].get('severity', 'Low')
+            score = SEVERITY.get(severity, 1)
+            service_categories['network_defense']['findings'].append({
+                'name': 'Open Network Ports',
+                'description': f"Found {scan_results['network']['open_ports'].get('count', 0)} open ports that could be access points for attackers",
+                'severity': severity,
+                'score': score,
+                'service_solution': 'Network Security Assessment & Remediation'
+            })
+            service_categories['network_defense']['score'] += score
+            service_categories['network_defense']['max_score'] += 10
+            
+        # Gateway issues
+        if 'gateway' in scan_results['network']:
+            critical_issues = [r for r in scan_results['network']['gateway'].get('results', []) if r[1] in ['Critical', 'High']]
+            if critical_issues:
+                service_categories['network_defense']['findings'].append({
+                    'name': 'Gateway Security Issues',
+                    'description': f"Found {len(critical_issues)} high-risk issues with your network gateway",
+                    'severity': 'High',
+                    'score': 7,
+                    'service_solution': 'Managed Firewall & Gateway Protection'
+                })
+                service_categories['network_defense']['score'] += 7
+                service_categories['network_defense']['max_score'] += 10
+    
+    # 3. Data Protection findings
+    # SSL Certificate check maps to data protection
+    if 'ssl_certificate' in scan_results and 'error' not in scan_results['ssl_certificate']:
+        severity = scan_results['ssl_certificate'].get('severity', 'Low')
+        score = SEVERITY.get(severity, 1)
+        service_categories['data_protection']['findings'].append({
+            'name': 'SSL/TLS Certificate',
+            'description': f"Certificate status: {scan_results['ssl_certificate'].get('status', '')}",
+            'severity': severity,
+            'score': score,
+            'service_solution': 'SSL/TLS Certificate Management'
+        })
+        service_categories['data_protection']['score'] += score
+        service_categories['data_protection']['max_score'] += 10
+    
+    # Email security is part of data protection
+    if 'email_security' in scan_results and 'error' not in scan_results['email_security']:
+        # Combine email security findings
+        email_issues = []
+        max_severity = 'Low'
+        max_score = 1
+        
+        for protocol in ['spf', 'dmarc', 'dkim']:
+            if protocol in scan_results['email_security']:
+                severity = scan_results['email_security'][protocol].get('severity', 'Low')
+                if SEVERITY.get(severity, 0) > SEVERITY.get(max_severity, 0):
+                    max_severity = severity
+                    max_score = SEVERITY.get(severity, 1)
+                email_issues.append(f"{protocol.upper()}: {scan_results['email_security'][protocol].get('status', '')}")
+        
+        if email_issues:
+            service_categories['data_protection']['findings'].append({
+                'name': 'Email Security Configuration',
+                'description': '; '.join(email_issues),
+                'severity': max_severity,
+                'score': max_score,
+                'service_solution': 'Email Security & Anti-Phishing Protection'
+            })
+            service_categories['data_protection']['score'] += max_score
+            service_categories['data_protection']['max_score'] += 10
+    
+    # 4. Access Management findings
+    # Security headers relate to web access control
+    if 'security_headers' in scan_results and 'error' not in scan_results['security_headers']:
+        severity = scan_results['security_headers'].get('severity', 'Low')
+        score = SEVERITY.get(severity, 1)
+        service_categories['access_management']['findings'].append({
+            'name': 'Web Security Headers',
+            'description': f"Security header score: {scan_results['security_headers'].get('score', 0)}/100",
+            'severity': severity,
+            'score': score,
+            'service_solution': 'Web Application Security Management'
+        })
+        service_categories['access_management']['score'] += score
+        service_categories['access_management']['max_score'] += 10
+    
+    # Sensitive content is access management issue
+    if 'sensitive_content' in scan_results and 'error' not in scan_results['sensitive_content']:
+        if scan_results['sensitive_content'].get('sensitive_paths_found', 0) > 0:
+            severity = scan_results['sensitive_content'].get('severity', 'Low')
+            score = SEVERITY.get(severity, 1)
+            service_categories['access_management']['findings'].append({
+                'name': 'Sensitive Content Exposure',
+                'description': f"Found {scan_results['sensitive_content'].get('sensitive_paths_found', 0)} sensitive paths that should be protected",
+                'severity': severity,
+                'score': score,
+                'service_solution': 'Access Control & Content Security'
+            })
+            service_categories['access_management']['score'] += score
+            service_categories['access_management']['max_score'] += 10
+    
+    # Calculate risk level for each category
+    for category in service_categories:
+        cat = service_categories[category]
+        # Prevent division by zero
+        if cat['max_score'] > 0:
+            percentage = ((cat['max_score'] - cat['score']) / cat['max_score']) * 100
+            
+            if percentage >= 90:
+                cat['risk_level'] = 'Low'
+            elif percentage >= 70:
+                cat['risk_level'] = 'Medium'
+            elif percentage >= 50:
+                cat['risk_level'] = 'High'
+            else:
+                cat['risk_level'] = 'Critical'
+        else:
+            cat['risk_level'] = 'Unknown'
+    
+    return service_categories
 def extract_domain_from_email(email):
     """Extract domain from email address."""
     if '@' in email:
