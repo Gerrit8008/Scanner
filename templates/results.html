@@ -939,7 +939,198 @@
             </div>
         </div>
         {% endif %}
+<!-- Network Discovery Section -->
+<div class="card">
+    <div class="card-header">
+        Network Discovery
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Client & Gateway Information</h3>
+                <table class="table">
+                    <tr>
+                        <th>Client IP</th>
+                        <td>{{ client_ip }}</td>
+                    </tr>
+                    <tr>
+                        <th>Network Type</th>
+                        <td>{{ network_type }}</td>
+                    </tr>
+                    <tr>
+                        <th>Likely Gateway IPs</th>
+                        <td>
+                            {% if gateway_guesses %}
+                                <ul class="mb-0">
+                                {% for gateway in gateway_guesses %}
+                                    <li>{{ gateway }}</li>
+                                {% endfor %}
+                                </ul>
+                            {% else %}
+                                Gateway detection not possible
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h3>Gateway Security Status</h3>
+                <div class="finding high">
+                    <div class="title">Gateway Security Assessment <span class="severity high">High</span></div>
+                    <p>{{ gateway_info }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
+<!-- Gateway Port Analysis -->
+<div class="card">
+    <div class="card-header">
+        Gateway Port Analysis
+    </div>
+    <div class="card-body">
+        <h3>Detected Gateway Services</h3>
+        <div class="alert alert-warning">
+            <strong>Note:</strong> This analysis is based on common network configurations and may not represent the exact state of your network gateway.
+        </div>
+        
+        <table class="table">
+            <tr>
+                <th>Service</th>
+                <th>Details</th>
+                <th>Risk Level</th>
+            </tr>
+            {% for result in scan.network.gateway.results %}
+            <tr>
+                <td>{{ result[0].split('(')[0].strip() }}</td>
+                <td>{{ result[0] }}</td>
+                <td>
+                    <span class="severity {% if result[1] == 'Critical' %}critical{% elif result[1] == 'High' %}high{% elif result[1] == 'Medium' %}medium{% elif result[1] == 'Low' %}low{% else %}low{% endif %}">
+                        {{ result[1] }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        
+        <div class="alert alert-info mt-3">
+            <strong>Recommendation:</strong> Consider using a dedicated hardware firewall or properly configured software firewall to protect your gateway from unauthorized access.
+        </div>
+    </div>
+</div>
+
+<!-- Sensitive Content Analysis -->
+<div class="card">
+    <div class="card-header">
+        Sensitive Content Analysis
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Content Discovery</h3>
+                <div class="summary-card">
+                    <h3>Sensitive Paths Found</h3>
+                    <div class="summary-value {% if scan.sensitive_content.sensitive_paths_found > 5 %}score-critical{% elif scan.sensitive_content.sensitive_paths_found > 2 %}score-high{% elif scan.sensitive_content.sensitive_paths_found > 0 %}score-medium{% else %}score-low{% endif %}">
+                        {{ scan.sensitive_content.sensitive_paths_found }}
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ scan.sensitive_content.sensitive_paths_found * 10 }}%; background-color: {% if scan.sensitive_content.sensitive_paths_found > 5 %}#721c24{% elif scan.sensitive_content.sensitive_paths_found > 2 %}#dc3545{% elif scan.sensitive_content.sensitive_paths_found > 0 %}#fd7e14{% else %}#198754{% endif %}"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h3>Risk Assessment</h3>
+                <div class="finding {% if scan.sensitive_content.severity == 'Critical' %}critical{% elif scan.sensitive_content.severity == 'High' %}high{% elif scan.sensitive_content.severity == 'Medium' %}medium{% else %}low{% endif %}">
+                    <div class="title">Sensitive Content Exposure <span class="severity {{ scan.sensitive_content.severity|lower }}">{{ scan.sensitive_content.severity }}</span></div>
+                    <p>
+                        {% if scan.sensitive_content.sensitive_paths_found > 0 %}
+                            Potentially sensitive content was discovered on your website that could provide attackers with valuable information.
+                        {% else %}
+                            No obvious sensitive content was discovered during the scan.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        {% if scan.sensitive_content.paths %}
+        <h3 class="mt-4">Detected Sensitive Paths</h3>
+        <table class="table">
+            <tr>
+                <th>Path</th>
+                <th>Risk Level</th>
+                <th>Recommendation</th>
+            </tr>
+            {% for path in scan.sensitive_content.paths %}
+            <tr>
+                <td><code>{{ path }}</code></td>
+                <td>
+                    {% if path in ['/admin', '/wp-admin', '/administrator', '/phpmyadmin', '/.git', '/.env', '/config.php', '/wp-config.php'] %}
+                    <span class="severity high">High</span>
+                    {% else %}
+                    <span class="severity medium">Medium</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if path in ['/admin', '/wp-admin', '/administrator', '/phpmyadmin'] %}
+                    Secure with strong authentication and restrict access by IP if possible
+                    {% elif path in ['/.git', '/.env', '/config.php', '/wp-config.php'] %}
+                    Block access to these files/directories via web server configuration
+                    {% elif path in ['/backup', '/db', '/logs'] %}
+                    Move to a location outside the web root or block access
+                    {% else %}
+                    Review access permissions and consider restricting if not needed
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+        
+        <div class="alert alert-warning mt-3">
+            <strong>Security Note:</strong> Exposed sensitive directories and files can provide attackers with valuable information for planning more targeted attacks against your systems.
+        </div>
+    </div>
+</div>
+
+<!-- Threat Scenario Analysis -->
+<div class="card">
+    <div class="card-header">
+        Threat Scenario Analysis
+    </div>
+    <div class="card-body">
+        <p>Based on the vulnerabilities identified in this scan, these are potential threat scenarios that could affect your systems:</p>
+        
+        {% for threat in scan.threat_scenarios %}
+        <div class="finding {% if threat.impact == 'Critical' %}critical{% elif threat.impact == 'High' %}high{% elif threat.impact == 'Medium' %}medium{% else %}low{% endif %}">
+            <div class="title">{{ threat.name }} <span class="severity {{ threat.impact|lower }}">{{ threat.impact }}</span></div>
+            <p>{{ threat.description }}</p>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <strong>Impact: </strong>
+                    <span class="severity {{ threat.impact|lower }}">{{ threat.impact }}</span>
+                </div>
+                <div class="col-md-6">
+                    <strong>Likelihood: </strong>
+                    <span class="severity {{ threat.likelihood|lower }}">{{ threat.likelihood }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        {% if not scan.threat_scenarios %}
+        <div class="finding low">
+            <div class="title">General Security Posture <span class="severity low">Low Risk</span></div>
+            <p>No specific high-risk threat scenarios were identified based on this scan. However, all systems remain potential targets for common attacks like phishing, social engineering, or exploitation of newly discovered vulnerabilities.</p>
+        </div>
+        {% endif %}
+        
+        <div class="alert alert-info mt-4">
+            <strong>Note:</strong> These threat scenarios are based on the security findings in this report. A comprehensive security program should include regular assessment, monitoring, and testing to identify and mitigate potential threats.
+        </div>
+    </div>
+</div>
         <!-- Actions Buttons -->
         <div class="card">
             <div class="card-header">
