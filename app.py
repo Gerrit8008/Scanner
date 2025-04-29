@@ -1,4 +1,3 @@
-
 # app.py - Main Flask application
 import logging
 import os
@@ -84,29 +83,6 @@ GATEWAY_PORT_WARNINGS = {
     5900: ("VNC", "High"),
     22: ("SSH", "Low"),
 }
-
-# Add this to the calculate_risk_score function in your app.py or scan.py
-# where you are currently calculating the risk score
-
-def calculate_risk_score(scan_results):
-    """Calculate overall risk score based on all scan results"""
-    try:
-        # Run existing risk calculation code
-        # Your existing risk calculation code here
-        
-        # Add the new service-oriented categorization
-        scan_results['service_categories'] = categorize_risks_by_services(scan_results)
-        
-        # Rest of your existing function
-        # ...
-        
-        return risk_assessment_result
-    except Exception as e:
-        return {
-            'error': str(e),
-            'overall_score': 0,
-            'risk_level': 'Unknown'
-        }
 
 # Setup logging
 def setup_logging():
@@ -211,7 +187,7 @@ app, limiter = create_app()
 logger = setup_logging()
 log_system_info()
 
-# Add this to check registered routes
+# Log registered routes
 @app.before_first_request
 def log_registered_routes():
     routes = []
@@ -236,64 +212,10 @@ def get_scan_id_from_request():
     logging.warning("No scan_id found in session or query parameters")
     return None
 
-@app.route('/api/email_report', methods=['POST'])
-def api_email_report():
-    try:
-        # Get data from request
-        scan_id = request.form.get('scan_id')
-        email = request.form.get('email')
-        
-        logging.info(f"Email report requested for scan_id: {scan_id} to email: {email}")
-        
-        if not scan_id or not email:
-            logging.error("Missing required parameters (scan_id or email)")
-            return jsonify({"status": "error", "message": "Missing required parameters"})
-        
-        # Get scan data from database 
-        scan_data = get_scan_results(scan_id)
-        
-        if not scan_data:
-            logging.error(f"Scan data not found for ID: {scan_id}")
-            return jsonify({"status": "error", "message": "Scan data not found"})
-        
-        # Create a lead_data dictionary for the email function
-        lead_data = {
-            "email": email,
-            "name": scan_data.get('client_info', {}).get('name', ''),
-            "company": scan_data.get('client_info', {}).get('company', ''),
-            "phone": scan_data.get('client_info', {}).get('phone', ''),
-            "timestamp": scan_data.get('timestamp', '')
-        }
-        
-        # Get or re-render the HTML report
-        # Option 1: Get from scan data if already stored
-        html_report = scan_data.get('html_report', '')
-        
-        # Option 2: Or re-render the template with the scan data
-        if not html_report:
-            try:
-                html_report = render_template('results.html', scan=scan_data)
-                logging.info("HTML report rendered from template")
-            except Exception as render_error:
-                logging.error(f"Error rendering HTML report: {render_error}")
-                # Continue with whatever HTML we have, even if it's empty
-        
-        # Send email using the updated function
-        logging.info(f"Attempting to send email report to {email}")
-        email_sent = send_email_report(lead_data, scan_data, html_report)
-        
-        if email_sent:
-            logging.info(f"Email report successfully sent to {email}")
-            return jsonify({"status": "success"})
-        else:
-            logging.error(f"Failed to send email report to {email}")
-            return jsonify({"status": "error", "message": "Failed to send email"})
-            
-    except Exception as e:
-        logging.error(f"Error in email report API: {e}")
-        logging.debug(traceback.format_exc())
-        return jsonify({"status": "error", "message": str(e)})
-        
+def get_domain_from_email(email):
+    """Extract domain from email address for scanning"""
+    return extract_domain_from_email(email)
+
 def send_automatic_report_to_admin(scan_results):
     """Send scan report automatically to admin email"""
     try:
@@ -317,11 +239,7 @@ def send_automatic_report_to_admin(scan_results):
     except Exception as e:
         logging.error(f"Error sending automatic email report: {e}")
         return False
-        
-def get_domain_from_email(email):
-    """Extract domain from email address for scanning"""
-    return extract_domain_from_email(email)
-    
+
 # ---------------------------- MAIN SCANNING FUNCTION ----------------------------
 
 def run_consolidated_scan(lead_data):
@@ -356,16 +274,6 @@ def run_consolidated_scan(lead_data):
             'name': lead_data.get('name', 'Unknown User'),
             'email': email,
             'company': company_name,
-            'phone': lead_data.get('phone', ''),
-            'os': lead_data.get('client_os', 'Unknown'),
-            'browser': lead_data.get('client_browser', 'Unknown'),
-            'windows_version': lead_data.get('windows_version', '')
-        }
-    }
-        'client_info': {
-            'name': lead_data.get('name', 'Unknown User'),
-            'email': lead_data.get('email', ''),
-            'company': lead_data.get('company', 'Unknown Company'),
             'phone': lead_data.get('phone', ''),
             'os': lead_data.get('client_os', 'Unknown'),
             'browser': lead_data.get('client_browser', 'Unknown'),
@@ -502,14 +410,14 @@ def run_consolidated_scan(lead_data):
         if target and target.strip():
             logging.info(f"Using domain for scanning: {target}")
                 
-                # Check if ports 80 or 443 are accessible
+            # Check if ports 80 or 443 are accessible
             http_accessible = False
             https_accessible = False
                 
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                     sock.settimeout(3)
-                    result = sock.connect_ex((domain, 80))
+                    result = sock.connect_ex((target, 80))
                     http_accessible = (result == 0)
                     logging.debug(f"HTTP (port 80) accessible: {http_accessible}")
             except Exception as http_error:
@@ -518,7 +426,7 @@ def run_consolidated_scan(lead_data):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                     sock.settimeout(3)
-                    result = sock.connect_ex((domain, 443))
+                    result = sock.connect_ex((target, 443))
                     https_accessible = (result == 0)
                     logging.debug(f"HTTPS (port 443) accessible: {https_accessible}")
             except Exception as https_error:
@@ -529,79 +437,79 @@ def run_consolidated_scan(lead_data):
                 
             # Only perform web checks if HTTP or HTTPS is accessible
             if http_accessible or https_accessible:
-                target_url = f"https://{domain}" if https_accessible else f"http://{domain}"
+                target_url = f"https://{target}" if https_accessible else f"http://{target}"
                 logging.info(f"Using target URL: {target_url}")
                     
                 # SSL/TLS Certificate Analysis (only if HTTPS is accessible)
                 if https_accessible:
                     try:
-                        logging.debug(f"Checking SSL certificate for {domain}")
-                        scan_results['ssl_certificate'] = check_ssl_certificate(domain)
+                        logging.debug(f"Checking SSL certificate for {target}")
+                        scan_results['ssl_certificate'] = check_ssl_certificate(target)
                         logging.debug(f"SSL certificate check completed")
                     except Exception as e:
-                            logging.error(f"SSL check error for {domain}: {e}")
-                            logging.debug(f"Exception traceback: {traceback.format_exc()}")
-                            scan_results['ssl_certificate'] = {'error': str(e), 'status': 'error', 'severity': 'High'}
-                    
-                    # HTTP Security Headers Assessment
-                    try:
-                        logging.debug(f"Checking security headers for {target_url}")
-                        scan_results['security_headers'] = check_security_headers(target_url)
-                        logging.debug(f"Security headers check completed")
-                    except Exception as e:
-                        logging.error(f"Headers check error for {target_url}: {e}")
+                        logging.error(f"SSL check error for {target}: {e}")
                         logging.debug(f"Exception traceback: {traceback.format_exc()}")
-                        scan_results['security_headers'] = {'error': str(e), 'score': 0, 'severity': 'High'}
+                        scan_results['ssl_certificate'] = {'error': str(e), 'status': 'error', 'severity': 'High'}
                     
-                    # CMS Detection
-                    try:
-                        logging.debug(f"Detecting CMS for {target_url}")
-                        scan_results['cms'] = detect_cms(target_url)
-                        logging.debug(f"CMS detection completed")
-                    except Exception as e:
-                        logging.error(f"CMS detection error for {target_url}: {e}")
-                        logging.debug(f"Exception traceback: {traceback.format_exc()}")
-                        scan_results['cms'] = {'error': str(e), 'cms_detected': False, 'severity': 'Medium'}
-                    
-                    # Cookie Security Analysis
-                    try:
-                        logging.debug(f"Analyzing cookies for {target_url}")
-                        scan_results['cookies'] = analyze_cookies(target_url)
-                        logging.debug(f"Cookie analysis completed")
-                    except Exception as e:
-                        logging.error(f"Cookie analysis error for {target_url}: {e}")
-                        logging.debug(f"Exception traceback: {traceback.format_exc()}")
-                        scan_results['cookies'] = {'error': str(e), 'score': 0, 'severity': 'Medium'}
-                    
-                    # Web Application Framework Detection
-                    try:
-                        logging.debug(f"Detecting web frameworks for {target_url}")
-                        scan_results['frameworks'] = detect_web_framework(target_url)
-                        logging.debug(f"Framework detection completed")
-                    except Exception as e:
-                        logging.error(f"Framework detection error for {target_url}: {e}")
-                        logging.debug(f"Exception traceback: {traceback.format_exc()}")
-                        scan_results['frameworks'] = {'error': str(e), 'frameworks': [], 'count': 0}
-                    
-                    # Basic Content Crawling (look for sensitive paths)
-                    try:
-                        max_urls = 15
-                        logging.debug(f"Crawling for sensitive content at {target_url} (max {max_urls} urls)")
-                        scan_results['sensitive_content'] = crawl_for_sensitive_content(target_url, max_urls)
-                        logging.debug(f"Content crawling completed")
-                    except Exception as e:
-                        logging.error(f"Content crawling error for {target_url}: {e}")
-                        logging.debug(f"Exception traceback: {traceback.format_exc()}")
-                        scan_results['sensitive_content'] = {'error': str(e), 'sensitive_paths_found': 0, 'severity': 'Medium'}
-                else:
-                    logging.warning(f"Neither HTTP nor HTTPS is accessible for {domain}, skipping web checks")
-                    scan_results['web_accessibility_error'] = "Neither HTTP nor HTTPS ports are accessible"
-    except Exception as e:
-                    logging.error(f"Error during web security checks: {e}")
+                # HTTP Security Headers Assessment
+                try:
+                    logging.debug(f"Checking security headers for {target_url}")
+                    scan_results['security_headers'] = check_security_headers(target_url)
+                    logging.debug(f"Security headers check completed")
+                except Exception as e:
+                    logging.error(f"Headers check error for {target_url}: {e}")
                     logging.debug(f"Exception traceback: {traceback.format_exc()}")
-                    scan_results['web_error'] = str(e)
-    else:
-        logging.info("No target domain/IP provided, skipping web security checks")
+                    scan_results['security_headers'] = {'error': str(e), 'score': 0, 'severity': 'High'}
+                
+                # CMS Detection
+                try:
+                    logging.debug(f"Detecting CMS for {target_url}")
+                    scan_results['cms'] = detect_cms(target_url)
+                    logging.debug(f"CMS detection completed")
+                except Exception as e:
+                    logging.error(f"CMS detection error for {target_url}: {e}")
+                    logging.debug(f"Exception traceback: {traceback.format_exc()}")
+                    scan_results['cms'] = {'error': str(e), 'cms_detected': False, 'severity': 'Medium'}
+                
+                # Cookie Security Analysis
+                try:
+                    logging.debug(f"Analyzing cookies for {target_url}")
+                    scan_results['cookies'] = analyze_cookies(target_url)
+                    logging.debug(f"Cookie analysis completed")
+                except Exception as e:
+                    logging.error(f"Cookie analysis error for {target_url}: {e}")
+                    logging.debug(f"Exception traceback: {traceback.format_exc()}")
+                    scan_results['cookies'] = {'error': str(e), 'score': 0, 'severity': 'Medium'}
+                
+                # Web Application Framework Detection
+                try:
+                    logging.debug(f"Detecting web frameworks for {target_url}")
+                    scan_results['frameworks'] = detect_web_framework(target_url)
+                    logging.debug(f"Framework detection completed")
+                except Exception as e:
+                    logging.error(f"Framework detection error for {target_url}: {e}")
+                    logging.debug(f"Exception traceback: {traceback.format_exc()}")
+                    scan_results['frameworks'] = {'error': str(e), 'frameworks': [], 'count': 0}
+                
+                # Basic Content Crawling (look for sensitive paths)
+                try:
+                    max_urls = 15
+                    logging.debug(f"Crawling for sensitive content at {target_url} (max {max_urls} urls)")
+                    scan_results['sensitive_content'] = crawl_for_sensitive_content(target_url, max_urls)
+                    logging.debug(f"Content crawling completed")
+                except Exception as e:
+                    logging.error(f"Content crawling error for {target_url}: {e}")
+                    logging.debug(f"Exception traceback: {traceback.format_exc()}")
+                    scan_results['sensitive_content'] = {'error': str(e), 'sensitive_paths_found': 0, 'severity': 'Medium'}
+            else:
+                logging.warning(f"Neither HTTP nor HTTPS is accessible for {target}, skipping web checks")
+                scan_results['web_accessibility_error'] = "Neither HTTP nor HTTPS ports are accessible"
+        else:
+            logging.info("No target domain/IP provided, skipping web security checks")
+    except Exception as e:
+        logging.error(f"Error during web security checks: {e}")
+        logging.debug(f"Exception traceback: {traceback.format_exc()}")
+        scan_results['web_error'] = str(e)
     
     # 5. Calculate risk score and recommendations
     try:
@@ -609,32 +517,31 @@ def run_consolidated_scan(lead_data):
         scan_results['risk_assessment'] = calculate_risk_score(scan_results)
         logging.debug(f"Risk assessment completed")
         
+        # Add service categories
+        scan_results['service_categories'] = categorize_risks_by_services(scan_results)
+        
         scan_results['recommendations'] = get_recommendations(scan_results)
         logging.debug(f"Generated {len(scan_results['recommendations'])} recommendations")
         
         scan_results['threat_scenarios'] = generate_threat_scenario(scan_results)
         logging.debug(f"Generated {len(scan_results['threat_scenarios'])} threat scenarios")
-    except Exception as e:
-        logging.error(f"Error during risk assessment: {e}")
-        logging.debug(f"Exception traceback: {traceback.format_exc()}")
-        scan_results['risk_assessment'] = {'error': str(e), 'overall_score': 50, 'risk_level': 'Medium'}
-        scan_results['recommendations'] = ["Keep all software and systems updated with the latest security patches.",
-                                          "Use strong, unique passwords and implement multi-factor authentication.",
-                                          "Regularly back up your data and test the restoration process."]
-    try:
-        logging.info("Calculating risk assessment...")
-        scan_results['risk_assessment'] = calculate_risk_score(scan_results)
-        logging.debug(f"Risk assessment completed")
         
         # Add the industry percentile calculation after risk score
         if 'overall_score' in scan_results['risk_assessment']:
             overall_score = scan_results['risk_assessment']['overall_score']
-            scan_results['industry'] = scan_results.get('industry', {})
             scan_results['industry']['benchmarks'] = calculate_industry_percentile(
                 overall_score, 
                 scan_results['industry'].get('type', 'default')
             )
             logging.debug(f"Industry benchmarking completed")
+    except Exception as e:
+        logging.error(f"Error during risk assessment: {e}")
+        logging.debug(f"Exception traceback: {traceback.format_exc()}")
+        scan_results['risk_assessment'] = {'error': str(e), 'overall_score': 50, 'risk_level': 'Medium'}
+        scan_results['recommendations'] = ["Keep all software and systems updated with the latest security patches.",
+                                         "Use strong, unique passwords and implement multi-factor authentication.",
+                                         "Regularly back up your data and test the restoration process."]
+    
     # 6. Generate HTML report
     try:
         logging.info("Generating HTML report...")
@@ -666,51 +573,6 @@ def run_consolidated_scan(lead_data):
 
     return scan_results
 
-@app.route('/simple_scan')
-def simple_scan():
-    """A completely simplified scan that bypasses all complexity"""
-    try:
-        # Create a simple scan result
-        scan_id = str(uuid.uuid4())
-        timestamp = datetime.now().isoformat()
-        
-        # Return results directly without database or sessions
-        return f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Simple Scan Results</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                .section {{ padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 5px; }}
-            </style>
-        </head>
-        <body>
-            <h1>Simple Scan Results</h1>
-            
-            <div class="section">
-                <h2>Scan Information</h2>
-                <p><strong>Scan ID:</strong> {scan_id}</p>
-                <p><strong>Timestamp:</strong> {timestamp}</p>
-            </div>
-            
-            <div class="section">
-                <h2>Sample Results</h2>
-                <p>This is a simple test page that bypasses all complex functionality.</p>
-                <ul>
-                    <li>Keep all software updated with security patches</li>
-                    <li>Use strong, unique passwords</li>
-                    <li>Enable multi-factor authentication where possible</li>
-                </ul>
-            </div>
-            
-            <a href="/scan">Run a real scan</a>
-        </body>
-        </html>
-        """
-    except Exception as e:
-        return f"Error: {str(e)}"
-        
 # ---------------------------- FLASK ROUTES ----------------------------
 
 @app.route('/')
@@ -788,7 +650,6 @@ def scan_page():
                 
                 # Automatically send report to admin email
                 try:
-                    from email_handler import send_email_report
                     # Also automatically send report to admin
                     admin_email = os.environ.get('ADMIN_EMAIL', 'your_email@example.com')  # Set your admin email
                     admin_lead_data = lead_data.copy()
@@ -821,50 +682,6 @@ def scan_page():
     error = request.args.get('error')
     return render_template('scan.html', error=error)
 
-
-    if 'service_categories' not in scan_results:
-        try:
-            # Generate service categories if they don't exist
-            scan_results['service_categories'] = categorize_risks_by_services(scan_results)
-            logging.info("Added service categories to scan results")
-        except Exception as cat_error:
-            logging.error(f"Error generating service categories: {str(cat_error)}")
-            # Initialize empty categories to prevent template errors
-            scan_results['service_categories'] = {
-                'endpoint_security': {
-                    'name': 'Endpoint Security',
-                    'description': 'Protection for your computers and devices',
-                    'findings': [],
-                    'risk_level': 'Low',
-                    'score': 0,
-                    'max_score': 0
-                },
-                'network_defense': {
-                    'name': 'Network Defense',
-                    'description': 'Protection for your network infrastructure',
-                    'findings': [],
-                    'risk_level': 'Low',
-                    'score': 0,
-                    'max_score': 0
-                },
-                'data_protection': {
-                    'name': 'Data Protection',
-                    'description': 'Solutions to secure your business data',
-                    'findings': [],
-                    'risk_level': 'Low',
-                    'score': 0,
-                    'max_score': 0
-                },
-                'access_management': {
-                    'name': 'Access Management',
-                    'description': 'Controls for secure system access',
-                    'findings': [],
-                    'risk_level': 'Low',
-                    'score': 0,
-                    'max_score': 0
-                }
-            }
-        
 @app.route('/results')
 def results():
     """Display scan results"""
@@ -887,25 +704,130 @@ def results():
             return redirect(url_for('scan_page', error="Scan results not found. Please try running a new scan."))
         
         logging.debug(f"Loaded scan results with keys: {list(scan_results.keys())}")
+        
+        # Ensure service_categories exists
+        if 'service_categories' not in scan_results:
+            try:
+                scan_results['service_categories'] = categorize_risks_by_services(scan_results)
+            except Exception as cat_error:
+                logging.error(f"Error generating service categories: {str(cat_error)}")
+                # Initialize with empty categories
+                scan_results['service_categories'] = {
+                    'endpoint_security': {'name': 'Endpoint Security', 'description': 'Protection for your computers and devices', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0},
+                    'network_defense': {'name': 'Network Defense', 'description': 'Protection for your network infrastructure', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0},
+                    'data_protection': {'name': 'Data Protection', 'description': 'Solutions to secure your business data', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0},
+                    'access_management': {'name': 'Access Management', 'description': 'Controls for secure system access', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0}
+                }
+            
         return render_template('results.html', scan=scan_results)
     except Exception as e:
         logging.error(f"Error loading scan results: {e}")
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
-    
-    if 'service_categories' not in scan_results:
-        try:
-            scan_results['service_categories'] = categorize_risks_by_services(scan_results)
-        except Exception as cat_error:
-            logging.error(f"Error generating service categories: {str(cat_error)}")
-            # Initialize with empty categories
-            scan_results['service_categories'] = {
-                'endpoint_security': {'name': 'Endpoint Security', 'description': 'Protection for your computers and devices', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0},
-                'network_defense': {'name': 'Network Defense', 'description': 'Protection for your network infrastructure', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0},
-                'data_protection': {'name': 'Data Protection', 'description': 'Solutions to secure your business data', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0},
-                'access_management': {'name': 'Access Management', 'description': 'Controls for secure system access', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0}
-            }
+
+@app.route('/api/email_report', methods=['POST'])
+def api_email_report():
+    try:
+        # Get data from request
+        scan_id = request.form.get('scan_id')
+        email = request.form.get('email')
+        
+        logging.info(f"Email report requested for scan_id: {scan_id} to email: {email}")
+        
+        if not scan_id or not email:
+            logging.error("Missing required parameters (scan_id or email)")
+            return jsonify({"status": "error", "message": "Missing required parameters"})
+        
+        # Get scan data from database 
+        scan_data = get_scan_results(scan_id)
+        
+        if not scan_data:
+            logging.error(f"Scan data not found for ID: {scan_id}")
+            return jsonify({"status": "error", "message": "Scan data not found"})
+        
+        # Create a lead_data dictionary for the email function
+        lead_data = {
+            "email": email,
+            "name": scan_data.get('client_info', {}).get('name', ''),
+            "company": scan_data.get('client_info', {}).get('company', ''),
+            "phone": scan_data.get('client_info', {}).get('phone', ''),
+            "timestamp": scan_data.get('timestamp', '')
+        }
+        
+        # Get or re-render the HTML report
+        # Option 1: Get from scan data if already stored
+        html_report = scan_data.get('html_report', '')
+        
+        # Option 2: Or re-render the template with the scan data
+        if not html_report:
+            try:
+                html_report = render_template('results.html', scan=scan_data)
+                logging.info("HTML report rendered from template")
+            except Exception as render_error:
+                logging.error(f"Error rendering HTML report: {render_error}")
+                # Continue with whatever HTML we have, even if it's empty
+        
+        # Send email using the updated function
+        logging.info(f"Attempting to send email report to {email}")
+        email_sent = send_email_report(lead_data, scan_data, html_report)
+        
+        if email_sent:
+            logging.info(f"Email report successfully sent to {email}")
+            return jsonify({"status": "success"})
+        else:
+            logging.error(f"Failed to send email report to {email}")
+            return jsonify({"status": "error", "message": "Failed to send email"})
             
+    except Exception as e:
+        logging.error(f"Error in email report API: {e}")
+        logging.debug(traceback.format_exc())
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route('/simple_scan')
+def simple_scan():
+    """A completely simplified scan that bypasses all complexity"""
+    try:
+        # Create a simple scan result
+        scan_id = str(uuid.uuid4())
+        timestamp = datetime.now().isoformat()
+        
+        # Return results directly without database or sessions
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Simple Scan Results</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                .section {{ padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 5px; }}
+            </style>
+        </head>
+        <body>
+            <h1>Simple Scan Results</h1>
+            
+            <div class="section">
+                <h2>Scan Information</h2>
+                <p><strong>Scan ID:</strong> {scan_id}</p>
+                <p><strong>Timestamp:</strong> {timestamp}</p>
+            </div>
+            
+            <div class="section">
+                <h2>Sample Results</h2>
+                <p>This is a simple test page that bypasses all complex functionality.</p>
+                <ul>
+                    <li>Keep all software updated with security patches</li>
+                    <li>Use strong, unique passwords</li>
+                    <li>Enable multi-factor authentication where possible</li>
+                </ul>
+            </div>
+            
+            <a href="/scan">Run a real scan</a>
+        </body>
+        </html>
+        """
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 @app.route('/db_check')
 def db_check():
     """Check if the database is set up and working properly"""
@@ -1159,6 +1081,7 @@ def quick_scan():
         </body>
     </html>
     """
+
 @app.route('/debug_post', methods=['POST'])  
 def debug_post():
     """Debug endpoint to check POST data"""
@@ -1281,138 +1204,7 @@ def debug_db():
             </body>
         </html>
         """
-                
-@app.route('/about')
-def about():
-    return render_template('about.html')
 
-@app.route('/contact')
-def contact():
-    return render_template('contact.html')
-
-@app.route('/privacy')
-def privacy():
-    return render_template('privacy.html')
-
-@app.route('/terms')
-def terms():
-    return render_template('terms.html')
-
-@app.route('/api/healthcheck')
-def healthcheck():
-    return jsonify({
-        "status": "ok",
-        "version": "1.0.0",
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    })
-
-@app.route('/debug_session')
-def debug_session():
-    """Debug endpoint to verify session functionality"""
-    # Get existing scan_id if any
-    scan_id = session.get('scan_id')
-    
-    # Set a test value in session
-    session['test_value'] = str(datetime.now())
-    
-    return jsonify({
-        "session_working": True,
-        "current_scan_id": scan_id,
-        "test_value_set": session['test_value'],
-        "all_keys": list(session.keys())
-    })
-
-@app.route('/test_scan')
-def test_scan():
-    """Test scan execution directly"""
-    try:
-        # Create test lead data
-        test_data = {
-            'name': 'Test User',
-            'email': 'test@example.com',
-            'company': 'Test Company',
-            'phone': '555-1234',
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'client_os': 'Test OS',
-            'client_browser': 'Test Browser',
-            'windows_version': 'Test Windows',
-            'target': 'example.com'
-        }
-        
-        # Run scan
-        logging.info("Starting test scan execution...")
-        scan_results = run_consolidated_scan(test_data)
-        
-        # Check if we got a valid result
-        if scan_results and 'scan_id' in scan_results:
-            # Try to save to database
-            try:
-                saved_id = save_scan_results(scan_results)
-                db_status = f"Successfully saved to database with ID: {saved_id}" if saved_id else "Failed to save to database"
-            except Exception as db_error:
-                db_status = f"Database error: {str(db_error)}"
-            
-            # Return success output
-            return f"""
-            <html>
-                <head><title>Test Scan Success</title></head>
-                <body>
-                    <h1>Test Scan Completed Successfully</h1>
-                    <p><strong>Scan ID:</strong> {scan_results['scan_id']}</p>
-                    <p><strong>Database Status:</strong> {db_status}</p>
-                    <p><strong>Available Keys:</strong> {', '.join(list(scan_results.keys()))}</p>
-                    <p><a href="/results_direct?scan_id={scan_results['scan_id']}">View Results</a></p>
-                </body>
-            </html>
-            """
-        else:
-            # Return error output
-            return f"""
-            <html>
-                <head><title>Test Scan Failed</title></head>
-                <body>
-                    <h1>Test Scan Failed</h1>
-                    <p>The scan did not return valid results.</p>
-                    <p><pre>{json.dumps(scan_results, indent=2, default=str) if scan_results else 'None'}</pre></p>
-                </body>
-            </html>
-            """
-    except Exception as e:
-        return f"""
-        <html>
-            <head><title>Test Scan Error</title></head>
-            <body>
-                <h1>Test Scan Error</h1>
-                <p>An error occurred during the test scan: {str(e)}</p>
-                <p><pre>{traceback.format_exc()}</pre></p>
-            </body>
-        </html>
-        """
-@app.route('/debug_submit', methods=['POST'])
-def debug_submit():
-    """Debug endpoint to test form submission"""
-    try:
-        test_email = request.form.get('test_email', 'unknown@example.com')
-        
-        return f"""
-        <html>
-            <head>
-                <title>Debug Form Submission</title>
-                <style>
-                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                </style>
-            </head>
-            <body>
-                <h1>Form Submission Successful</h1>
-                <p>Received test email: {test_email}</p>
-                <p>This confirms that basic form submission is working.</p>
-                <a href="/scan">Return to scan page</a>
-            </body>
-        </html>
-        """
-    except Exception as e:
-        return f"Error: {str(e)}"
-        
 @app.route('/debug_scan_test')
 def debug_scan_test():
     """Run a simplified scan and redirect to results"""
@@ -1520,7 +1312,138 @@ def debug():
     
     return jsonify(debug_info)
 
-# Add this to app.py
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
+@app.route('/api/healthcheck')
+def healthcheck():
+    return jsonify({
+        "status": "ok",
+        "version": "1.0.0",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+
+@app.route('/debug_session')
+def debug_session():
+    """Debug endpoint to verify session functionality"""
+    # Get existing scan_id if any
+    scan_id = session.get('scan_id')
+    
+    # Set a test value in session
+    session['test_value'] = str(datetime.now())
+    
+    return jsonify({
+        "session_working": True,
+        "current_scan_id": scan_id,
+        "test_value_set": session['test_value'],
+        "all_keys": list(session.keys())
+    })
+
+@app.route('/test_scan')
+def test_scan():
+    """Test scan execution directly"""
+    try:
+        # Create test lead data
+        test_data = {
+            'name': 'Test User',
+            'email': 'test@example.com',
+            'company': 'Test Company',
+            'phone': '555-1234',
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'client_os': 'Test OS',
+            'client_browser': 'Test Browser',
+            'windows_version': 'Test Windows',
+            'target': 'example.com'
+        }
+        
+        # Run scan
+        logging.info("Starting test scan execution...")
+        scan_results = run_consolidated_scan(test_data)
+        
+        # Check if we got a valid result
+        if scan_results and 'scan_id' in scan_results:
+            # Try to save to database
+            try:
+                saved_id = save_scan_results(scan_results)
+                db_status = f"Successfully saved to database with ID: {saved_id}" if saved_id else "Failed to save to database"
+            except Exception as db_error:
+                db_status = f"Database error: {str(db_error)}"
+            
+            # Return success output
+            return f"""
+            <html>
+                <head><title>Test Scan Success</title></head>
+                <body>
+                    <h1>Test Scan Completed Successfully</h1>
+                    <p><strong>Scan ID:</strong> {scan_results['scan_id']}</p>
+                    <p><strong>Database Status:</strong> {db_status}</p>
+                    <p><strong>Available Keys:</strong> {', '.join(list(scan_results.keys()))}</p>
+                    <p><a href="/results_direct?scan_id={scan_results['scan_id']}">View Results</a></p>
+                </body>
+            </html>
+            """
+        else:
+            # Return error output
+            return f"""
+            <html>
+                <head><title>Test Scan Failed</title></head>
+                <body>
+                    <h1>Test Scan Failed</h1>
+                    <p>The scan did not return valid results.</p>
+                    <p><pre>{json.dumps(scan_results, indent=2, default=str) if scan_results else 'None'}</pre></p>
+                </body>
+            </html>
+            """
+    except Exception as e:
+        return f"""
+        <html>
+            <head><title>Test Scan Error</title></head>
+            <body>
+                <h1>Test Scan Error</h1>
+                <p>An error occurred during the test scan: {str(e)}</p>
+                <p><pre>{traceback.format_exc()}</pre></p>
+            </body>
+        </html>
+        """
+
+@app.route('/debug_submit', methods=['POST'])
+def debug_submit():
+    """Debug endpoint to test form submission"""
+    try:
+        test_email = request.form.get('test_email', 'unknown@example.com')
+        
+        return f"""
+        <html>
+            <head>
+                <title>Debug Form Submission</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                </style>
+            </head>
+            <body>
+                <h1>Form Submission Successful</h1>
+                <p>Received test email: {test_email}</p>
+                <p>This confirms that basic form submission is working.</p>
+                <a href="/scan">Return to scan page</a>
+            </body>
+        </html>
+        """
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 @app.route('/api/service_inquiry', methods=['POST'])
 def api_service_inquiry():
     try:
@@ -1614,7 +1537,7 @@ def api_service_inquiry():
     except Exception as e:
         logging.error(f"Error processing service inquiry: {e}")
         return jsonify({"status": "error", "message": str(e)})
-        
+
 # ---------------------------- MAIN ENTRY POINT ----------------------------
 
 if __name__ == '__main__':
