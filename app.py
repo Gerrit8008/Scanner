@@ -81,6 +81,29 @@ GATEWAY_PORT_WARNINGS = {
     22: ("SSH", "Low"),
 }
 
+# Add this to the calculate_risk_score function in your app.py or scan.py
+# where you are currently calculating the risk score
+
+def calculate_risk_score(scan_results):
+    """Calculate overall risk score based on all scan results"""
+    try:
+        # Run existing risk calculation code
+        # Your existing risk calculation code here
+        
+        # Add the new service-oriented categorization
+        scan_results['service_categories'] = categorize_risks_by_services(scan_results)
+        
+        # Rest of your existing function
+        # ...
+        
+        return risk_assessment_result
+    except Exception as e:
+        return {
+            'error': str(e),
+            'overall_score': 0,
+            'risk_level': 'Unknown'
+        }
+
 # Setup logging
 def setup_logging():
     """Configure application logging"""
