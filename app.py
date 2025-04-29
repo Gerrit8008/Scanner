@@ -328,12 +328,37 @@ def run_consolidated_scan(lead_data):
     
     logging.info(f"Starting scan with ID: {scan_id} for target: {lead_data.get('target', 'Unknown')}")
     
-    # Initialize scan results structure - UPDATED to include more client info
+    # Initialize scan results structure - UPDATED to include industry info
+    email = lead_data.get('email', '')
+    email_domain = extract_domain_from_email(email) if email else ''
+    company_name = lead_data.get('company', '')
+    
+    # Determine industry
+    industry = determine_industry(company_name, email_domain)
+    industry_benchmarks = get_industry_benchmarks().get(industry, get_industry_benchmarks()['default'])
+    
     scan_results = {
         'scan_id': scan_id,
         'timestamp': timestamp,
         'target': lead_data.get('target', ''),
-        'email': lead_data.get('email', ''),
+        'email': email,
+        'industry': {
+            'type': industry,
+            'name': industry_benchmarks['name'],
+            'compliance': industry_benchmarks['compliance'],
+            'critical_controls': industry_benchmarks['critical_controls'],
+            'benchmarks': None  # Will be filled after risk assessment
+        },
+        'client_info': {
+            'name': lead_data.get('name', 'Unknown User'),
+            'email': email,
+            'company': company_name,
+            'phone': lead_data.get('phone', ''),
+            'os': lead_data.get('client_os', 'Unknown'),
+            'browser': lead_data.get('client_browser', 'Unknown'),
+            'windows_version': lead_data.get('windows_version', '')
+        }
+    }
         'client_info': {
             'name': lead_data.get('name', 'Unknown User'),
             'email': lead_data.get('email', ''),
@@ -593,7 +618,20 @@ def run_consolidated_scan(lead_data):
         scan_results['recommendations'] = ["Keep all software and systems updated with the latest security patches.",
                                           "Use strong, unique passwords and implement multi-factor authentication.",
                                           "Regularly back up your data and test the restoration process."]
-    
+    try:
+        logging.info("Calculating risk assessment...")
+        scan_results['risk_assessment'] = calculate_risk_score(scan_results)
+        logging.debug(f"Risk assessment completed")
+        
+        # Add the industry percentile calculation after risk score
+        if 'overall_score' in scan_results['risk_assessment']:
+            overall_score = scan_results['risk_assessment']['overall_score']
+            scan_results['industry'] = scan_results.get('industry', {})
+            scan_results['industry']['benchmarks'] = calculate_industry_percentile(
+                overall_score, 
+                scan_results['industry'].get('type', 'default')
+            )
+            logging.debug(f"Industry benchmarking completed")
     # 6. Generate HTML report
     try:
         logging.info("Generating HTML report...")
