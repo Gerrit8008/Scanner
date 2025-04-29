@@ -47,7 +47,10 @@ from scan import (
     calculate_risk_score,
     get_severity_level,
     get_recommendations,
-    generate_html_report
+    generate_html_report,
+    determine_industry,
+    get_industry_benchmarks,
+    calculate_industry_percentile
 )
 
 # Import database functionality
