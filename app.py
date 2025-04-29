@@ -779,7 +779,51 @@ def scan_page():
     # For GET requests, show the scan form
     error = request.args.get('error')
     return render_template('scan.html', error=error)
-    
+
+
+    if 'service_categories' not in scan_results:
+        try:
+            # Generate service categories if they don't exist
+            scan_results['service_categories'] = categorize_risks_by_services(scan_results)
+            logging.info("Added service categories to scan results")
+        except Exception as cat_error:
+            logging.error(f"Error generating service categories: {str(cat_error)}")
+            # Initialize empty categories to prevent template errors
+            scan_results['service_categories'] = {
+                'endpoint_security': {
+                    'name': 'Endpoint Security',
+                    'description': 'Protection for your computers and devices',
+                    'findings': [],
+                    'risk_level': 'Low',
+                    'score': 0,
+                    'max_score': 0
+                },
+                'network_defense': {
+                    'name': 'Network Defense',
+                    'description': 'Protection for your network infrastructure',
+                    'findings': [],
+                    'risk_level': 'Low',
+                    'score': 0,
+                    'max_score': 0
+                },
+                'data_protection': {
+                    'name': 'Data Protection',
+                    'description': 'Solutions to secure your business data',
+                    'findings': [],
+                    'risk_level': 'Low',
+                    'score': 0,
+                    'max_score': 0
+                },
+                'access_management': {
+                    'name': 'Access Management',
+                    'description': 'Controls for secure system access',
+                    'findings': [],
+                    'risk_level': 'Low',
+                    'score': 0,
+                    'max_score': 0
+                }
+            }
+        
 @app.route('/results')
 def results():
     """Display scan results"""
@@ -808,6 +852,19 @@ def results():
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
     
+    if 'service_categories' not in scan_results:
+        try:
+            scan_results['service_categories'] = categorize_risks_by_services(scan_results)
+        except Exception as cat_error:
+            logging.error(f"Error generating service categories: {str(cat_error)}")
+            # Initialize with empty categories
+            scan_results['service_categories'] = {
+                'endpoint_security': {'name': 'Endpoint Security', 'description': 'Protection for your computers and devices', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0},
+                'network_defense': {'name': 'Network Defense', 'description': 'Protection for your network infrastructure', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0},
+                'data_protection': {'name': 'Data Protection', 'description': 'Solutions to secure your business data', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0},
+                'access_management': {'name': 'Access Management', 'description': 'Controls for secure system access', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0}
+            }
+            
 @app.route('/db_check')
 def db_check():
     """Check if the database is set up and working properly"""
