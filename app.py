@@ -241,9 +241,9 @@ def api_email_report():
         # Get the HTML report from scan data
         html_report = scan_data.get('html_report', '')
         
-        # Send email using your existing function
+        # Send email using your updated function with three parameters
         logging.info(f"Attempting to send email report to {email}")
-        email_sent = send_email_report(lead_data, html_report)
+        email_sent = send_email_report(lead_data, scan_data, html_report)
         
         if email_sent:
             logging.info(f"Email report successfully sent to {email}")
@@ -257,6 +257,31 @@ def api_email_report():
         logging.debug(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)})
 
+# You may also need to update the automatic email function if it exists
+def send_automatic_report_to_admin(scan_results):
+    """Send scan report automatically to admin email"""
+    try:
+        admin_email = os.environ.get('ADMIN_EMAIL', 'admissions@southgeauga.com')
+        logging.info(f"Automatically sending report to admin at {admin_email}")
+        
+        # Create lead data for admin
+        lead_data = {
+            'name': scan_results.get('name', 'Unknown User'),
+            'email': scan_results.get('email', 'unknown@example.com'),
+            'company': scan_results.get('company', 'Unknown Company'),
+            'phone': scan_results.get('phone', ''),
+            'timestamp': scan_results.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        }
+        
+        # Render the HTML report
+        html_report = render_template('results.html', scan=scan_results)
+        
+        # Send the email to admin
+        return send_email_report(lead_data, scan_results, html_report)
+    except Exception as e:
+        logging.error(f"Error sending automatic email report: {e}")
+        return False
+        
 def get_domain_from_email(email):
     """Extract domain from email address for scanning"""
     return extract_domain_from_email(email)
