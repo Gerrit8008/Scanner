@@ -1127,6 +1127,102 @@
             <strong>Security Note:</strong> Exposed sensitive directories and files can provide attackers with valuable information for planning more targeted attacks against your systems.
         </div>
     </div>
+    <!-- Industry-Specific Risk Assessment -->
+{% if scan.industry and scan.industry.benchmarks %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>{{ scan.industry.name }} Industry Risk Assessment</h2>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="summary-card">
+                    <h3>Industry Comparison</h3>
+                    <div class="summary-value {% if scan.industry.benchmarks.percentile > 50 %}score-low{% elif scan.industry.benchmarks.percentile > 30 %}score-medium{% else %}score-high{% endif %}">
+                        {{ scan.industry.benchmarks.percentile }}%
+                    </div>
+                    <p>Your security score is <strong>{{ scan.industry.benchmarks.comparison }}</strong> the average in your industry by <strong>{{ scan.industry.benchmarks.difference }} points</strong>.</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ scan.industry.benchmarks.percentile }}%; background-color: {% if scan.industry.benchmarks.percentile > 70 %}#198754{% elif scan.industry.benchmarks.percentile > 40 %}#fd7e14{% else %}#dc3545{% endif %}"></div>
+                    </div>
+                    <small class="text-muted mt-2">Your position compared to other {{ scan.industry.name }} organizations</small>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="summary-card">
+                    <h3>Compliance Requirements</h3>
+                    <ul class="list-group">
+                        {% for compliance in scan.industry.compliance %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ compliance }}
+                            {% if scan.risk_assessment.overall_score > 75 %}
+                            <span class="badge bg-success rounded-pill">Likely Compliant</span>
+                            {% elif scan.risk_assessment.overall_score > 60 %}
+                            <span class="badge bg-warning rounded-pill">Needs Review</span>
+                            {% else %}
+                            <span class="badge bg-danger rounded-pill">At Risk</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <h3 class="mb-3">Critical Security Controls for {{ scan.industry.name }}</h3>
+        <div class="row">
+            {% for control in scan.industry.critical_controls %}
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-shield-check text-primary me-2"></i>
+                            {{ control }}
+                        </h5>
+                        <p class="card-text">
+                            {% if scan.risk_assessment.overall_score > 75 %}
+                            <span class="text-success"><i class="bi bi-check-circle-fill"></i> Likely implemented</span>
+                            {% elif scan.risk_assessment.overall_score > 60 %}
+                            <span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> May need enhancement</span>
+                            {% else %}
+                            <span class="text-danger"><i class="bi bi-x-circle-fill"></i> Implementation recommended</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="alert alert-info mt-4">
+            <strong><i class="bi bi-info-circle-fill"></i> Industry Insight:</strong> 
+            {{ scan.industry.name }} organizations typically prioritize 
+            {% if scan.industry.type == 'healthcare' %}
+            patient data protection, electronic medical record security, and HIPAA compliance.
+            {% elif scan.industry.type == 'financial' %}
+            transaction security, data encryption, and fraud prevention controls.
+            {% elif scan.industry.type == 'retail' %}
+            payment security, customer data protection, and point-of-sale system security.
+            {% elif scan.industry.type == 'education' %}
+            student data protection, network security across campus environments, and educational platform security.
+            {% elif scan.industry.type == 'manufacturing' %}
+            operational technology security, intellectual property protection, and supply chain risk management.
+            {% elif scan.industry.type == 'government' %}
+            data classification, compliance with federal standards, and critical infrastructure protection.
+            {% else %}
+            data protection, network security, and access control measures.
+            {% endif %}
+            Our team specializes in {{ scan.industry.name }}-specific security solutions.
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="#" class="btn btn-primary industry-consultation-btn">
+                Get {{ scan.industry.name }}-Specific Security Consultation
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
 </div>
 
 <!-- MSP Service Categories Section -->
@@ -1489,5 +1585,118 @@
         });
     });
 </script>
+    <!-- Industry Consultation Modal -->
+<div class="modal fade" id="industryConsultationModal" tabindex="-1" aria-labelledby="industryConsultationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="industryConsultationModalLabel">
+                    {{ scan.industry.name }} Security Consultation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Our team specializes in security solutions for the <strong>{{ scan.industry.name }}</strong> industry.</p>
+                
+                <p>We understand the unique challenges and compliance requirements your organization faces:</p>
+                <ul>
+                    {% for compliance in scan.industry.compliance %}
+                    <li><strong>{{ compliance }}</strong> compliance requirements</li>
+                    {% endfor %}
+                </ul>
+                
+                <p>Please provide your information to schedule a personalized consultation with our 
+                {{ scan.industry.name }} security experts:</p>
+                
+                <form id="industryConsultationForm">
+                    <input type="hidden" id="industryType" name="industry" value="{{ scan.industry.type }}">
+                    <input type="hidden" id="industryScanId" name="scan_id" value="{{ scan.scan_id }}">
+                    
+                    <div class="mb-3">
+                        <label for="industryName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="industryName" name="name" 
+                               value="{{ scan.client_info.name }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="industryEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="industryEmail" name="email" 
+                               value="{{ scan.client_info.email }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="industryPhone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="industryPhone" name="phone" 
+                               value="{{ scan.client_info.phone }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="complianceNeeds" class="form-label">Specific Compliance Needs</label>
+                        <select class="form-select" id="complianceNeeds" name="compliance_needs">
+                            <option value="">Select primary compliance concern...</option>
+                            {% for compliance in scan.industry.compliance %}
+                            <option value="{{ compliance }}">{{ compliance }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="industryMessage" class="form-label">Additional Information</label>
+                        <textarea class="form-control" id="industryMessage" name="message" rows="3"
+                                 placeholder="Please share any specific industry challenges or concerns..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="submitIndustryBtn">Request Consultation</button>
+            </div>
+        </div>
+    </div>
+</div>
+    // Set up industry consultation button
+document.querySelector('.industry-consultation-btn').addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    // Show the industry consultation modal
+    const modal = new bootstrap.Modal(document.getElementById('industryConsultationModal'));
+    modal.show();
+});
+
+// Handle industry consultation form submission
+document.getElementById('submitIndustryBtn').addEventListener('click', function() {
+    // Get form data
+    const form = document.getElementById('industryConsultationForm');
+    const formData = new FormData(form);
+    
+    // Add scan ID if not already included
+    if (!formData.get('scan_id')) {
+        formData.append('scan_id', document.getElementById('scan-id').value);
+    }
+    
+    // Here you would send the consultation request to your backend
+    // You can reuse the service inquiry endpoint with a different type
+    formData.append('inquiry_type', 'industry_consultation');
+    
+    fetch('/api/service_inquiry', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Thank you for your inquiry. Our ' + 
+                  document.getElementById('industryType').value + 
+                  ' security specialists will contact you shortly.');
+            bootstrap.Modal.getInstance(document.getElementById('industryConsultationModal')).hide();
+        } else {
+            alert('There was an error submitting your request. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('There was an error submitting your request. Please try again.');
+    });
+});
 </body>
 </html>
