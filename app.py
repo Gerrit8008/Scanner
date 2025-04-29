@@ -1421,7 +1421,101 @@ def debug():
     
     return jsonify(debug_info)
 
-
+# Add this to app.py
+@app.route('/api/service_inquiry', methods=['POST'])
+def api_service_inquiry():
+    try:
+        # Get data from request
+        service = request.form.get('service')
+        findings = request.form.get('findings')
+        scan_id = request.form.get('scan_id')
+        name = request.form.get('name')
+        email = request.form.get('email')
+        phone = request.form.get('phone', '')
+        message = request.form.get('message', '')
+        
+        logging.info(f"Service inquiry received: {service} from {name} ({email})")
+        
+        # Get scan data for reference
+        scan_data = get_scan_results(scan_id)
+        
+        # Create a lead_data dictionary
+        lead_data = {
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "message": message,
+            "service": service,
+            "findings": findings,
+            "scan_id": scan_id,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        # Save the inquiry to the database
+        try:
+            # Create a new table or use an existing one for service inquiries
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            
+            # Make sure the table exists
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS service_inquiries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    scan_id TEXT,
+                    name TEXT,
+                    email TEXT,
+                    phone TEXT,
+                    service TEXT,
+                    findings TEXT,
+                    message TEXT,
+                    timestamp TEXT
+                )
+            ''')
+            
+            # Insert the inquiry
+            cursor.execute('''
+                INSERT INTO service_inquiries 
+                (scan_id, name, email, phone, service, findings, message, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                scan_id, name, email, phone, service, findings, message, lead_data['timestamp']
+            ))
+            
+            conn.commit()
+            conn.close()
+            logging.info(f"Service inquiry saved to database for {name}")
+        except Exception as db_error:
+            logging.error(f"Error saving service inquiry to database: {db_error}")
+        
+        # Send an email notification about the service inquiry
+        try:
+            # Customize the email_handler.py function to send service inquiries
+            # or use the existing one with modified parameters
+            email_subject = f"Service Inquiry: {service}"
+            
+            email_body = f"""
+            <h2>New Service Inquiry from Security Scan</h2>
+            <p><strong>Service:</strong> {service}</p>
+            <p><strong>Issues Found:</strong> {findings}</p>
+            <p><strong>Name:</strong> {name}</p>
+            <p><strong>Email:</strong> {email}</p>
+            <p><strong>Phone:</strong> {phone}</p>
+            <p><strong>Message:</strong> {message}</p>
+            <p><strong>Scan ID:</strong> {scan_id}</p>
+            <p><strong>Timestamp:</strong> {lead_data['timestamp']}</p>
+            """
+            
+            # Use your existing email sending function
+            # send_email_notification(admin_email, email_subject, email_body)
+            logging.info(f"Service inquiry email notification sent for {service}")
+        except Exception as email_error:
+            logging.error(f"Error sending service inquiry email: {email_error}")
+        
+        return jsonify({"status": "success"})
+    except Exception as e:
+        logging.error(f"Error processing service inquiry: {e}")
+        return jsonify({"status": "error", "message": str(e)})
+        
 # ---------------------------- MAIN ENTRY POINT ----------------------------
 
 if __name__ == '__main__':
