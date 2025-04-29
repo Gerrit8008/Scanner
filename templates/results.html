@@ -1391,5 +1391,68 @@
         }
     });
     </script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up service inquiry buttons
+        const serviceButtons = document.querySelectorAll('.service-inquiry-btn');
+        serviceButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const service = this.getAttribute('data-service');
+                const findings = this.getAttribute('data-findings');
+                
+                // Set modal content
+                document.getElementById('serviceName').textContent = service;
+                document.getElementById('findingCount').textContent = findings > 0 ? findings : 'potential';
+                
+                // Set form hidden fields
+                document.getElementById('inquiryService').value = service;
+                document.getElementById('inquiryFindings').value = findings;
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('serviceInquiryModal'));
+                modal.show();
+            });
+        });
+        
+        // Handle inquiry form submission
+        document.getElementById('submitInquiryBtn').addEventListener('click', function() {
+            // Get form data
+            const form = document.getElementById('serviceInquiryForm');
+            const formData = new FormData(form);
+            
+            // Add scan ID
+            formData.append('scan_id', document.getElementById('scan-id').value);
+            
+            // Here you would send the form data to your backend
+            // For example:
+            /*
+            fetch('/api/service_inquiry', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Thank you for your inquiry. We will contact you shortly with more information.');
+                    bootstrap.Modal.getInstance(document.getElementById('serviceInquiryModal')).hide();
+                } else {
+                    alert('There was an error submitting your inquiry. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('There was an error submitting your inquiry. Please try again.');
+            });
+            */
+            
+            // For now, just show a success message and close the modal
+            alert('Thank you for your inquiry. We will contact you shortly with more information about our ' + 
+                  document.getElementById('inquiryService').value + ' services.');
+            bootstrap.Modal.getInstance(document.getElementById('serviceInquiryModal')).hide();
+        });
+    });
+</script>
 </body>
 </html>
