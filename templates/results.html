@@ -1094,6 +1094,118 @@
     </div>
 </div>
 
+<!-- MSP Service Categories Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>Security Services Assessment</h2>
+    </div>
+    <div class="card-body">
+        <p class="mb-4">Based on our security assessment, we've identified opportunities for improvement in these key service areas:</p>
+        
+        <div class="row">
+            {% for category_key, category in scan.service_categories.items() %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-{{ category.risk_level|lower }} text-white">
+                        <h3 class="h5 mb-0">{{ category.name }}</h3>
+                        <span class="badge bg-white text-{{ category.risk_level|lower }} float-end">
+                            {{ category.risk_level }} Risk
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <p>{{ category.description }}</p>
+                        
+                        {% if category.findings %}
+                        <h4 class="h6 mt-3">Issues Detected:</h4>
+                        <ul class="list-group mb-3">
+                            {% for finding in category.findings %}
+                            <li class="list-group-item list-group-item-{{ finding.severity|lower }}">
+                                <strong>{{ finding.name }}</strong>: {{ finding.description }}
+                                <span class="d-block mt-2 text-primary">
+                                    <i class="bi bi-tools"></i> Solution: {{ finding.service_solution }}
+                                </span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle-fill"></i> No significant issues detected in this category.
+                        </div>
+                        {% endif %}
+                        
+                        <div class="text-center mt-3">
+                            <a href="#" class="btn btn-primary service-inquiry-btn" 
+                               data-service="{{ category.name }}" 
+                               data-findings="{{ category.findings|length }}">
+                                Learn About Our {{ category.name }} Services
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="alert alert-warning mt-4">
+            <strong><i class="bi bi-exclamation-triangle-fill"></i> Important:</strong> 
+            This assessment provides an overview of potential security risks. Contact our team for a comprehensive 
+            evaluation and customized solutions to address your specific needs.
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="serviceInquiryModal" tabindex="-1" aria-labelledby="serviceInquiryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="serviceInquiryModalLabel">Learn More About Our Services</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>We've detected <span id="findingCount" class="text-danger fw-bold">several</span> issues 
+                related to <span id="serviceName" class="fw-bold">security services</span>.</p>
+                
+                <p>Our team can help you address these issues with tailored solutions. 
+                Please provide your information below to receive detailed information about our services:</p>
+                
+                <form id="serviceInquiryForm">
+                    <input type="hidden" id="inquiryService" name="service">
+                    <input type="hidden" id="inquiryFindings" name="findings">
+                    <input type="hidden" id="inquiryScanId" name="scan_id" value="{{ scan.scan_id }}">
+                    
+                    <div class="mb-3">
+                        <label for="inquiryName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="inquiryName" name="name" 
+                               value="{{ scan.client_info.name }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="inquiryEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="inquiryEmail" name="email" 
+                               value="{{ scan.client_info.email }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="inquiryPhone" class="form-label">Phone (optional)</label>
+                        <input type="tel" class="form-control" id="inquiryPhone" name="phone" 
+                               value="{{ scan.client_info.phone }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="inquiryMessage" class="form-label">Additional Information</label>
+                        <textarea class="form-control" id="inquiryMessage" name="message" rows="3"
+                                 placeholder="Please share any specific concerns or questions..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="submitInquiryBtn">Request Information</button>
+            </div>
+        </div>
+    </div>
+</div>
+            
 <!-- Threat Scenario Analysis -->
 <div class="card">
     <div class="card-header">
