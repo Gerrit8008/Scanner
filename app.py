@@ -728,9 +728,9 @@ def scan_page():
                     admin_email = os.environ.get('ADMIN_EMAIL', 'your_email@example.com')  # Set your admin email
                     admin_lead_data = lead_data.copy()
                     admin_lead_data['email'] = admin_email
-                    
+    
                     logging.info(f"Automatically sending report to admin at {admin_email}")
-                    email_sent = send_email_report(admin_lead_data, scan_results.get('html_report', 'No report available'))
+                    email_sent = send_email_report(admin_lead_data, scan_results, scan_results.get('html_report', 'No report available'))
                     
                     if email_sent:
                         logging.info("Report automatically sent to admin")
