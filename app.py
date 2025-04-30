@@ -1074,6 +1074,7 @@ def results():
         client_ip = "Unknown"
         gateway_guesses = []
         network_type = "Unknown"
+        gateway_info = "No gateway information available"
 
         if 'network' in scan_results and 'gateway' in scan_results['network']:
             gateway_info = scan_results['network']['gateway'].get('info', '')
@@ -1090,19 +1091,32 @@ def results():
                 except:
                     pass
                     
-            # Set empty gateway guesses array as fallback
-            gateway_guesses = []
+            # Try to extract gateway guesses
+            if "Likely gateways:" in gateway_info:
+                try:
+                    gateways_str = gateway_info.split("Likely gateways:")[1].strip()
+                    gateway_guesses = [g.strip() for g in gateways_str.split(",")]
+                except:
+                    pass
 
+        # Add debugging information to log
+        logging.info(f"Rendering template with scan_id: {scan_id}")
+        logging.info(f"Client IP: {client_ip}")
+        logging.info(f"Network type: {network_type}")
+        
+        # Now render template with all required data
         return render_template('results.html', 
                              scan=scan_results,
                              client_ip=client_ip,
                              gateway_guesses=gateway_guesses,
-                             network_type=network_type)
+                             network_type=network_type,
+                             gateway_info=gateway_info)
 
     except Exception as e:
         logging.error(f"Error loading scan results: {e}")
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
+        
 @app.route('/api/email_report', methods=['POST'])
 def api_email_report():
     try:
