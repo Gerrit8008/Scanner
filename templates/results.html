@@ -376,6 +376,11 @@
                                     </a>
                                 </div>
                             </div>
+                         </div> <!-- Close card-body -->
+                     </div> <!-- Close card h-100 -->
+                 </div> <!-- Close col-md-6 mb-4 -->
+                  {% endfor %}
+              </div> <!-- Close row -->
 
                 <!-- Security Headers Results -->
                 {% if scan.security_headers and 'error' not in scan.security_headers %}
@@ -778,7 +783,8 @@
                     This assessment provides an overview of potential security risks. Contact our team for a comprehensive 
                     evaluation and customized solutions to address your specific needs.
                 </div>
-        
+            </div>
+        </div>
         <!-- Threat Scenario Analysis -->
         <div class="card">
             <div class="card-header">
@@ -1361,3 +1367,9 @@
                     {% endif %}
                 </div>
                 {% endif %}
+            </div> <!-- Close card-body -->
+        </div> <!-- Close card -->
+        {% endif %}
+    </div> <!-- Close container results-container -->
+</body>
+</html>
