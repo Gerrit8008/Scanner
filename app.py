@@ -1060,6 +1060,7 @@ def results():
         if 'service_categories' not in scan_results:
             try:
                 scan_results['service_categories'] = categorize_risks_by_services(scan_results)
+                logging.info("Generated service categories successfully")
             except Exception as cat_error:
                 logging.error(f"Error generating service categories: {str(cat_error)}")
                 # Initialize with empty categories
@@ -1074,43 +1075,48 @@ def results():
         client_ip = "Unknown"
         gateway_guesses = []
         network_type = "Unknown"
-        gateway_info = "No gateway information available"
+        gateway_info = "Gateway information not available"
 
         if 'network' in scan_results and 'gateway' in scan_results['network']:
             gateway_info = scan_results['network']['gateway'].get('info', '')
-            if "Client IP:" in gateway_info:
-                try:
-                    client_ip = gateway_info.split("Client IP:")[1].split("|")[0].strip()
-                except:
-                    pass
-            
-            # Try to extract network type
-            if "Network Type:" in gateway_info or "Network type:" in gateway_info:
-                try:
-                    network_type = gateway_info.split("Network Type:")[1].split("|")[0].strip()
-                except:
-                    pass
-                    
-            # Try to extract gateway guesses
-            if "Likely gateways:" in gateway_info:
-                try:
-                    gateways_str = gateway_info.split("Likely gateways:")[1].strip()
-                    gateway_guesses = [g.strip() for g in gateways_str.split(",")]
-                except:
-                    pass
+            if isinstance(gateway_info, str):  # Ensure it's a string before processing
+                if "Client IP:" in gateway_info:
+                    try:
+                        client_ip = gateway_info.split("Client IP:")[1].split("|")[0].strip()
+                        logging.debug(f"Extracted client IP: {client_ip}")
+                    except:
+                        logging.warning("Failed to extract client IP from gateway info")
+                
+                # Try to extract network type
+                if "Network Type:" in gateway_info:
+                    try:
+                        network_type = gateway_info.split("Network Type:")[1].split("|")[0].strip()
+                        logging.debug(f"Extracted network type: {network_type}")
+                    except:
+                        logging.warning("Failed to extract network type from gateway info")
+                
+                # Try to extract gateway guesses
+                if "Likely gateways:" in gateway_info:
+                    try:
+                        gateways_part = gateway_info.split("Likely gateways:")[1].strip()
+                        if "|" in gateways_part:
+                            gateways_part = gateways_part.split("|")[0].strip()
+                        gateway_guesses = [g.strip() for g in gateways_part.split(",")]
+                        logging.debug(f"Extracted gateway guesses: {gateway_guesses}")
+                    except:
+                        logging.warning("Failed to extract gateway guesses from gateway info")
 
-        # Add debugging information to log
-        logging.info(f"Rendering template with scan_id: {scan_id}")
-        logging.info(f"Client IP: {client_ip}")
-        logging.info(f"Network type: {network_type}")
+        # Add additional logging for troubleshooting
+        logging.info(f"Rendering results template with scan_id: {scan_id}")
+        logging.info(f"Template variables: client_ip={client_ip}, network_type={network_type}, gateway_guesses={len(gateway_guesses)}")
         
         # Now render template with all required data
         return render_template('results.html', 
-                             scan=scan_results,
-                             client_ip=client_ip,
-                             gateway_guesses=gateway_guesses,
-                             network_type=network_type,
-                             gateway_info=gateway_info)
+                               scan=scan_results,
+                               client_ip=client_ip,
+                               gateway_guesses=gateway_guesses,
+                               network_type=network_type,
+                               gateway_info=gateway_info)
 
     except Exception as e:
         logging.error(f"Error loading scan results: {e}")
