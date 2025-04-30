@@ -723,21 +723,47 @@
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+            <div class="modal-body">
+                    <!-- Modal content goes here -->
+                    <p>Our security experts specialize in {{ scan.industry.name }} security requirements and compliance.</p>
+                    <p>We can help your organization meet industry-specific security standards and best practices.</p>
+                
+                    <form id="industryConsultationForm">
+                        <input type="hidden" id="industryScanId" name="scan_id" value="{{ scan.scan_id }}">
+                        <input type="hidden" id="industryType" name="industry" value="{{ scan.industry.type }}">
                     
-                                
-                                <div class="text-center mt-3">
-                                    <a href="#" class="btn btn-primary service-inquiry-btn" 
-                                       data-service="{{ category.name }}" 
-                                       data-findings="{{ category.findings|length }}">
-                                        Learn About Our {{ category.name }} Services
-                                    </a>
-                                </div>
-                            </div>
+                        <div class="mb-3">
+                            <label for="industryName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="industryName" name="name" 
+                                   value="{{ scan.client_info.name }}" required>
                         </div>
-                    </div>
-                    {% endfor %}
+                        
+                        <div class="mb-3">
+                            <label for="industryEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="industryEmail" name="email" 
+                                   value="{{ scan.client_info.email }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="industryPhone" class="form-label">Phone (optional)</label>
+                            <input type="tel" class="form-control" id="industryPhone" name="phone" 
+                                   value="{{ scan.client_info.phone }}">
+                        </div>
+                    
+                        <div class="mb-3">
+                            <label for="industryMessage" class="form-label">Message</label>
+                            <textarea class="form-control" id="industryMessage" name="message" rows="3"
+                                     placeholder="Please share your specific security concerns..."></textarea>
+                        </div>
+                    </form>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="submitIndustryBtn">Get Consultation</button>
+                </div>
+            </div>
+        </div>
+    </div>
                 
                 <div class="alert alert-warning mt-4">
                     <strong><i class="bi bi-exclamation-triangle-fill"></i> Important:</strong> 
