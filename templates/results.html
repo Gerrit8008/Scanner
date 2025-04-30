@@ -349,7 +349,7 @@
                             </div>
                             <div class="card-body">
                                 <p>{{ category.description }}</p>
-                                
+    
                                 {% if category.findings %}
                                 <h4 class="h6 mt-3">Issues Detected:</h4>
                                 <ul class="list-group mb-3">
@@ -359,14 +359,23 @@
                                         <span class="d-block mt-2 text-primary">
                                             <i class="bi bi-tools"></i> Solution: {{ finding.service_solution }}
                                         </span>
-                                    </li>
-                                    {% endfor %}
+                                      </li>
+                                        {% endfor %}
                                 </ul>
                                 {% else %}
                                 <div class="alert alert-success">
                                     <i class="bi bi-check-circle-fill"></i> No significant issues detected in this category.
                                 </div>
                                 {% endif %}
+
+                                <div class="text-center mt-3">
+                                    <a href="#" class="btn btn-primary service-inquiry-btn" 
+                                        data-service="{{ category.name }}" 
+                                       data-findings="{{ category.findings|length }}">
+                                        Learn About Our {{ category.name }} Services
+                                    </a>
+                                </div>
+                            </div>
 
                 <!-- Security Headers Results -->
                 {% if scan.security_headers and 'error' not in scan.security_headers %}
@@ -394,7 +403,6 @@
                     </tr>
                     {% endfor %}
                 </table>
-                {% endif %}
                 {% endif %}
                 
                 <!-- Web Framework Detection -->
@@ -770,8 +778,6 @@
                     This assessment provides an overview of potential security risks. Contact our team for a comprehensive 
                     evaluation and customized solutions to address your specific needs.
                 </div>
-            </div>
-        </div>
         
         <!-- Threat Scenario Analysis -->
         <div class="card">
