@@ -645,7 +645,53 @@
                     </div>
                     {% endfor %}
                 </div>
-                
+                <div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding the Security Services Assessment</h3>
+    </div>
+    <div class="card-body">
+        <p>This section categorizes security issues by service areas that need improvement:</p>
+        <ul>
+            <li><strong>Endpoint Security:</strong> Protection for computers, mobile devices, and other network endpoints against malware and unauthorized access.</li>
+            <li><strong>Network Defense:</strong> Protection for network infrastructure and internet connectivity against intrusions and attacks.</li>
+            <li><strong>Data Protection:</strong> Solutions to secure, backup, and manage critical business data against theft or loss.</li>
+            <li><strong>Access Management:</strong> Controls ensuring only authorized users can access systems and sensitive information.</li>
+        </ul>
+        
+        <!-- Dynamic explanation for each category -->
+        {% for category_key, category in scan.service_categories.items() %}
+        <div class="mt-3">
+            <h4>{{ category.name }} Analysis</h4>
+            {% if category.risk_level == 'Critical' %}
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle-fill me-2"></i>
+                <strong>Critical Risk:</strong> Immediate action is required for your {{ category.name.lower() }}. The issues detected represent significant vulnerabilities that could be easily exploited by attackers, potentially leading to system compromise, data breach, or operational disruption.
+            </div>
+            {% elif category.risk_level == 'High' %}
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>High Risk:</strong> Your {{ category.name.lower() }} has important security gaps that need prompt attention. These vulnerabilities could be exploited by determined attackers and should be addressed as part of your short-term security roadmap.
+            </div>
+            {% elif category.risk_level == 'Medium' %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Medium Risk:</strong> Your {{ category.name.lower() }} needs improvement. While not immediately critical, the issues detected could be exploited under certain circumstances and should be addressed as part of your overall security strategy.
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Low Risk:</strong> Your {{ category.name.lower() }} appears to be well-configured. Continue to maintain these good security practices and stay vigilant as threats evolve.
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> Each category requires different expertise and solutions. Risk levels (Critical, High, Medium, Low) indicate which areas need the most urgent attention to improve your security posture.
+        </div>
+    </div>
+</div>
                 <!-- Security Headers Results -->
                 {% if scan.security_headers and 'error' not in scan.security_headers %}
                 <h3 class="section-title">HTTP Security Headers</h3>
@@ -687,7 +733,50 @@
                     </div>
                 </div>
                 {% endif %}
-                
+                <div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding HTTP Security Headers</h3>
+    </div>
+    <div class="card-body">
+        <p>Security headers are special instructions sent with web pages that help protect against common web attacks:</p>
+        <ul>
+            <li><strong>Content-Security-Policy:</strong> Controls which resources can be loaded by the browser, preventing cross-site scripting attacks.</li>
+            <li><strong>X-Frame-Options:</strong> Prevents your site from being embedded in frames on other sites, stopping clickjacking attacks.</li>
+            <li><strong>X-Content-Type-Options:</strong> Prevents browsers from interpreting files as a different content-type, blocking MIME-type confusion attacks.</li>
+            <li><strong>Strict-Transport-Security:</strong> Forces browsers to use HTTPS, protecting against downgrade attacks and cookie hijacking.</li>
+        </ul>
+        
+        <!-- Dynamic explanation based on security headers score -->
+        {% if scan.security_headers and 'error' not in scan.security_headers %}
+            {% if scan.security_headers.score >= 80 %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Your Score ({{ scan.security_headers.score }}):</strong> Excellent! Your website has implemented most of the recommended security headers. This configuration provides strong protection against common web-based attacks like cross-site scripting (XSS), clickjacking, and MIME-sniffing.
+            </div>
+            {% elif scan.security_headers.score >= 60 %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Your Score ({{ scan.security_headers.score }}):</strong> Good. Your website has implemented several important security headers, but there's room for improvement. Adding the missing headers would further enhance your protection against common web attacks.
+            </div>
+            {% elif scan.security_headers.score >= 40 %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Your Score ({{ scan.security_headers.score }}):</strong> Your website is missing several important security headers. This could leave your site vulnerable to attacks like cross-site scripting (XSS), clickjacking, and other common web vulnerabilities. Implementing the missing headers is recommended.
+            </div>
+            {% else %}
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle-fill me-2"></i>
+                <strong>Your Score ({{ scan.security_headers.score }}):</strong> Your website has few or no security headers implemented. This significantly increases your vulnerability to common web attacks. Adding security headers should be prioritized as it's typically a simple configuration change with significant security benefits.
+            </div>
+            {% endif %}
+        {% endif %}
+        
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> Missing security headers can leave your website vulnerable to various attacks. Implementing these headers is usually a simple configuration change but significantly improves web application security.
+        </div>
+    </div>
+</div>
                 <!-- Web Framework Detection -->
                 {% if scan.frameworks and scan.frameworks.count > 0 %}
                 <h3 class="section-title">Web Frameworks</h3>
@@ -1057,7 +1146,22 @@
                 </div>
             </div>
         </div>
-        
+        <div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding Web Frameworks Detection</h3>
+    </div>
+    <div class="card-body">
+        <p>This section identifies the web technologies and frameworks your website is using:</p>
+        <ul>
+            <li><strong>Frameworks:</strong> Software libraries like React, Angular, WordPress, etc. that provide the structure for your website.</li>
+            <li><strong>Technology Stack:</strong> The combination of programming languages, frameworks, and tools used to build and run your site.</li>
+        </ul>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> Knowing which frameworks your site uses helps identify potential vulnerabilities. Outdated frameworks can contain security flaws that attackers target. Keeping frameworks updated is essential for security.
+        </div>
+    </div>
+</div>
         <!-- Industry-Specific Risk Assessment -->
         {% if scan.industry and scan.industry.benchmarks %}
         <div class="card mb-4 fade-in">
