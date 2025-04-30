@@ -44,6 +44,329 @@ GATEWAY_PORT_WARNINGS = {
     22: ("SSH", "Low"),
 }
 
+# ---------------------------- INDUSTRY ANALYSIS FUNCTIONS ----------------------------
+
+def determine_industry(company_name, email_domain):
+    """
+    Determine the industry type based on company name and email domain
+    
+    Args:
+        company_name (str): Name of the company
+        email_domain (str): Domain from email address
+        
+    Returns:
+        str: Industry type (healthcare, financial, retail, etc.)
+    """
+    # Convert inputs to lowercase for case-insensitive matching
+    company_name = company_name.lower() if company_name else ""
+    email_domain = email_domain.lower() if email_domain else ""
+    
+    # Healthcare indicators
+    healthcare_keywords = ['hospital', 'health', 'medical', 'clinic', 'care', 'pharma', 
+                          'doctor', 'dental', 'medicine', 'healthcare']
+    healthcare_domains = ['hospital.org', 'health.org', 'med.org']
+    
+    # Financial indicators
+    financial_keywords = ['bank', 'finance', 'investment', 'capital', 'financial', 
+                         'insurance', 'credit', 'wealth', 'asset', 'accounting']
+    financial_domains = ['bank.com', 'invest.com', 'financial.com']
+    
+    # Retail indicators
+    retail_keywords = ['retail', 'shop', 'store', 'market', 'commerce', 'mall', 
+                      'sales', 'buy', 'shopping', 'consumer']
+    retail_domains = ['shop.com', 'retail.com', 'store.com', 'market.com']
+    
+    # Education indicators
+    education_keywords = ['school', 'university', 'college', 'academy', 'education', 
+                         'institute', 'learning', 'teach', 'student', 'faculty']
+    education_domains = ['edu', 'education.org', 'university.edu', 'school.org']
+    
+    # Manufacturing indicators
+    manufacturing_keywords = ['manufacturing', 'factory', 'production', 'industrial', 
+                             'build', 'maker', 'assembly', 'fabrication']
+    manufacturing_domains = ['mfg.com', 'industrial.com', 'production.com']
+    
+    # Government indicators
+    government_keywords = ['government', 'gov', 'federal', 'state', 'municipal', 
+                          'county', 'agency', 'authority', 'administration']
+    government_domains = ['gov', 'state.gov', 'county.gov', 'city.gov']
+    
+    # Check company name for industry keywords
+    for keyword in healthcare_keywords:
+        if keyword in company_name:
+            return 'healthcare'
+    
+    for keyword in financial_keywords:
+        if keyword in company_name:
+            return 'financial'
+    
+    for keyword in retail_keywords:
+        if keyword in company_name:
+            return 'retail'
+    
+    for keyword in education_keywords:
+        if keyword in company_name:
+            return 'education'
+    
+    for keyword in manufacturing_keywords:
+        if keyword in company_name:
+            return 'manufacturing'
+    
+    for keyword in government_keywords:
+        if keyword in company_name:
+            return 'government'
+    
+    # Check email domain for industry indicators
+    if email_domain:
+        if '.edu' in email_domain:
+            return 'education'
+        
+        if '.gov' in email_domain:
+            return 'government'
+        
+        for domain in healthcare_domains:
+            if domain in email_domain:
+                return 'healthcare'
+        
+        for domain in financial_domains:
+            if domain in email_domain:
+                return 'financial'
+        
+        for domain in retail_domains:
+            if domain in email_domain:
+                return 'retail'
+        
+        for domain in education_domains:
+            if domain in email_domain:
+                return 'education'
+        
+        for domain in manufacturing_domains:
+            if domain in email_domain:
+                return 'manufacturing'
+    
+    # Default industry if no match found
+    return 'default'
+
+def get_industry_benchmarks():
+    """
+    Return benchmark data for different industries
+    
+    Returns:
+        dict: Industry benchmark data
+    """
+    return {
+        'healthcare': {
+            'name': 'Healthcare',
+            'compliance': ['HIPAA', 'HITECH', 'FDA'],
+            'critical_controls': [
+                'PHI Data Encryption',
+                'Network Segmentation',
+                'Access Control',
+                'Regular Risk Assessments',
+                'Incident Response Plan'
+            ],
+            'avg_score': 72,
+            'percentile_distribution': {
+                10: 45,
+                25: 58,
+                50: 72,
+                75: 84,
+                90: 92
+            }
+        },
+        'financial': {
+            'name': 'Financial Services',
+            'compliance': ['PCI DSS', 'SOX', 'GLBA'],
+            'critical_controls': [
+                'Multi-factor Authentication',
+                'Encryption of Financial Data',
+                'Fraud Detection',
+                'Continuous Monitoring',
+                'Disaster Recovery'
+            ],
+            'avg_score': 78,
+            'percentile_distribution': {
+                10: 52,
+                25: 65,
+                50: 78,
+                75: 88,
+                90: 95
+            }
+        },
+        'retail': {
+            'name': 'Retail',
+            'compliance': ['PCI DSS', 'CCPA', 'GDPR'],
+            'critical_controls': [
+                'Point-of-Sale Security',
+                'Payment Data Protection',
+                'Inventory System Security',
+                'Ecommerce Platform Security',
+                'Customer Data Protection'
+            ],
+            'avg_score': 65,
+            'percentile_distribution': {
+                10: 38,
+                25: 52,
+                50: 65,
+                75: 79,
+                90: 88
+            }
+        },
+        'education': {
+            'name': 'Education',
+            'compliance': ['FERPA', 'COPPA', 'State Privacy Laws'],
+            'critical_controls': [
+                'Student Data Protection',
+                'Campus Network Security',
+                'Remote Learning Security',
+                'Research Data Protection',
+                'Identity Management'
+            ],
+            'avg_score': 60,
+            'percentile_distribution': {
+                10: 32,
+                25: 45,
+                50: 60,
+                75: 76,
+                90: 85
+            }
+        },
+        'manufacturing': {
+            'name': 'Manufacturing',
+            'compliance': ['ISO 27001', 'NIST', 'Industry-Specific Regulations'],
+            'critical_controls': [
+                'OT/IT Security',
+                'Supply Chain Risk Management',
+                'Intellectual Property Protection',
+                'Industrial Control System Security',
+                'Physical Security'
+            ],
+            'avg_score': 68,
+            'percentile_distribution': {
+                10: 40,
+                25: 54,
+                50: 68,
+                75: 80,
+                90: 89
+            }
+        },
+        'government': {
+            'name': 'Government',
+            'compliance': ['FISMA', 'NIST 800-53', 'FedRAMP'],
+            'critical_controls': [
+                'Data Classification',
+                'Continuous Monitoring',
+                'Authentication Controls',
+                'Incident Response',
+                'Security Clearance Management'
+            ],
+            'avg_score': 70,
+            'percentile_distribution': {
+                10: 42,
+                25: 56,
+                50: 70,
+                75: 82,
+                90: 90
+            }
+        },
+        'default': {
+            'name': 'General Business',
+            'compliance': ['General Data Protection', 'Industry Best Practices'],
+            'critical_controls': [
+                'Data Protection',
+                'Secure Authentication',
+                'Network Security',
+                'Endpoint Protection',
+                'Security Awareness Training'
+            ],
+            'avg_score': 65,
+            'percentile_distribution': {
+                10: 35,
+                25: 50,
+                50: 65,
+                75: 80,
+                90: 90
+            }
+        }
+    }
+
+def calculate_industry_percentile(score, industry_type='default'):
+    """
+    Calculate percentile and comparison information for a security score within an industry
+    
+    Args:
+        score (int): Security score (0-100)
+        industry_type (str): Industry type to compare against
+        
+    Returns:
+        dict: Percentile information
+    """
+    # Get benchmarks
+    benchmarks = get_industry_benchmarks()
+    industry = benchmarks.get(industry_type, benchmarks['default'])
+    
+    # Get average score for the industry
+    avg_score = industry['avg_score']
+    
+    # Calculate difference from industry average
+    difference = score - avg_score
+    
+    # Determine if score is above or below average
+    comparison = "above" if difference > 0 else "below"
+    
+    # Calculate percentile
+    percentile_dist = industry['percentile_distribution']
+    percentile = 0
+    
+    # Find which percentile the score falls into
+    if score >= percentile_dist[90]:
+        percentile = 90
+    elif score >= percentile_dist[75]:
+        percentile = 75
+    elif score >= percentile_dist[50]:
+        percentile = 50
+    elif score >= percentile_dist[25]:
+        percentile = 25
+    elif score >= percentile_dist[10]:
+        percentile = 10
+    
+    # For scores between the defined percentiles, calculate an approximate percentile
+    # This is a simplified linear interpolation
+    if percentile < 90:
+        next_percentile = None
+        if percentile == 0 and score < percentile_dist[10]:
+            next_percentile = 10
+            prev_score = 0
+            next_score = percentile_dist[10]
+        elif percentile == 10:
+            next_percentile = 25
+            prev_score = percentile_dist[10]
+            next_score = percentile_dist[25]
+        elif percentile == 25:
+            next_percentile = 50
+            prev_score = percentile_dist[25]
+            next_score = percentile_dist[50]
+        elif percentile == 50:
+            next_percentile = 75
+            prev_score = percentile_dist[50]
+            next_score = percentile_dist[75]
+        elif percentile == 75:
+            next_percentile = 90
+            prev_score = percentile_dist[75]
+            next_score = percentile_dist[90]
+        
+        if next_percentile:
+            # Linear interpolation
+            if next_score - prev_score > 0:  # Avoid division by zero
+                percentile = percentile + (next_percentile - percentile) * (score - prev_score) / (next_score - prev_score)
+    
+    # Return the benchmark data
+    return {
+        'percentile': round(percentile),
+        'comparison': comparison,
+        'difference': abs(difference),
+        'avg_score': avg_score
+    }
 
 # ---------------------------- UTILITY FUNCTIONS ----------------------------
 
@@ -237,6 +560,7 @@ def categorize_risks_by_services(scan_results):
             cat['risk_level'] = 'Unknown'
     
     return service_categories
+
 def extract_domain_from_email(email):
     """Extract domain from email address."""
     if '@' in email:
@@ -1671,34 +1995,30 @@ def generate_html_report(scan_results, is_integrated=False, output_dir=None):
             html += """
                 </table>
             """
-            # Security Headers Section
-            if 'security_headers' in scan_results and 'error' not in scan_results['security_headers']:
-                html += """
+            
+        # Security Headers Section
+        if 'security_headers' in scan_results and 'error' not in scan_results['security_headers']:
+            html += """
             <h2>Security Headers Assessment</h2>
             <p>Security headers help protect your website from various attacks like XSS, clickjacking, and more.</p>
-        
-            <div class="score-container">
-                <div style="font-size: 18px;">Security Headers Score</div>
-                <div class="score" style="font-size: 48px;">{0}/100</div>
-            </div>
-            """.format(scan_results['security_headers']['score'])
+            """
             
             try:
-                html += """
-            <div class="score-container">
-            <div style="font-size: 18px;">Security Headers Score</div>
-            <div class="score" style="font-size: 48px;">{0}/100</div>
-            </div>
-            """.format(scan_results['security_headers']['score'])
+                html += f"""
+                <div class="score-container">
+                <div style="font-size: 18px;">Security Headers Score</div>
+                <div class="score" style="font-size: 48px;">{scan_results['security_headers']['score']}/100</div>
+                </div>
+                """
             except Exception as e:
                 # Add error handling here
                 logging.error(f"Error formatting security headers score: {e}")
                 html += """
-            <div class="score-container">
-            <div style="font-size: 18px;">Security Headers Score</div>
-            <div class="score" style="font-size: 48px;">N/A</div>
-            </div>
-            """
+                <div class="score-container">
+                <div style="font-size: 18px;">Security Headers Score</div>
+                <div class="score" style="font-size: 48px;">N/A</div>
+                </div>
+                """
                 
         # Add recommendations section
         if 'recommendations' in scan_results:
@@ -1781,5 +2101,9 @@ __all__ = [
     'get_severity_level',
     'get_recommendations',
     'generate_threat_scenario',
-    'generate_html_report'
+    'generate_html_report',
+    'determine_industry',
+    'get_industry_benchmarks',
+    'calculate_industry_percentile',
+    'categorize_risks_by_services'
 ]
