@@ -645,53 +645,7 @@
                     </div>
                     {% endfor %}
                 </div>
-                <div class="card mb-4 fade-in explanation">
-    <div class="card-header">
-        <h3 class="mb-0">Understanding the Security Services Assessment</h3>
-    </div>
-    <div class="card-body">
-        <p>This section categorizes security issues by service areas that need improvement:</p>
-        <ul>
-            <li><strong>Endpoint Security:</strong> Protection for computers, mobile devices, and other network endpoints against malware and unauthorized access.</li>
-            <li><strong>Network Defense:</strong> Protection for network infrastructure and internet connectivity against intrusions and attacks.</li>
-            <li><strong>Data Protection:</strong> Solutions to secure, backup, and manage critical business data against theft or loss.</li>
-            <li><strong>Access Management:</strong> Controls ensuring only authorized users can access systems and sensitive information.</li>
-        </ul>
-        
-        <!-- Dynamic explanation for each category -->
-        {% for category_key, category in scan.service_categories.items() %}
-        <div class="mt-3">
-            <h4>{{ category.name }} Analysis</h4>
-            {% if category.risk_level == 'Critical' %}
-            <div class="alert alert-danger">
-                <i class="bi bi-x-circle-fill me-2"></i>
-                <strong>Critical Risk:</strong> Immediate action is required for your {{ category.name.lower() }}. The issues detected represent significant vulnerabilities that could be easily exploited by attackers, potentially leading to system compromise, data breach, or operational disruption.
-            </div>
-            {% elif category.risk_level == 'High' %}
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>High Risk:</strong> Your {{ category.name.lower() }} has important security gaps that need prompt attention. These vulnerabilities could be exploited by determined attackers and should be addressed as part of your short-term security roadmap.
-            </div>
-            {% elif category.risk_level == 'Medium' %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Medium Risk:</strong> Your {{ category.name.lower() }} needs improvement. While not immediately critical, the issues detected could be exploited under certain circumstances and should be addressed as part of your overall security strategy.
-            </div>
-            {% else %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>Low Risk:</strong> Your {{ category.name.lower() }} appears to be well-configured. Continue to maintain these good security practices and stay vigilant as threats evolve.
-            </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-        
-        <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> Each category requires different expertise and solutions. Risk levels (Critical, High, Medium, Low) indicate which areas need the most urgent attention to improve your security posture.
-        </div>
-    </div>
-</div>
+                
                 <!-- Security Headers Results -->
                 {% if scan.security_headers and 'error' not in scan.security_headers %}
                 <h3 class="section-title">HTTP Security Headers</h3>
@@ -808,7 +762,53 @@
                 {% endif %}
             </div>
         </div>
+      <div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding the Security Services Assessment</h3>
+    </div>
+    <div class="card-body">
+        <p>This section categorizes security issues by service areas that need improvement:</p>
+        <ul>
+            <li><strong>Endpoint Security:</strong> Protection for computers, mobile devices, and other network endpoints against malware and unauthorized access.</li>
+            <li><strong>Network Defense:</strong> Protection for network infrastructure and internet connectivity against intrusions and attacks.</li>
+            <li><strong>Data Protection:</strong> Solutions to secure, backup, and manage critical business data against theft or loss.</li>
+            <li><strong>Access Management:</strong> Controls ensuring only authorized users can access systems and sensitive information.</li>
+        </ul>
         
+        <!-- Dynamic explanation for each category -->
+        {% for category_key, category in scan.service_categories.items() %}
+        <div class="mt-3">
+            <h4>{{ category.name }} Analysis</h4>
+            {% if category.risk_level == 'Critical' %}
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle-fill me-2"></i>
+                <strong>Critical Risk:</strong> Immediate action is required for your {{ category.name.lower() }}. The issues detected represent significant vulnerabilities that could be easily exploited by attackers, potentially leading to system compromise, data breach, or operational disruption.
+            </div>
+            {% elif category.risk_level == 'High' %}
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>High Risk:</strong> Your {{ category.name.lower() }} has important security gaps that need prompt attention. These vulnerabilities could be exploited by determined attackers and should be addressed as part of your short-term security roadmap.
+            </div>
+            {% elif category.risk_level == 'Medium' %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Medium Risk:</strong> Your {{ category.name.lower() }} needs improvement. While not immediately critical, the issues detected could be exploited under certain circumstances and should be addressed as part of your overall security strategy.
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Low Risk:</strong> Your {{ category.name.lower() }} appears to be well-configured. Continue to maintain these good security practices and stay vigilant as threats evolve.
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> Each category requires different expertise and solutions. Risk levels (Critical, High, Medium, Low) indicate which areas need the most urgent attention to improve your security posture.
+        </div>
+    </div>
+</div>  
 <!-- Network Discovery Section -->
 <div class="card mb-4 fade-in">
     <div class="card-header">
