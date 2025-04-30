@@ -216,7 +216,34 @@ def get_domain_from_email(email):
     """Extract domain from email address for scanning"""
     return extract_domain_from_email(email)
 
-# Add these functions to your scan.py file
+def scan_gateway_ports(gateway_info):
+    """Enhanced gateway port scanning with better error handling"""
+    results = []
+    
+    try:
+        # Parse gateway info safely
+        client_ip = "Unknown"
+        if isinstance(gateway_info, str) and "Client IP:" in gateway_info:
+            client_ip = gateway_info.split("Client IP:")[1].split("|")[0].strip()
+        
+        # Add client IP information to the report
+        results.append((f"Client detected at IP: {client_ip}", "Info"))
+        
+        # Add gateway detection information
+        if isinstance(gateway_info, str) and "Likely gateways:" in gateway_info:
+            gateways = gateway_info.split("Likely gateways:")[1].strip()
+            results.append((f"Potential gateway IPs: {gateways}", "Info"))
+        
+        # Rest of the function with proper validation...
+        # [...]
+    except Exception as e:
+        results.append((f"Error analyzing gateway: {str(e)}", "High"))
+    
+    # Make sure we return at least some results
+    if not results:
+        results.append(("Gateway information unavailable", "Medium"))
+    
+    return results
 
 def determine_industry(company_name, email_domain):
     """
@@ -1042,13 +1069,40 @@ def results():
                     'data_protection': {'name': 'Data Protection', 'description': 'Solutions to secure your business data', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0},
                     'access_management': {'name': 'Access Management', 'description': 'Controls for secure system access', 'findings': [], 'risk_level': 'Low', 'score': 0, 'max_score': 0}
                 }
+        
+        # Get client IP and gateway info for the template
+        client_ip = "Unknown"
+        gateway_guesses = []
+        network_type = "Unknown"
+
+        if 'network' in scan_results and 'gateway' in scan_results['network']:
+            gateway_info = scan_results['network']['gateway'].get('info', '')
+            if "Client IP:" in gateway_info:
+                try:
+                    client_ip = gateway_info.split("Client IP:")[1].split("|")[0].strip()
+                except:
+                    pass
             
-        return render_template('results.html', scan=scan_results)
+            # Try to extract network type
+            if "Network Type:" in gateway_info or "Network type:" in gateway_info:
+                try:
+                    network_type = gateway_info.split("Network Type:")[1].split("|")[0].strip()
+                except:
+                    pass
+                    
+            # Set empty gateway guesses array as fallback
+            gateway_guesses = []
+
+        return render_template('results.html', 
+                             scan=scan_results,
+                             client_ip=client_ip,
+                             gateway_guesses=gateway_guesses,
+                             network_type=network_type)
+
     except Exception as e:
         logging.error(f"Error loading scan results: {e}")
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
         return render_template('error.html', error=f"Error loading scan results: {str(e)}")
-
 @app.route('/api/email_report', methods=['POST'])
 def api_email_report():
     try:
@@ -1529,6 +1583,11 @@ def debug_db():
         </html>
         """
 
+@app.route('/debug_scan/<scan_id>')
+def debug_scan_results(scan_id):
+    scan_results = get_scan_results(scan_id)
+    return jsonify(scan_results)
+    
 @app.route('/debug_scan_test')
 def debug_scan_test():
     """Run a simplified scan and redirect to results"""
