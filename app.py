@@ -230,12 +230,42 @@ def scan_gateway_ports(gateway_info):
         results.append((f"Client detected at IP: {client_ip}", "Info"))
         
         # Add gateway detection information
+        gateway_ips = []
         if isinstance(gateway_info, str) and "Likely gateways:" in gateway_info:
             gateways = gateway_info.split("Likely gateways:")[1].strip()
-            results.append((f"Potential gateway IPs: {gateways}", "Info"))
+            if "|" in gateways:
+                gateways = gateways.split("|")[0].strip()
+            gateway_ips = [g.strip() for g in gateways.split(",")]
+            results.append((f"Potential gateway IPs: {', '.join(gateway_ips)}", "Info"))
         
-        # Rest of the function with proper validation...
-        # [...]
+        # Scan common ports on gateway IPs
+        if gateway_ips:
+            for ip in gateway_ips:
+                if not ip or not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip):
+                    continue  # Skip invalid IPs
+                
+                for port, (service, severity) in GATEWAY_PORT_WARNINGS.items():
+                    try:
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                            s.settimeout(1.0)  # Quick timeout
+                            result = s.connect_ex((ip, port))
+                            if result == 0:
+                                results.append((f"Port {port} ({service}) is open on {ip}", severity))
+                    except socket.error:
+                        pass  # Ignore socket errors for individual port checks
+        else:
+            results.append(("Could not identify gateway IPs to scan", "Medium"))
+        
+        # Add network type information if available
+        if isinstance(gateway_info, str) and "Network Type:" in gateway_info:
+            network_type = gateway_info.split("Network Type:")[1].split("|")[0].strip()
+            results.append((f"Network type detected: {network_type}", "Info"))
+            
+            # Add specific warnings based on network type
+            if "public" in network_type.lower():
+                results.append(("Device is connected to a public network which poses higher security risks", "High"))
+            elif "guest" in network_type.lower():
+                results.append(("Device is connected to a guest network which may have limited security", "Medium"))
     except Exception as e:
         results.append((f"Error analyzing gateway: {str(e)}", "High"))
     
