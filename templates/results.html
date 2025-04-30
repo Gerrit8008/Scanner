@@ -809,27 +809,60 @@
             </div>
         </div>
         
-        <!-- Network Discovery Section -->
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2 class="mb-0">Network Discovery</h2>
+<!-- Network Discovery Section -->
+<div class="card mb-4 fade-in">
+    <div class="card-header">
+        <h2 class="mb-0">Network Discovery</h2>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h3 class="h4 mb-3 text-primary">Client & Gateway Information</h3>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <table class="table mb-0">
+                            <tbody>
+                                <tr>
+                                    <th>Client IP</th>
+                                    <td>{{ client_ip }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Network Type</th>
+                                    <td>{{ network_type }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Likely Gateway IPs</th>
+                                    <td>
+                                        {% if gateway_guesses %}
+                                            <ul class="mb-0">
+                                            {% for gateway in gateway_guesses %}
+                                                <li>{{ gateway }}</li>
+                                            {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                            Gateway detection not possible
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h3 class="h4 mb-3 text-primary">Gateway Security Status</h3>
-                        <div class="finding high">
-                            <div class="title">Gateway Security Assessment <span class="severity high">High</span></div>
-                            <p>{{ gateway_info }}</p>
-                            <div class="recommendations mt-3">
-                                <strong><i class="bi bi-shield-fill-check me-2"></i>Recommendation:</strong>
-                                <p class="mb-0">Consider implementing a dedicated hardware firewall or properly configured software firewall to protect your network from unauthorized access.</p>
-                            </div>
-                        </div>
+            <div class="col-md-6">
+                <h3 class="h4 mb-3 text-primary">Gateway Security Status</h3>
+                <div class="finding high">
+                    <div class="title">Gateway Security Assessment <span class="severity high">High</span></div>
+                    <p>{{ gateway_info }}</p>
+                    <div class="recommendations mt-3">
+                        <strong><i class="bi bi-shield-fill-check me-2"></i>Recommendation:</strong>
+                        <p class="mb-0">Consider implementing a dedicated hardware firewall or properly configured software firewall to protect your network from unauthorized access.</p>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
         <!-- Gateway Port Analysis -->
         {% if scan.network and scan.network.gateway and scan.network.gateway.results %}
@@ -2044,37 +2077,4 @@
         });
     </script>
 </body>
-</html>primary">Client & Gateway Information</h3>
-                        <div class="card">
-                            <div class="card-body p-0">
-                                <table class="table mb-0">
-                                    <tbody>
-                                        <tr>
-                                            <th>Client IP</th>
-                                            <td>{{ client_ip }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Network Type</th>
-                                            <td>{{ network_type }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Likely Gateway IPs</th>
-                                            <td>
-                                                {% if gateway_guesses %}
-                                                    <ul class="mb-0">
-                                                    {% for gateway in gateway_guesses %}
-                                                        <li>{{ gateway }}</li>
-                                                    {% endfor %}
-                                                    </ul>
-                                                {% else %}
-                                                    Gateway detection not possible
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h3 class="h4 mb-3 text-
+</html>
