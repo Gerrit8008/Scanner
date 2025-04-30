@@ -539,7 +539,52 @@
                 </div>
             </div>
         </div>
+        <div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding the Executive Summary</h3>
+    </div>
+    <div class="card-body">
+        <p>The Executive Summary provides a high-level overview of your security posture:</p>
+        <ul>
+            <li><strong>Security Score:</strong> Indicates your overall security level on a scale of 0-100. Higher scores mean better protection.</li>
+            <li><strong>Critical Issues:</strong> Vulnerabilities that require immediate attention due to their high risk potential.</li>
+            <li><strong>Secure Elements:</strong> Areas where your security practices meet or exceed industry standards.</li>
+        </ul>
         
+        <!-- Dynamic explanation based on score -->
+        {% if scan.risk_assessment.overall_score >= 90 %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Excellent! Your security posture is very strong. Continue maintaining these high standards with regular assessments and staying current with evolving threats.
+        </div>
+        {% elif scan.risk_assessment.overall_score >= 75 %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Good job! Your security measures are effective, though there are some areas that could be improved. Address the medium-risk issues identified to further strengthen your security posture.
+        </div>
+        {% elif scan.risk_assessment.overall_score >= 60 %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Your security posture needs attention. Several vulnerabilities have been detected that could put your systems at risk. Prioritize addressing the high-risk issues identified in this report.
+        </div>
+        {% elif scan.risk_assessment.overall_score >= 40 %}
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Your systems have significant security gaps that require immediate attention. These vulnerabilities could be exploited by attackers, putting your data and operations at risk.
+        </div>
+        {% else %}
+        <div class="alert alert-danger">
+            <i class="bi bi-x-circle-fill me-2"></i>
+            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Critical security issues detected! Your systems are at high risk of compromise. Immediate remediation is strongly recommended to protect your data and systems from attack.
+        </div>
+        {% endif %}
+        
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> This summary helps you prioritize security efforts based on risk level and potential impact to your organization.
+        </div>
+    </div>
+</div>
         <!-- MSP Service Categories Section -->
         <div class="card mb-4 fade-in">
             <div class="card-header">
