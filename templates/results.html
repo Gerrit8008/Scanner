@@ -733,50 +733,7 @@
                     </div>
                 </div>
                 {% endif %}
-                <div class="card mb-4 fade-in explanation">
-    <div class="card-header">
-        <h3 class="mb-0">Understanding HTTP Security Headers</h3>
-    </div>
-    <div class="card-body">
-        <p>Security headers are special instructions sent with web pages that help protect against common web attacks:</p>
-        <ul>
-            <li><strong>Content-Security-Policy:</strong> Controls which resources can be loaded by the browser, preventing cross-site scripting attacks.</li>
-            <li><strong>X-Frame-Options:</strong> Prevents your site from being embedded in frames on other sites, stopping clickjacking attacks.</li>
-            <li><strong>X-Content-Type-Options:</strong> Prevents browsers from interpreting files as a different content-type, blocking MIME-type confusion attacks.</li>
-            <li><strong>Strict-Transport-Security:</strong> Forces browsers to use HTTPS, protecting against downgrade attacks and cookie hijacking.</li>
-        </ul>
-        
-        <!-- Dynamic explanation based on security headers score -->
-        {% if scan.security_headers and 'error' not in scan.security_headers %}
-            {% if scan.security_headers.score >= 80 %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>Your Score ({{ scan.security_headers.score }}):</strong> Excellent! Your website has implemented most of the recommended security headers. This configuration provides strong protection against common web-based attacks like cross-site scripting (XSS), clickjacking, and MIME-sniffing.
-            </div>
-            {% elif scan.security_headers.score >= 60 %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>Your Score ({{ scan.security_headers.score }}):</strong> Good. Your website has implemented several important security headers, but there's room for improvement. Adding the missing headers would further enhance your protection against common web attacks.
-            </div>
-            {% elif scan.security_headers.score >= 40 %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Your Score ({{ scan.security_headers.score }}):</strong> Your website is missing several important security headers. This could leave your site vulnerable to attacks like cross-site scripting (XSS), clickjacking, and other common web vulnerabilities. Implementing the missing headers is recommended.
-            </div>
-            {% else %}
-            <div class="alert alert-danger">
-                <i class="bi bi-x-circle-fill me-2"></i>
-                <strong>Your Score ({{ scan.security_headers.score }}):</strong> Your website has few or no security headers implemented. This significantly increases your vulnerability to common web attacks. Adding security headers should be prioritized as it's typically a simple configuration change with significant security benefits.
-            </div>
-            {% endif %}
-        {% endif %}
-        
-        <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> Missing security headers can leave your website vulnerable to various attacks. Implementing these headers is usually a simple configuration change but significantly improves web application security.
-        </div>
-    </div>
-</div>
+            
                 <!-- Web Framework Detection -->
                 {% if scan.frameworks and scan.frameworks.count > 0 %}
                 <h3 class="section-title">Web Frameworks</h3>
@@ -919,7 +876,43 @@
             </div>
         </div>
         {% endif %}
-
+<!-- Network Discovery Explanation -->
+<div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding Network Discovery</h3>
+    </div>
+    <div class="card-body">
+        <p>This section analyzes your network infrastructure and gateway configuration:</p>
+        <ul>
+            <li><strong>Gateway Security:</strong> Your network gateway is the entry point to your internal network and requires proper security configuration.</li>
+            <li><strong>Client IP:</strong> The IP address from which you're connecting to the internet.</li>
+            <li><strong>Network Type:</strong> Identifies whether you're on a private or public network, which affects security considerations.</li>
+        </ul>
+        
+        <!-- Dynamic explanation based on gateway assessment -->
+        {% if 'high' in gateway_info|lower or 'critical' in gateway_info|lower %}
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>High Risk:</strong> Your network gateway has significant security issues that could allow attackers to penetrate your network. Gateway devices are prime targets for attackers because compromising them can provide access to all connected devices. Consider implementing a hardware firewall or properly configured security solution immediately.
+        </div>
+        {% elif 'medium' in gateway_info|lower %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Medium Risk:</strong> Your network gateway has some security concerns that should be addressed. While not critically vulnerable, these issues could be exploited by determined attackers to gain access to your network. Review your gateway security settings and consider upgrading security measures.
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Low Risk:</strong> Your network gateway appears to be relatively secure. Continue to maintain good security practices and regularly check for firmware updates to protect against new vulnerabilities.
+        </div>
+        {% endif %}
+        
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> Your network gateway is often the first line of defense against external threats. Improperly configured gateways can leave your entire network vulnerable to attacks. Proper gateway security helps prevent unauthorized access to your systems.
+        </div>
+    </div>
+</div>
         <!-- Sensitive Content Analysis -->
         {% if scan.sensitive_content and 'error' not in scan.sensitive_content %}
         <div class="card mb-4 fade-in">
@@ -1103,7 +1096,49 @@
             </div>
         </div>
         {% endif %}
-
+<!-- Sensitive Content Analysis Explanation -->
+<div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding Sensitive Content Analysis</h3>
+    </div>
+    <div class="card-body">
+        <p>This section identifies potentially sensitive content on your website that should be protected:</p>
+        <ul>
+            <li><strong>Sensitive Paths:</strong> URLs that might expose configuration files, administrative interfaces, or other sensitive content.</li>
+            <li><strong>Risk Assessment:</strong> The security implications of the discovered sensitive content.</li>
+        </ul>
+        
+        <!-- Dynamic explanation based on sensitive content findings -->
+        {% if scan.sensitive_content and 'error' not in scan.sensitive_content %}
+            {% if scan.sensitive_content.sensitive_paths_found > 5 %}
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle-fill me-2"></i>
+                <strong>Critical Exposure ({{ scan.sensitive_content.sensitive_paths_found }} paths):</strong> Your website has numerous exposed sensitive paths that could be used by attackers to gain unauthorized access or collect information for targeted attacks. These exposures significantly increase your attack surface and should be addressed immediately.
+            </div>
+            {% elif scan.sensitive_content.sensitive_paths_found > 2 %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Moderate Exposure ({{ scan.sensitive_content.sensitive_paths_found }} paths):</strong> Several sensitive paths were detected on your website. These could provide attackers with valuable information about your systems or potentially direct access to administrative functions. These exposures should be reviewed and protected as needed.
+            </div>
+            {% elif scan.sensitive_content.sensitive_paths_found > 0 %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Minor Exposure ({{ scan.sensitive_content.sensitive_paths_found }} paths):</strong> A few sensitive paths were detected on your website. While limited in number, these could still provide attackers with information useful for planning more targeted attacks. Consider implementing protections for these paths.
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>No Exposure Detected:</strong> No obvious sensitive content was discovered during the scan. Continue maintaining good security practices by carefully controlling access to administrative and configuration files.
+            </div>
+            {% endif %}
+        {% endif %}
+        
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> Exposed sensitive content can provide attackers with valuable information about your systems or direct access to administrative functions. Protecting these paths is crucial for maintaining security. Even seemingly harmless information can help attackers plan more targeted attacks.
+        </div>
+    </div>
+</div>
         <!-- Threat Scenario Analysis -->
         <div class="card mb-4 fade-in">
             <div class="card-header">
@@ -1146,19 +1181,54 @@
                 </div>
             </div>
         </div>
-        <div class="card mb-4 fade-in explanation">
+        <!-- Threat Scenario Analysis Explanation -->
+<div class="card mb-4 fade-in explanation">
     <div class="card-header">
-        <h3 class="mb-0">Understanding Web Frameworks Detection</h3>
+        <h3 class="mb-0">Understanding Threat Scenario Analysis</h3>
     </div>
     <div class="card-body">
-        <p>This section identifies the web technologies and frameworks your website is using:</p>
+        <p>This section outlines potential attack scenarios based on discovered vulnerabilities:</p>
         <ul>
-            <li><strong>Frameworks:</strong> Software libraries like React, Angular, WordPress, etc. that provide the structure for your website.</li>
-            <li><strong>Technology Stack:</strong> The combination of programming languages, frameworks, and tools used to build and run your site.</li>
+            <li><strong>Threat Name:</strong> The type of attack that could target your systems.</li>
+            <li><strong>Impact:</strong> The potential damage if the attack is successful (Critical, High, Medium, Low).</li>
+            <li><strong>Likelihood:</strong> The probability of this attack occurring based on your current security posture.</li>
         </ul>
-        <div class="alert alert-info">
+        
+        <!-- Dynamic explanation based on threat scenarios -->
+        {% if scan.threat_scenarios and scan.threat_scenarios|length > 0 %}
+            {% set high_impact_count = 0 %}
+            {% for threat in scan.threat_scenarios %}
+                {% if threat.impact == 'Critical' or threat.impact == 'High' %}
+                    {% set high_impact_count = high_impact_count + 1 %}
+                {% endif %}
+            {% endfor %}
+            
+            {% if high_impact_count >= 2 %}
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>High-Risk Profile:</strong> Multiple high-impact threat scenarios have been identified. These represent realistic attack vectors that could cause significant damage to your systems or data. Prioritize addressing the vulnerabilities that enable these scenarios to reduce your overall risk profile.
+            </div>
+            {% elif high_impact_count == 1 %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Moderate Risk Profile:</strong> A high-impact threat scenario has been identified, along with several lower-risk scenarios. While your overall security posture has some strengths, there are still important vulnerabilities that should be addressed to prevent potential attacks.
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Low-Risk Profile:</strong> The identified threat scenarios are generally low to medium impact. Your security posture appears relatively strong, though continuous improvement is always recommended as attack techniques evolve.
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Minimal Risk Profile:</strong> No specific high-risk threat scenarios were identified during this scan. Your security posture appears strong, though all systems remain potential targets for common attacks like phishing or social engineering.
+            </div>
+        {% endif %}
+        
+        <div class="alert alert-info mt-3">
             <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> Knowing which frameworks your site uses helps identify potential vulnerabilities. Outdated frameworks can contain security flaws that attackers target. Keeping frameworks updated is essential for security.
+            <strong>Why This Matters:</strong> Understanding realistic threat scenarios helps prioritize security improvements. High-impact, high-likelihood threats should be addressed first. This analysis translates technical vulnerabilities into business risks, making it easier to understand the practical implications of security issues.
         </div>
     </div>
 </div>
@@ -1265,7 +1335,50 @@
             </div>
         </div>
         {% endif %}
+        <!-- Industry-Specific Risk Assessment Explanation -->
+<div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding Industry-Specific Risk Assessment</h3>
+    </div>
+    <div class="card-body">
+        <p>This section compares your security posture to other organizations in your industry:</p>
+        <ul>
+            <li><strong>Industry Comparison:</strong> How your security score compares to industry averages.</li>
+            <li><strong>Percentile:</strong> Your ranking compared to other organizations in your industry.</li>
+            <li><strong>Compliance Requirements:</strong> Industry-specific regulations and standards relevant to your organization.</li>
+        </ul>
         
+        <!-- Dynamic explanation based on industry benchmarks -->
+        {% if scan.industry and scan.industry.benchmarks %}
+            {% if scan.industry.benchmarks.percentile > 75 %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Industry Leader ({{ scan.industry.benchmarks.percentile }}th percentile):</strong> Your organization's security posture is exceptional compared to industry peers. You're implementing security practices that exceed industry standards, putting you in a strong position to defend against most threats while likely meeting regulatory requirements.
+            </div>
+            {% elif scan.industry.benchmarks.percentile > 50 %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Above Average ({{ scan.industry.benchmarks.percentile }}th percentile):</strong> Your organization performs better than the majority of your industry peers in terms of security. While there's still room for improvement, you've implemented many important security controls that help protect your assets.
+            </div>
+            {% elif scan.industry.benchmarks.percentile > 25 %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Below Average ({{ scan.industry.benchmarks.percentile }}th percentile):</strong> Your security posture falls below the industry average. This may expose your organization to more risks than your competitors and could potentially create compliance concerns. Focus on implementing the industry-standard security controls identified in this report.
+            </div>
+            {% else %}
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle-fill me-2"></i>
+                <strong>Significant Gap ({{ scan.industry.benchmarks.percentile }}th percentile):</strong> Your security posture is significantly below industry standards. This puts your organization at higher risk for security incidents and may lead to regulatory compliance issues. Urgent attention is needed to implement basic security controls common in your industry.
+            </div>
+            {% endif %}
+        {% endif %}
+        
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> Different industries face different threats and have different regulatory requirements. Understanding how your security compares to industry peers helps benchmark your security program and identify areas where improvement is most needed. Industry-specific compliance requirements often include mandatory security controls.
+        </div>
+    </div>
+</div>
         <!-- Risk Factor Breakdown -->
         {% if scan.risk_assessment and scan.risk_assessment.risk_factors %}
         <div class="card mb-4 fade-in">
@@ -1306,7 +1419,60 @@
             </div>
         </div>
         {% endif %}
+        <!-- Risk Factor Breakdown Explanation -->
+<div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding Risk Factor Breakdown</h3>
+    </div>
+    <div class="card-body">
+        <p>This section details how different security factors contribute to your overall risk score:</p>
+        <ul>
+            <li><strong>Risk Factor:</strong> Specific security aspects evaluated during the scan.</li>
+            <li><strong>Score:</strong> How well you performed in each factor (higher is better).</li>
+            <li><strong>Weight:</strong> How much each factor influences your overall security score.</li>
+            <li><strong>Impact:</strong> The effect each factor has on your total security posture.</li>
+        </ul>
         
+        <!-- Dynamic explanation based on risk factors -->
+        {% if scan.risk_assessment and scan.risk_assessment.risk_factors %}
+            {% set lowest_score = 10 %}
+            {% set lowest_factor = "" %}
+            {% set highest_weight = 0 %}
+            {% set highest_weight_factor = "" %}
+            
+            {% for factor in scan.risk_assessment.risk_factors %}
+                {% if factor.score < lowest_score %}
+                    {% set lowest_score = factor.score %}
+                    {% set lowest_factor = factor.name %}
+                {% endif %}
+                
+                {% if factor.weight > highest_weight %}
+                    {% set highest_weight = factor.weight %}
+                    {% set highest_weight_factor = factor.name %}
+                {% endif %}
+            {% endfor %}
+            
+            <div class="alert alert-warning">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <strong>Key Insights:</strong> 
+                <ul>
+                    {% if lowest_factor != "" %}
+                    <li><strong>Your weakest area is {{ lowest_factor }}</strong> with a score of {{ lowest_score }}/10. Focusing on this area would help improve your security.</li>
+                    {% endif %}
+                    
+                    {% if highest_weight_factor != "" %}
+                    <li><strong>The most heavily weighted factor is {{ highest_weight_factor }}</strong> at {{ highest_weight }}% of your total score. This area has the biggest impact on your overall security posture.</li>
+                    {% endif %}
+                </ul>
+            </div>
+        {% endif %}
+        
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> Not all security factors have equal importance. This breakdown helps you understand which factors are most critical for your overall security and where to focus improvement efforts for maximum impact. Addressing high-weight factors with low scores will improve your security most efficiently.
+        </div>
+    </div>
+</div>
         <!-- Host Operating System Information -->
         {% if scan.is_domain is defined and scan.is_domain %}
         <div class="card mb-4 fade-in">
@@ -1424,7 +1590,45 @@
                 </div>
             </div>
         </div>
+        <!-- Client System Information Explanation -->
+<div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding Client System Information</h3>
+    </div>
+    <div class="card-body">
+        <p>This section provides details about the operating system and browser you're using:</p>
+        <ul>
+            <li><strong>Operating System:</strong> The software that manages your computer hardware and provides services for computer programs.</li>
+            <li><strong>Windows Version:</strong> The specific release of Windows you're running (if applicable).</li>
+            <li><strong>Browser:</strong> The software you use to access websites and web applications.</li>
+        </ul>
         
+        <!-- Dynamic explanation based on system update status -->
+        {% if scan.system and scan.system.os_updates %}
+            {% if scan.system.os_updates.severity == 'Critical' or scan.system.os_updates.severity == 'High' %}
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle-fill me-2"></i>
+                <strong>Critical Update Status:</strong> Your system is significantly out of date and missing important security patches. Outdated systems are much more vulnerable to known exploits and malware. Update your system immediately to protect against known security vulnerabilities.
+            </div>
+            {% elif scan.system.os_updates.severity == 'Medium' %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Updates Needed:</strong> Your system is missing some security updates. While not critically vulnerable, these missing updates could expose your system to certain threats. We recommend updating your system soon to maintain proper security.
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>System Up to Date:</strong> Your system appears to be current with security updates. Keeping systems updated is one of the most important security practices. Continue to install updates promptly when they become available.
+            </div>
+            {% endif %}
+        {% endif %}
+        
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> Outdated operating systems often contain known security vulnerabilities that attackers can exploit. Regular updates are one of the most important security practices. Many successful cyberattacks target systems that haven't been updated with available security patches.
+        </div>
+    </div>
+</div>
         <!-- Key Recommendations -->
         {% if scan.recommendations %}
         <div class="card mb-4 fade-in">
