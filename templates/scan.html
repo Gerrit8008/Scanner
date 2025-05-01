@@ -639,10 +639,7 @@
             document.getElementById('step3Next').addEventListener('click', function() {
                 // At least one scan option should be selected
                 const scanOptions = document.querySelectorAll('input[name="scan_options[]"]:checked');
-                
-                // At least one scan option should be selected
-                const scanOptions = document.querySelectorAll('input[name="scan_options[]"]:checked');
-                
+                              
                 if (scanOptions.length === 0) {
                     alert('Please select at least one scan option.');
                     return;
