@@ -183,9 +183,6 @@
                         <input type="hidden" id="windows_version" name="windows_version" value="">
 
                         <div class="domain-check">
-                        <div class="text-center">
-                            <button type="submit" class="btn btn-primary btn-scan btn-lg" id="startScanBtn">Start Comprehensive Scan</button>
-                        </div>
                             <h3>Comprehensive Security Analysis</h3>
                             <p>
                                 We'll analyze:
@@ -195,21 +192,15 @@
                                 <li><strong>Email Security:</strong> SPF, DKIM, and DMARC configurations for your email domain</li>
                                 <li><strong>Network Security:</strong> Open ports, vulnerable services, firewall configuration</li>
                                 <li><strong>Web Application:</strong> SSL/TLS configuration, security headers, CMS vulnerabilities</li>
-                                <li><strong>SSL/TLS Certificate Analysis</strong> - Check for expiration dates, weak encryption, and misconfiguration issues</li>
-                                <li><strong>HTTP Security Headers Assessment</strong> - Scan for missing or misconfigured security headers</li>
-                                <li><strong>CMS Detection and Vulnerability Checking</strong> - Identify content management systems and check for known vulnerabilities</li>
-                                <li><strong>DNS Configuration Analysis</strong> - Examine DNS records for misconfigurations or security issues</li>
-                                <li><strong>Email Security Verification</strong> - Check SPF, DKIM, and DMARC records for email security</li>
-                                <li><strong>Cookie Security Analysis</strong> - Check for secure flags, HttpOnly settings, and SameSite attributes</li>
-                                <li><strong>Web Application Framework Detection</strong> - Identify frameworks and potential known vulnerabilities</li>
-                                <li><strong>Basic Content Crawling</strong> - Look for sensitive information exposure in robots.txt or common paths</li>
-                                <li><strong>Risk Scoring</strong> - Get an overall security score with recommendations</li>
-                                <li><strong>Detailed Report</strong> - Receive a comprehensive security assessment report</li>
                             </ul>
                             <p class="text-info">
                                 <strong>Note:</strong> All scans will be performed on the domain extracted from your email address.
                             </p>
-                        </div>           
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-scan btn-lg" id="startScanBtn">Start Comprehensive Scan</button>
+                        </div>
                     </form>
 
                     <div class="loading" id="loadingIndicator">
@@ -219,11 +210,29 @@
                         <p class="mt-3">Initializing scan... This may take a few moments.</p>
                     </div>
                 </div>
-            </div>                    
+            </div>
+            
+            <!-- Quick Test Scan section removed -->
+            
+            <div class="enhanced-features">
+                <h2>Advanced Security Scan Features</h2>
+                <ul>
+                    <li><strong>SSL/TLS Certificate Analysis</strong> - Check for expiration dates, weak encryption, and misconfiguration issues</li>
+                    <li><strong>HTTP Security Headers Assessment</strong> - Scan for missing or misconfigured security headers</li>
+                    <li><strong>CMS Detection and Vulnerability Checking</strong> - Identify content management systems and check for known vulnerabilities</li>
+                    <li><strong>DNS Configuration Analysis</strong> - Examine DNS records for misconfigurations or security issues</li>
+                    <li><strong>Email Security Verification</strong> - Check SPF, DKIM, and DMARC records for email security</li>
+                    <li><strong>Cookie Security Analysis</strong> - Check for secure flags, HttpOnly settings, and SameSite attributes</li>
+                    <li><strong>Web Application Framework Detection</strong> - Identify frameworks and potential known vulnerabilities</li>
+                    <li><strong>Basic Content Crawling</strong> - Look for sensitive information exposure in robots.txt or common paths</li>
+                    <li><strong>Risk Scoring</strong> - Get an overall security score with recommendations</li>
+                    <li><strong>Detailed Report</strong> - Receive a comprehensive security assessment report</li>
+                </ul>
+            </div>
         </div>
         
         <!-- Scan Progress Container (initially hidden) -->
-       <!--  <div class="progress-container" id="progressContainer">
+        <div class="progress-container" id="progressContainer">
             <div class="card">
                 <div class="card-header">
                     Scan in Progress
@@ -291,7 +300,7 @@
                     </div>
                 </div>
             </div>
-        </div>-->
+        </div>
     </div>
 
     <div class="footer">
