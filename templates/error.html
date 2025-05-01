@@ -1,24 +1,30 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Error - Vulnerability Scanner</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        h1 { color: #d9534f; }
-        .error-box { 
-            background-color: #f2dede; 
-            border: 1px solid #ebccd1; 
-            padding: 15px;
-            border-radius: 4px;
-            color: #a94442;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-    <h1>An Error Occurred</h1>
-    <div class="error-box">
-        <p>{{ error }}</p>
+    <div class="header">
+        <img src="/static/images/logo.png" alt="Company Logo" class="logo">
+        <h1>Error</h1>
+        <p>Something went wrong</p>
     </div>
-    <p><a href="/scan">Try Again</a> | <a href="/">Home</a></p>
+    
+    <div class="container">
+        <div class="content">
+            <h2>An Error Occurred</h2>
+            <div class="error-box">
+                <p>{{ error }}</p>
+            </div>
+            <p><a href="/scan" class="btn btn-primary">Try Again</a> <a href="/" class="btn btn-primary">Home</a></p>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>&copy; 2025 Central Georgia Technology. All rights reserved.</p>
+    </div>
 </body>
 </html>
