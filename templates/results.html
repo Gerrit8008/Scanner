@@ -56,7 +56,6 @@
             {% endif %}
         </div>
         
-        <!-- Rest of content remains the same, just without the inline styles -->
         <!-- Executive Summary -->
         <div class="card mb-4 fade-in">
             <div class="card-header">
@@ -106,8 +105,55 @@
                 </div>
             </div>
         </div>
+        <div class="card mb-4 fade-in explanation">
+    <div class="card-header">
+        <h3 class="mb-0">Understanding the Executive Summary</h3>
+    </div>
+    <div class="card-body">
+        <p>The Executive Summary provides a high-level overview of your security posture:</p>
+        <ul>
+            <li><strong>Security Score:</strong> Indicates your overall security level on a scale of 0-100. Higher scores mean better protection.</li>
+            <li><strong>Critical Issues:</strong> Vulnerabilities that require immediate attention due to their high risk potential.</li>
+            <li><strong>Secure Elements:</strong> Areas where your security practices meet or exceed industry standards.</li>
+        </ul>
+        
+        <!-- Dynamic explanation based on score -->
+        {% if scan.risk_assessment.overall_score >= 90 %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Excellent! Your security posture is very strong. Continue maintaining these high standards with regular assessments and staying current with evolving threats.
+        </div>
+        {% elif scan.risk_assessment.overall_score >= 75 %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Good job! Your security measures are effective, though there are some areas that could be improved. Address the medium-risk issues identified to further strengthen your security posture.
+        </div>
+        {% elif scan.risk_assessment.overall_score >= 60 %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Your security posture needs attention. Several vulnerabilities have been detected that could put your systems at risk. Prioritize addressing the high-risk issues identified in this report.
+        </div>
+        {% elif scan.risk_assessment.overall_score >= 40 %}
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Your systems have significant security gaps that require immediate attention. These vulnerabilities could be exploited by attackers, putting your data and operations at risk.
+        </div>
+        {% else %}
+        <div class="alert alert-danger">
+            <i class="bi bi-x-circle-fill me-2"></i>
+            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Critical security issues detected! Your systems are at high risk of compromise. Immediate remediation is strongly recommended to protect your data and systems from attack.
+        </div>
+        {% endif %}
+        
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Why This Matters:</strong> This summary helps you prioritize security efforts based on risk level and potential impact to your organization.
+        </div>
+    </div>
+</div>
 
-        <!-- Remaining sections continue as in original results.html, but styles are now in the external CSS file -->
+        <!-- Rest of HTML content remains the same -->
+        <!-- Include all the sections from the original results.html file -->
         
     </div>
 
@@ -128,7 +174,111 @@
         <i class="bi bi-printer"></i>
     </button>
 
-    <!-- JavaScript for toggling explanations and other functionality -->
+    <!-- Service Inquiry Modal -->
+    <div class="modal fade" id="serviceInquiryModal" tabindex="-1" aria-labelledby="serviceInquiryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="serviceInquiryModalLabel">Learn More About Our Services</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>We've detected <span id="findingCount" class="text-danger fw-bold">several</span> issues 
+                    related to <span id="serviceName" class="fw-bold">security services</span>.</p>
+                    
+                    <p>Our team can help you address these issues with tailored solutions. 
+                    Please provide your information below to receive detailed information about our services:</p>
+                    
+                    <form id="serviceInquiryForm">
+                        <input type="hidden" id="inquiryService" name="service">
+                        <input type="hidden" id="inquiryFindings" name="findings">
+                        <input type="hidden" id="inquiryScanId" name="scan_id" value="{{ scan.scan_id }}">
+                        
+                        <div class="mb-3">
+                            <label for="inquiryName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="inquiryName" name="name" 
+                                   value="{{ scan.client_info.name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="inquiryEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="inquiryEmail" name="email" 
+                                   value="{{ scan.client_info.email }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="inquiryPhone" class="form-label">Phone (optional)</label>
+                            <input type="tel" class="form-control" id="inquiryPhone" name="phone" 
+                                   value="{{ scan.client_info.phone }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="inquiryMessage" class="form-label">Additional Information</label>
+                            <textarea class="form-control" id="inquiryMessage" name="message" rows="3"
+                                     placeholder="Please share any specific concerns or questions..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="submitInquiryBtn">Request Information</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Industry Consultation Modal -->
+    <div class="modal fade" id="industryConsultationModal" tabindex="-1" aria-labelledby="industryConsultationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="industryConsultationModalLabel">
+                        {{ scan.industry.name }} Security Consultation
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Our security experts specialize in {{ scan.industry.name }} security requirements and compliance.</p>
+                    <p>We can help your organization meet industry-specific security standards and best practices.</p>
+                
+                    <form id="industryConsultationForm">
+                        <input type="hidden" id="industryScanId" name="scan_id" value="{{ scan.scan_id }}">
+                        <input type="hidden" id="industryType" name="industry" value="{{ scan.industry.type }}">
+                    
+                        <div class="mb-3">
+                            <label for="industryName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="industryName" name="name" 
+                                   value="{{ scan.client_info.name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="industryEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="industryEmail" name="email" 
+                                   value="{{ scan.client_info.email }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="industryPhone" class="form-label">Phone (optional)</label>
+                            <input type="tel" class="form-control" id="industryPhone" name="phone" 
+                                   value="{{ scan.client_info.phone }}">
+                        </div>
+                    
+                        <div class="mb-3">
+                            <label for="industryMessage" class="form-label">Message</label>
+                            <textarea class="form-control" id="industryMessage" name="message" rows="3"
+                                     placeholder="Please share your specific security concerns..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="submitIndustryBtn">Get Consultation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add JavaScript for functionality -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -184,17 +334,116 @@
             // Initialize
             addExplanationClass();
             setupToggle();
-            
-            // Print functionality
-            document.getElementById('printReportBtn').addEventListener('click', function() {
-                window.print();
+        });
+        // Print functionality
+        document.getElementById('printReportBtn').addEventListener('click', function() {
+            window.print();
+        });
+        
+        document.getElementById('floatingPrintBtn').addEventListener('click', function() {
+            window.print();
+        });
+        
+        // Service inquiry modal handling
+        const serviceButtons = document.querySelectorAll('.service-inquiry-btn');
+        serviceButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const service = this.getAttribute('data-service');
+                const findings = this.getAttribute('data-findings');
+                
+                document.getElementById('serviceName').textContent = service;
+                document.getElementById('findingCount').textContent = findings > 0 ? findings : 'several';
+                document.getElementById('inquiryService').value = service;
+                document.getElementById('inquiryFindings').value = findings;
+                
+                var modal = new bootstrap.Modal(document.getElementById('serviceInquiryModal'));
+                modal.show();
             });
-            
-            document.getElementById('floatingPrintBtn').addEventListener('click', function() {
-                window.print();
+        });
+        
+        // Industry consultation modal handling
+        const industryButton = document.querySelector('.industry-consultation-btn');
+        if (industryButton) {
+            industryButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                var modal = new bootstrap.Modal(document.getElementById('industryConsultationModal'));
+                modal.show();
             });
+        }
+        
+        // Form submission handlers
+        document.getElementById('submitInquiryBtn').addEventListener('click', function() {
+            // Add form submission logic here
+            alert('Thank you for your inquiry. We will contact you shortly.');
+            bootstrap.Modal.getInstance(document.getElementById('serviceInquiryModal')).hide();
+        });
+        
+        if (document.getElementById('submitIndustryBtn')) {
+            document.getElementById('submitIndustryBtn').addEventListener('click', function() {
+                // Add form submission logic here
+                alert('Thank you for your consultation request. Our industry experts will contact you shortly.');
+                bootstrap.Modal.getInstance(document.getElementById('industryConsultationModal')).hide();
+            });
+        }
+        
+       // Email report button
+document.getElementById('emailReportBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    const email = prompt('Please enter your email address to receive this report:');
+    if (email && email.includes('@')) {
+        // Get the scan ID from the hidden input
+        const scanId = document.getElementById('scan-id').value;
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('scan_id', scanId);
+        formData.append('email', email);
+        
+        // Show loading message
+        alert('Sending report to your email...');
+        
+        // Send AJAX request to the email report API
+        fetch('/api/email_report', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(`Thank you! The report has been sent to ${email}.`);
+            } else {
+                alert(`Error: ${data.message || 'Failed to send email. Please try again.'}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error sending email:', error);
+            alert('Failed to send email. Please try again.');
+        });
+    } else if (email) {
+        alert('Please enter a valid email address.');
+    }
+});
+        
+        // Add animation effects when scrolling
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.fade-in');
             
-            // Additional JavaScript functionality would continue as in the original file
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = 1;
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            cards.forEach(card => {
+                card.style.opacity = 0;
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                observer.observe(card);
+            });
         });
     </script>
 </body>
