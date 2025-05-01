@@ -927,58 +927,58 @@ def run_consolidated_scan(lead_data):
                                          "Use strong, unique passwords and implement multi-factor authentication.",
                                          "Regularly back up your data and test the restoration process."]
 
-    # Generate the full HTML report with all context variables
-try:
-    logging.info("Generating complete HTML report...")
+    # 6. Generate the full HTML report with all context variables
+    try:
+        logging.info("Generating complete HTML report...")
+        
+        # Get client IP and gateway info
+        client_ip = "Unknown"
+        gateway_guesses = []
+        network_type = "Unknown"
+        
+        if 'network' in scan_results and 'gateway' in scan_results['network']:
+            gateway_info = scan_results['network']['gateway'].get('info', '')
+            if isinstance(gateway_info, str):
+                if "Client IP:" in gateway_info:
+                    try:
+                        client_ip = gateway_info.split("Client IP:")[1].split("|")[0].strip()
+                    except:
+                        pass
+                
+                if "Network Type:" in gateway_info:
+                    try:
+                        network_type = gateway_info.split("Network Type:")[1].split("|")[0].strip()
+                    except:
+                        pass
+                
+                if "Likely gateways:" in gateway_info:
+                    try:
+                        gateways_part = gateway_info.split("Likely gateways:")[1].strip()
+                        if "|" in gateways_part:
+                            gateways_part = gateways_part.split("|")[0].strip()
+                        gateway_guesses = [g.strip() for g in gateways_part.split(",")]
+                    except:
+                        pass
+        else:
+            gateway_info = "Gateway information not available"
+        
+        # Render the complete HTML with all context variables
+        complete_html = render_template('results.html', 
+                                       scan=scan_results,
+                                       client_ip=client_ip,
+                                       gateway_guesses=gateway_guesses,
+                                       network_type=network_type,
+                                       gateway_info=gateway_info)
+        
+        # Store the complete HTML in the scan results
+        scan_results['complete_html_report'] = complete_html
+        logging.debug("Complete HTML report generated and stored successfully")
+    except Exception as complete_html_error:
+        logging.error(f"Error generating complete HTML report: {complete_html_error}")
+        logging.debug(f"Exception traceback: {traceback.format_exc()}")
+        scan_results['complete_html_report_error'] = str(complete_html_error)
     
-    # Get client IP and gateway info
-    client_ip = "Unknown"
-    gateway_guesses = []
-    network_type = "Unknown"
-    
-    if 'network' in scan_results and 'gateway' in scan_results['network']:
-        gateway_info = scan_results['network']['gateway'].get('info', '')
-        if isinstance(gateway_info, str):
-            if "Client IP:" in gateway_info:
-                try:
-                    client_ip = gateway_info.split("Client IP:")[1].split("|")[0].strip()
-                except:
-                    pass
-            
-            if "Network Type:" in gateway_info:
-                try:
-                    network_type = gateway_info.split("Network Type:")[1].split("|")[0].strip()
-                except:
-                    pass
-            
-            if "Likely gateways:" in gateway_info:
-                try:
-                    gateways_part = gateway_info.split("Likely gateways:")[1].strip()
-                    if "|" in gateways_part:
-                        gateways_part = gateways_part.split("|")[0].strip()
-                    gateway_guesses = [g.strip() for g in gateways_part.split(",")]
-                except:
-                    pass
-    else:
-        gateway_info = "Gateway information not available"
-    
-    # Render the complete HTML with all context variables
-    complete_html = render_template('results.html', 
-                                   scan=scan_results,
-                                   client_ip=client_ip,
-                                   gateway_guesses=gateway_guesses,
-                                   network_type=network_type,
-                                   gateway_info=gateway_info)
-    
-    # Store the complete HTML in the scan results
-    scan_results['complete_html_report'] = complete_html
-    logging.debug("Complete HTML report generated and stored successfully")
-except Exception as complete_html_error:
-    logging.error(f"Error generating complete HTML report: {complete_html_error}")
-    logging.debug(f"Exception traceback: {traceback.format_exc()}")
-    scan_results['complete_html_report_error'] = str(complete_html_error)
-    
-    # 6. Generate HTML report
+    # 7. Generate HTML report
     try:
         logging.info("Generating HTML report...")
         html_report = generate_html_report(scan_results)
@@ -989,7 +989,7 @@ except Exception as complete_html_error:
         logging.debug(f"Exception traceback: {traceback.format_exc()}")
         scan_results['html_report_error'] = str(report_e)
     
-    # 7. Save to database
+    # 8. Save to database
     try:
         logging.info("Saving scan results to database...")
         saved_scan_id = save_scan_results(scan_results)
