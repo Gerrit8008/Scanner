@@ -307,10 +307,7 @@ def send_email_report(lead_data, scan_results, html_report):
         # Check if credentials are available
         if not smtp_user or not smtp_password:
             logging.error("SMTP credentials not found in environment variables")
-            logging.warning("Using default test credentials - ONLY FOR DEVELOPMENT!")
-            # For development only - REPLACE WITH REAL CREDENTIALS IN PRODUCTION!
-            smtp_user = "your_email@example.com"  # Replace with your email
-            smtp_password = "your_password"       # Replace with your password
+            return False
             
         logging.debug(f"Attempting to send email with SMTP user: {smtp_user}")
         
@@ -319,47 +316,14 @@ def send_email_report(lead_data, scan_results, html_report):
         msg["Subject"] = f"Security Scan Report - {lead_data.get('company', 'Unknown Company')}"
         msg["From"] = smtp_user
         
-        # Send to both the admin and the user
-        admin_email = smtp_user
+        # Send to the user's email address
         user_email = lead_data.get("email", "")
-        recipients = f"{admin_email}, {user_email}"
-        msg["To"] = recipients
+        msg["To"] = user_email
         
-        logging.debug(f"Email recipients: {recipients}")
+        logging.debug(f"Email recipient: {user_email}")
         
         # Create a simple text version as a fallback
-        text_body = f"""
-Security Scan Report
-
-CLIENT INFORMATION:
-Name: {lead_data.get('name', '')}
-Email: {lead_data.get('email', '')}
-Company: {lead_data.get('company', '')}
-Phone: {lead_data.get('phone', '')}
-Timestamp: {lead_data.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
-
-This email contains your comprehensive security scan report. 
-Please view this email in an HTML-capable email client to see the full report with all details.
-
-If you cannot view the HTML content, please contact us to access your report.
-
-NEXT STEPS:
-Our security experts can help you implement the recommendations from this report. 
-Our services include:
-- Vulnerability Remediation
-- Network Security Configuration
-- Email Security Setup
-- System Security Updates
-- Web Application Hardening
-- Security Awareness Training
-- Ongoing Security Monitoring
-
-We look forward to partnering with you for all your IT and cybersecurity needs.
-You can reach us through our website at cengatech.com, by email at sales@cengatech.com, or by phone at 470-481-0400.
-
-Thank you,
-The Cengatech Team
-        """
+        text_body = create_comprehensive_text_summary(scan_results)
         
         # Create text part (fallback for email clients that don't support HTML)
         part1 = MIMEText(text_body, 'plain')
@@ -371,53 +335,23 @@ The Cengatech Team
         msg.attach(part1)
         msg.attach(part2)
         
-        # Try different ports if needed
+        # Configure SMTP
         smtp_server = "mail.privateemail.com"  # Change to your SMTP server
         smtp_port = 587  # 587 is typical for authenticated TLS
         
         logging.debug(f"Connecting to SMTP server: {smtp_server}:{smtp_port}")
         
-        try:
-            with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
-                logging.debug("SMTP connection established")
-                server.ehlo()
-                logging.debug("EHLO successful")
-                server.starttls()
-                logging.debug("STARTTLS successful")
-                server.ehlo()
-                logging.debug("Second EHLO successful")
-                server.login(smtp_user, smtp_password)
-                logging.debug("SMTP login successful")
-                server.send_message(msg)
-                logging.debug("Email sent successfully!")
-                return True
-        except Exception as smtp_error:
-            logging.error(f"Primary SMTP attempt failed: {smtp_error}")
-            
-            # Fallback to alternative port or server
-            try:
-                smtp_port = 465  # Try alternative port for SSL
-                logging.debug(f"Trying alternative port: {smtp_port}")
-                
-                with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30) as server:
-                    logging.debug("SMTP_SSL connection established")
-                    server.login(smtp_user, smtp_password)
-                    logging.debug("SMTP login successful")
-                    server.send_message(msg)
-                    logging.debug("Email sent successfully via alternative method!")
-                    return True
-            except Exception as fallback_error:
-                logging.error(f"Fallback SMTP attempt also failed: {fallback_error}")
-                raise  # Re-raise to be caught by the outer exception handler
+        # Send the email
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
+            logging.debug("SMTP connection established")
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+            logging.debug("Email sent successfully!")
+            return True
             
     except Exception as e:
         logging.error(f"Error sending email: {e}")
-        if isinstance(e, smtplib.SMTPAuthenticationError):
-            logging.error("SMTP Authentication failed - check username and password")
-        elif isinstance(e, smtplib.SMTPConnectError):
-            logging.error("Failed to connect to SMTP server - check server and port")
-        elif isinstance(e, smtplib.SMTPDataError):
-            logging.error("The SMTP server refused to accept the message data")
-        elif isinstance(e, smtplib.SMTPRecipientsRefused):
-            logging.error("All recipients were refused - check email addresses")
         return False
