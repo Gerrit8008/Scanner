@@ -1047,7 +1047,6 @@ def scan_page():
                 'client_os': request.form.get('client_os', 'Unknown'),
                 'client_browser': request.form.get('client_browser', 'Unknown'),
                 'windows_version': request.form.get('windows_version', ''),
-                # Don't need to get 'target' from form as we'll extract from email
                 'target': ''  # Leave blank to ensure we use email domain
             }
             
@@ -1084,22 +1083,41 @@ def scan_page():
                 except Exception as session_error:
                     logging.warning(f"Failed to store scan_id in session: {str(session_error)}")
                 
-                # Automatically send report to admin email
+                # Automatically send report to the user
                 try:
-                    # Also automatically send report to admin
-                    admin_email = os.environ.get('ADMIN_EMAIL', 'your_email@example.com')  # Set your admin email
+                    logging.info(f"Automatically sending report to user at {lead_data['email']}")
+                    
+                    # Get complete HTML report
+                    html_report = scan_results.get('complete_html_report', '')
+                    if not html_report:
+                        # Fallback to standard html_report or re-render template
+                        html_report = scan_results.get('html_report', render_template('results.html', scan=scan_results))
+                    
+                    # Send email to user
+                    email_sent = send_email_report(lead_data, scan_results, html_report)
+                    
+                    if email_sent:
+                        logging.info("Report automatically sent to user")
+                    else:
+                        logging.warning("Failed to automatically send report to user")
+                except Exception as email_error:
+                    logging.error(f"Error sending automatic email report to user: {email_error}")
+                
+                # Also automatically send report to admin
+                try:
+                    admin_email = os.environ.get('ADMIN_EMAIL', 'admissions@southgeauga.com')
                     admin_lead_data = lead_data.copy()
                     admin_lead_data['email'] = admin_email
     
                     logging.info(f"Automatically sending report to admin at {admin_email}")
-                    email_sent = send_email_report(admin_lead_data, scan_results, scan_results.get('html_report', 'No report available'))
+                    email_sent = send_email_report(admin_lead_data, scan_results, html_report)
                     
                     if email_sent:
                         logging.info("Report automatically sent to admin")
                     else:
                         logging.warning("Failed to automatically send report to admin")
                 except Exception as email_error:
-                    logging.error(f"Error sending automatic email report: {email_error}")
+                    logging.error(f"Error sending automatic email report to admin: {email_error}")
                 
                 # Render results directly
                 logging.info("Rendering results page...")
