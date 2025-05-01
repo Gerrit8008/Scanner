@@ -612,8 +612,12 @@ def send_automatic_report_to_admin(scan_results):
             'timestamp': scan_results.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         }
         
-        # Render the HTML report
-        html_report = render_template('results.html', scan=scan_results)
+        # Use the complete HTML report if available
+        if 'complete_html_report' in scan_results and scan_results['complete_html_report']:
+            html_report = scan_results['complete_html_report']
+        else:
+            # Fallback to standard html_report or rendered template
+            html_report = scan_results.get('html_report', render_template('results.html', scan=scan_results))
         
         # Send the email to admin
         return send_email_report(lead_data, scan_results, html_report)
@@ -922,6 +926,57 @@ def run_consolidated_scan(lead_data):
         scan_results['recommendations'] = ["Keep all software and systems updated with the latest security patches.",
                                          "Use strong, unique passwords and implement multi-factor authentication.",
                                          "Regularly back up your data and test the restoration process."]
+
+    # Generate the full HTML report with all context variables
+try:
+    logging.info("Generating complete HTML report...")
+    
+    # Get client IP and gateway info
+    client_ip = "Unknown"
+    gateway_guesses = []
+    network_type = "Unknown"
+    
+    if 'network' in scan_results and 'gateway' in scan_results['network']:
+        gateway_info = scan_results['network']['gateway'].get('info', '')
+        if isinstance(gateway_info, str):
+            if "Client IP:" in gateway_info:
+                try:
+                    client_ip = gateway_info.split("Client IP:")[1].split("|")[0].strip()
+                except:
+                    pass
+            
+            if "Network Type:" in gateway_info:
+                try:
+                    network_type = gateway_info.split("Network Type:")[1].split("|")[0].strip()
+                except:
+                    pass
+            
+            if "Likely gateways:" in gateway_info:
+                try:
+                    gateways_part = gateway_info.split("Likely gateways:")[1].strip()
+                    if "|" in gateways_part:
+                        gateways_part = gateways_part.split("|")[0].strip()
+                    gateway_guesses = [g.strip() for g in gateways_part.split(",")]
+                except:
+                    pass
+    else:
+        gateway_info = "Gateway information not available"
+    
+    # Render the complete HTML with all context variables
+    complete_html = render_template('results.html', 
+                                   scan=scan_results,
+                                   client_ip=client_ip,
+                                   gateway_guesses=gateway_guesses,
+                                   network_type=network_type,
+                                   gateway_info=gateway_info)
+    
+    # Store the complete HTML in the scan results
+    scan_results['complete_html_report'] = complete_html
+    logging.debug("Complete HTML report generated and stored successfully")
+except Exception as complete_html_error:
+    logging.error(f"Error generating complete HTML report: {complete_html_error}")
+    logging.debug(f"Exception traceback: {traceback.format_exc()}")
+    scan_results['complete_html_report_error'] = str(complete_html_error)
     
     # 6. Generate HTML report
     try:
@@ -1182,18 +1237,21 @@ def api_email_report():
             "timestamp": scan_data.get('timestamp', '')
         }
         
-        # Get or re-render the HTML report
-        # Option 1: Get from scan data if already stored
-        html_report = scan_data.get('html_report', '')
-        
-        # Option 2: Or re-render the template with the scan data
-        if not html_report:
-            try:
-                html_report = render_template('results.html', scan=scan_data)
-                logging.info("HTML report rendered from template")
-            except Exception as render_error:
-                logging.error(f"Error rendering HTML report: {render_error}")
-                # Continue with whatever HTML we have, even if it's empty
+        # Use the complete HTML that was stored during scan
+        if 'complete_html_report' in scan_data and scan_data['complete_html_report']:
+            html_report = scan_data['complete_html_report']
+            logging.info("Using stored complete HTML report")
+        else:
+            # Fallback to either stored 'html_report' or re-render
+            html_report = scan_data.get('html_report', '')
+            
+            # If neither complete nor basic HTML report is available, try to re-render
+            if not html_report:
+                try:
+                    logging.warning("Complete HTML report not found, attempting to re-render")
+                    html_report = render_template('results.html', scan=scan_data)
+                except Exception as render_error:
+                    logging.error(f"Error rendering HTML report: {render_error}")
         
         # Send email using the updated function
         logging.info(f"Attempting to send email report to {email}")
