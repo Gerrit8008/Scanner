@@ -4,43 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vulnerability Scanner</title>
-<style>
-body {
-    font-family: Arial, sans-serif;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-}
-.header {
-    background-color: #808588;
-    color: white;
-    padding: 20px;
-    text-align: center;
-    margin-bottom: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-.logo {
-    max-width: 150px;
-    margin-bottom: 15px;
-}
-.content {
-    padding: 20px;
-    background-color: #f4f4f4;
-    border-radius: 5px;
-}
-.btn {
-    display: inline-block;
-    background-color: #FF6900;
-    color: white;
-    padding: 10px 20px;
-    text-decoration: none;
-    border-radius: 5px;
-    font-weight: bold;
-    margin-top: 20px;
-}
-</style>
+<link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
 <div class="header">
@@ -48,11 +12,17 @@ body {
     <h1>Vulnerability Scanner</h1>
     <p>Identify and manage security risks</p>
 </div>
-<div class="content">
-    <h2>Welcome to the Vulnerability Scanner</h2>
-    <p>This tool helps you identify potential security vulnerabilities in your systems.</p>
-    <p>Click the button below to start a new scan:</p>
-    <a href="/scan" class="btn">Start Scan</a>
+<div class="container">
+    <div class="content">
+        <h2>Welcome to the Vulnerability Scanner</h2>
+        <p>This tool helps you identify potential security vulnerabilities in your systems.</p>
+        <p>Click the button below to start a new scan:</p>
+        <a href="/scan" class="btn btn-primary">Start Scan</a>
+    </div>
+</div>
+
+<div class="footer">
+    <p>&copy; 2025 Central Georgia Technology. All rights reserved.</p>
 </div>
 </body>
 </html>
