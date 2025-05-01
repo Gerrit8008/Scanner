@@ -64,11 +64,20 @@ def save_scan_results(scan_results):
         email = scan_results.get('email', '')
         target = scan_results.get('target', '')
         
-        # Separate HTML report from other results to save separately
-        html_report = scan_results.get('html_report', '')
+        # Get HTML report - prioritize the complete version
+        html_report = scan_results.get('complete_html_report', scan_results.get('html_report', ''))
         
-        # Convert the rest to JSON
-        results_json = json.dumps(scan_results, default=str)
+        # Convert the rest to JSON - make a copy to avoid modifying original
+        results_copy = scan_results.copy()
+        
+        # Remove large HTML fields to avoid duplicate storage
+        if 'complete_html_report' in results_copy:
+            del results_copy['complete_html_report']
+        if 'html_report' in results_copy:
+            del results_copy['html_report']
+            
+        # Convert to JSON
+        results_json = json.dumps(results_copy, default=str)
         
         # Connect to database
         conn = sqlite3.connect(DB_PATH)
@@ -89,7 +98,6 @@ def save_scan_results(scan_results):
         logging.error(f"Error saving scan results to database: {e}")
         logging.debug(traceback.format_exc())
         return None
-
 def get_scan_results(scan_id):
     """Retrieve scan results from database"""
     try:
