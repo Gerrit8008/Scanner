@@ -930,12 +930,12 @@ def run_consolidated_scan(lead_data):
     # 6. Generate the full HTML report with all context variables
     try:
         logging.info("Generating complete HTML report...")
-        
-        # Get client IP and gateway info
+    
+        # Get client IP and gateway info for context variables
         client_ip = "Unknown"
         gateway_guesses = []
         network_type = "Unknown"
-        
+    
         if 'network' in scan_results and 'gateway' in scan_results['network']:
             gateway_info = scan_results['network']['gateway'].get('info', '')
             if isinstance(gateway_info, str):
@@ -944,13 +944,13 @@ def run_consolidated_scan(lead_data):
                         client_ip = gateway_info.split("Client IP:")[1].split("|")[0].strip()
                     except:
                         pass
-                
+            
                 if "Network Type:" in gateway_info:
                     try:
                         network_type = gateway_info.split("Network Type:")[1].split("|")[0].strip()
                     except:
                         pass
-                
+            
                 if "Likely gateways:" in gateway_info:
                     try:
                         gateways_part = gateway_info.split("Likely gateways:")[1].strip()
@@ -961,7 +961,7 @@ def run_consolidated_scan(lead_data):
                         pass
         else:
             gateway_info = "Gateway information not available"
-        
+    
         # Render the complete HTML with all context variables
         complete_html = render_template('results.html', 
                                        scan=scan_results,
@@ -969,7 +969,7 @@ def run_consolidated_scan(lead_data):
                                        gateway_guesses=gateway_guesses,
                                        network_type=network_type,
                                        gateway_info=gateway_info)
-        
+    
         # Store the complete HTML in the scan results
         scan_results['complete_html_report'] = complete_html
         logging.debug("Complete HTML report generated and stored successfully")
