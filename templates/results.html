@@ -6,439 +6,77 @@
     <title>Comprehensive Security Scan Results</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
     <style>
-        :root {
-            --primary-color: #FF6900;
-            --primary-dark: #E05C00;
-            --secondary-color: #808588;
-            --critical-color: #721c24;
-            --high-color: #dc3545;
-            --medium-color: #fd7e14;
-            --low-color: #28a745;
-            --bg-color: #f8f9fa;
-            --card-bg: #fff;
-            --text-color: #333;
-            --border-color: #dee2e6;
-        }
-
-        /* Severity colors */
-        .bg-critical { background-color: var(--critical-color) !important; }
-        .bg-high { background-color: var(--high-color) !important; }
-        .bg-medium { background-color: var(--medium-color) !important; }
-        .bg-low { background-color: var(--low-color) !important; }
-        
-        .text-critical { color: var(--critical-color) !important; }
-        .text-high { color: var(--high-color) !important; }
-        .text-medium { color: var(--medium-color) !important; }
-        .text-low { color: var(--low-color) !important; }
-        
-        /* List group item severity styles */
-        .list-group-item-critical { 
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-        }
-        .list-group-item-high { 
-            background-color: #fce5e1;
-            border-color: #f8d0c8;
-        }
-        .list-group-item-medium { 
-            background-color: #fff3cd;
-            border-color: #ffeeba;
-        }
-        .list-group-item-low { 
-            background-color: #d4edda;
-            border-color: #c3e6cb;
+        /* Additional styles for enhanced visuals */
+        .animated-progress-fill {
+            animation: progressAnimation 1.5s ease-out forwards;
         }
         
-        /* Core styles */
-        body {
-            background-color: var(--bg-color);
-            font-family: 'Segoe UI', Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            color: var(--text-color);
+        @keyframes progressAnimation {
+            0% { width: 0%; }
+            100% { width: var(--progress-width); }
         }
         
-        .header {
-            background-color: var(--secondary-color);
-            color: white;
-            padding: 2rem 0;
-            text-align: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        .scale-in {
+            animation: scaleIn 0.5s ease-out forwards;
+            transform: scale(0.8);
+            opacity: 0;
         }
         
-        .logo {
-            max-width: 180px;
-            margin-bottom: 1rem;
+        @keyframes scaleIn {
+            to { transform: scale(1); opacity: 1; }
         }
         
-        .container {
-            width: 90%;
-            max-width: 1200px;
+        .score-badge {
+            border-radius: 50%;
+            width: 170px;
+            height: 170px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             margin: 0 auto;
-            padding: 0;
-        }
-        
-        /* Card components */
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 2rem;
-            border: none;
-            overflow: hidden;
-        }
-        
-        .card-header {
-            background-color: var(--primary-color);
-            color: white;
-            font-weight: 600;
-            padding: 1rem 1.5rem;
-            border-bottom: none;
-        }
-        
-        .card-body {
-            padding: 1.5rem;
-        }
-        
-        /* Risk score */
-        .risk-score {
-            text-align: center;
-            padding: 2rem;
-        }
-        
-        .score-value {
-            font-size: 4.5rem;
-            font-weight: bold;
-            line-height: 1;
-            margin-bottom: 0.5rem;
-        }
-        
-        .score-label {
-            font-size: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: 600;
-        }
-        
-        .score-low { color: var(--low-color); }
-        .score-medium { color: var(--medium-color); }
-        .score-high { color: var(--high-color); }
-        .score-critical { color: var(--critical-color); }
-        
-        /* Section titles */
-        .section-title {
-            color: var(--primary-color);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.75rem;
-            font-size: 1.5rem;
-            margin: 1.5rem 0 1rem 0;
-            font-weight: 600;
-        }
-        
-        /* Findings */
-        .findings {
-            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border: 5px solid white;
         }
         
         .finding {
-            padding: 1.25rem;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            margin-bottom: 1rem;
+            transition: transform 0.2s ease;
         }
         
-        .finding.critical {
-            border-left: 4px solid var(--critical-color);
-            background-color: #fadbd8;
+        .finding:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
         }
         
-        .finding.high {
-            border-left: 4px solid var(--high-color);
-            background-color: #fce5e1;
-        }
-        
-        .finding.medium {
-            border-left: 4px solid var(--medium-color);
-            background-color: #fef5e7;
-        }
-        
-        .finding.low {
-            border-left: 4px solid var(--low-color);
-            background-color: #e9f7ef;
-        }
-        
-        .finding .title {
-            font-weight: bold;
-            font-size: 1.1rem;
-            margin-bottom: 0.75rem;
+        /* Enhanced card header */
+        .card-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
         }
         
-        /* Severity badges */
-        .severity {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #fff;
+        .card-header i {
+            margin-right: 10px;
+            font-size: 1.4rem;
         }
         
-        .severity.critical { background-color: var(--critical-color); }
-        .severity.high { background-color: var(--high-color); }
-        .severity.medium { background-color: var(--medium-color); }
-        .severity.low { background-color: var(--low-color); }
-        
-        /* Recommendations */
-        .recommendations {
-            background-color: #e8f4f8;
-            padding: 1.25rem;
-            border-radius: 6px;
-            margin-top: 1rem;
-            border-left: 4px solid #3498db;
+        .header {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #343a40 100%);
         }
         
-        /* Buttons */
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 50px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 0.85rem;
-        }
-        
-        .btn-primary, .service-inquiry-btn {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            box-shadow: 0 4px 6px rgba(255, 105, 0, 0.2);
-        }
-        
-        .btn-primary:hover, .service-inquiry-btn:hover {
-            background-color: var(--primary-dark);
-            border-color: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(255, 105, 0, 0.25);
-        }
-        
-        /* Summary cards */
-        .summary {
-            display: flex;
-            flex-wrap: wrap;
-            margin: 0 -1rem;
-        }
-        
-        .summary-card {
-            flex: 1 1 300px;
-            margin: 1rem;
-            padding: 1.5rem;
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-        
-        .summary-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .summary-value {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 0.75rem;
-        }
-        
-        /* Progress bars */
-        .progress-bar {
-            height: 10px;
-            background-color: #ecf0f1;
-            border-radius: 50px;
-            overflow: hidden;
-            margin-top: 0.75rem;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            border-radius: 50px;
-            transition: width 1s ease-in-out;
-        }
-        
-        /* Tables */
-        .table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            margin-bottom: 1.5rem;
-        }
-        
-        .table th, .table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-        
-        .table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .table tr:hover td {
-            background-color: #f1f9ff;
-        }
-        
-        /* Footer */
         .footer {
-            background-color: var(--secondary-color);
-            color: white;
-            padding: 2rem 0;
-            text-align: center;
-            margin-top: 3rem;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #343a40 100%);
         }
         
-        /* Print button */
-        .print-button {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 100;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
+        /* Improved severity badges */
+        .severity {
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        /* Smooth hover transitions */
+        .btn, .card, .summary-card {
             transition: all 0.3s ease;
-        }
-        
-        .print-button:hover {
-            background-color: var(--primary-dark);
-            transform: scale(1.1);
-        }
-        
-        /* Warning alert */
-        .warning-alert {
-            background-color: #f8d7da;
-            color: var(--critical-color);
-            border-color: #f5c6cb;
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .summary-card {
-                flex: 1 1 100%;
-            }
-            
-            .container {
-                width: 95%;
-                padding: 0 10px;
-            }
-            
-            .card-body {
-                padding: 1.25rem;
-            }
-            
-            .btn {
-                display: block;
-                width: 100%;
-                margin-bottom: 0.75rem;
-            }
-        }
-        
-        @media print {
-            .print-button {
-                display: none;
-            }
-            
-            body {
-                background-color: white;
-            }
-            
-            .card {
-                box-shadow: none;
-                break-inside: avoid;
-            }
-            
-            .header, .footer {
-                break-inside: avoid;
-            }
-        }
-        
-        /* Animation effects */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        
-        /* Status indicators */
-        .status-indicator {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-        
-        .status-good {
-            background-color: var(--low-color);
-        }
-        
-        .status-warning {
-            background-color: var(--medium-color);
-        }
-        
-        .status-danger {
-            background-color: var(--high-color);
-        }
-        
-        .status-critical {
-            background-color: var(--critical-color);
-        }
-        
-        /* Icons */
-        .icon-circle {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: rgba(255, 105, 0, 0.1);
-            color: var(--primary-color);
-            margin-bottom: 1rem;
-        }
-        
-        .icon-circle i {
-            font-size: 1.5rem;
         }
     </style>
 </head>
@@ -447,22 +85,32 @@
         <div class="container">
             <div class="form-check form-switch float-end">
                 <input class="form-check-input" type="checkbox" id="toggleExplanations" checked>
-                <label class="form-check-label" for="toggleExplanations">Show Explanations</label>
+                <label class="form-check-label text-white" for="toggleExplanations">Show Explanations</label>
             </div>
             <img src="/static/images/logo.png" alt="Company Logo" class="logo" onerror="this.style.display='none';">
             <h1>Comprehensive Security Scan Results</h1>
             <p class="mb-0">April 30, 2025</p>
             <!-- Hidden scan_id field for email functionality -->
             <input type="hidden" id="scan-id" value="{{ scan.scan_id }}">
+            
+            <!-- Report Action Buttons -->
+            <div class="mt-3">
+                <button class="btn btn-light me-2" id="emailReportBtn">
+                    <i class="bi bi-envelope me-2"></i>Email Report
+                </button>
+                <button class="btn btn-light" id="printReportBtn">
+                    <i class="bi bi-printer me-2"></i>Print Report
+                </button>
+            </div>
         </div>
     </div>
 
     <div class="container">
         <!-- Warning Alert for Critical Issues -->
         {% if scan.risk_assessment and scan.risk_assessment.overall_score < 50 %}
-        <div id="warningAlert" class="alert alert-danger warning-alert">
+        <div id="warningAlert" class="alert alert-danger warning-alert scale-in">
             <div class="d-flex align-items-center">
-                <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 2rem;"></i>
+                <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 2.5rem;"></i>
                 <div>
                     <strong>CRITICAL VULNERABILITIES DETECTED!</strong>
                     <p class="mb-2">Contact us immediately for assistance with the critical security issues identified below.</p>
@@ -480,19 +128,24 @@
         {% endif %}
 
         <!-- Overall Risk Score -->
-        <div class="card risk-score fade-in">
+        <div class="card risk-score fade-in my-4">
             {% if scan.risk_assessment and scan.risk_assessment.overall_score is defined %}
-            <div class="score-value {% if scan.risk_assessment.risk_level == 'Low' %}score-low{% elif scan.risk_assessment.risk_level == 'Medium' %}score-medium{% elif scan.risk_assessment.risk_level == 'High' %}score-high{% else %}score-critical{% endif %}">{{ scan.risk_assessment.overall_score }}</div>
-            <div class="score-label {% if scan.risk_assessment.risk_level == 'Low' %}score-low{% elif scan.risk_assessment.risk_level == 'Medium' %}score-medium{% elif scan.risk_assessment.risk_level == 'High' %}score-high{% else %}score-critical{% endif %}">{{ scan.risk_assessment.risk_level }} RISK</div>
+            <div class="score-badge {% if scan.risk_assessment.risk_level == 'Low' %}bg-low{% elif scan.risk_assessment.risk_level == 'Medium' %}bg-medium{% elif scan.risk_assessment.risk_level == 'High' %}bg-high{% else %}bg-critical{% endif %} scale-in">
+                <div class="score-value text-white">{{ scan.risk_assessment.overall_score }}</div>
+                <div class="score-label text-white">{{ scan.risk_assessment.risk_level }} RISK</div>
+            </div>
             {% else %}
-            <div class="score-value score-medium">N/A</div>
-            <div class="score-label score-medium">RISK LEVEL UNKNOWN</div>
+            <div class="score-badge bg-medium scale-in">
+                <div class="score-value text-white">N/A</div>
+                <div class="score-label text-white">UNKNOWN</div>
+            </div>
             {% endif %}
         </div>
         
         <!-- Executive Summary -->
         <div class="card mb-4 fade-in">
             <div class="card-header">
+                <i class="bi bi-clipboard-data"></i>
                 <h2 class="mb-0">Executive Summary</h2>
             </div>
             <div class="card-body">
@@ -506,7 +159,7 @@
                             {{ scan.risk_assessment.overall_score }}/100
                         </div>
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: {{ scan.risk_assessment.overall_score }}%; background-color: {% if scan.risk_assessment.overall_score > 75 %}var(--low-color){% elif scan.risk_assessment.overall_score > 50 %}var(--medium-color){% else %}var(--high-color){% endif %}"></div>
+                            <div class="progress-fill animated-progress-fill" style="--progress-width: {{ scan.risk_assessment.overall_score }}%; background-color: {% if scan.risk_assessment.overall_score > 75 %}var(--low-color){% elif scan.risk_assessment.overall_score > 50 %}var(--medium-color){% else %}var(--high-color){% endif %}"></div>
                         </div>
                     </div>
                     
@@ -539,1246 +192,188 @@
                 </div>
             </div>
         </div>
+
+        <!-- Understanding the Executive Summary - Explanation Card -->
         <div class="card mb-4 fade-in explanation">
-    <div class="card-header">
-        <h3 class="mb-0">Understanding the Executive Summary</h3>
-    </div>
-    <div class="card-body">
-        <p>The Executive Summary provides a high-level overview of your security posture:</p>
-        <ul>
-            <li><strong>Security Score:</strong> Indicates your overall security level on a scale of 0-100. Higher scores mean better protection.</li>
-            <li><strong>Critical Issues:</strong> Vulnerabilities that require immediate attention due to their high risk potential.</li>
-            <li><strong>Secure Elements:</strong> Areas where your security practices meet or exceed industry standards.</li>
-        </ul>
-        
-        <!-- Dynamic explanation based on score -->
-        {% if scan.risk_assessment.overall_score >= 90 %}
-        <div class="alert alert-success">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Excellent! Your security posture is very strong. Continue maintaining these high standards with regular assessments and staying current with evolving threats.
-        </div>
-        {% elif scan.risk_assessment.overall_score >= 75 %}
-        <div class="alert alert-success">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Good job! Your security measures are effective, though there are some areas that could be improved. Address the medium-risk issues identified to further strengthen your security posture.
-        </div>
-        {% elif scan.risk_assessment.overall_score >= 60 %}
-        <div class="alert alert-warning">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Your security posture needs attention. Several vulnerabilities have been detected that could put your systems at risk. Prioritize addressing the high-risk issues identified in this report.
-        </div>
-        {% elif scan.risk_assessment.overall_score >= 40 %}
-        <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Your systems have significant security gaps that require immediate attention. These vulnerabilities could be exploited by attackers, putting your data and operations at risk.
-        </div>
-        {% else %}
-        <div class="alert alert-danger">
-            <i class="bi bi-x-circle-fill me-2"></i>
-            <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Critical security issues detected! Your systems are at high risk of compromise. Immediate remediation is strongly recommended to protect your data and systems from attack.
-        </div>
-        {% endif %}
-        
-        <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> This summary helps you prioritize security efforts based on risk level and potential impact to your organization.
-        </div>
-    </div>
-</div>
-        <!-- MSP Service Categories Section -->
-        <div class="card mb-4 fade-in">
             <div class="card-header">
-                <h2 class="mb-0">Security Services Assessment</h2>
+                <i class="bi bi-lightbulb"></i>
+                <h3 class="mb-0">Understanding the Executive Summary</h3>
             </div>
             <div class="card-body">
-                <p class="mb-4">Based on our security assessment, we've identified opportunities for improvement in these key service areas:</p>
+                <p>The Executive Summary provides a high-level overview of your security posture:</p>
+                <ul>
+                    <li><strong>Security Score:</strong> Indicates your overall security level on a scale of 0-100. Higher scores mean better protection.</li>
+                    <li><strong>Critical Issues:</strong> Vulnerabilities that require immediate attention due to their high risk potential.</li>
+                    <li><strong>Secure Elements:</strong> Areas where your security practices meet or exceed industry standards.</li>
+                </ul>
                 
-                <div class="row">
-                    {% for category_key, category in scan.service_categories.items() %}
-                    <div class="col-lg-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-{{ category.risk_level|lower }} text-white">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h3 class="h5 mb-0">{{ category.name }}</h3>
-                                    <span class="badge bg-white text-{{ category.risk_level|lower }}">
-                                        {{ category.risk_level }} Risk
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <p>{{ category.description }}</p>
-    
-                                {% if category.findings %}
-                                <h4 class="h6 mt-3">Issues Detected:</h4>
-                                <ul class="list-group mb-3">
-                                    {% for finding in category.findings %}
-                                    <li class="list-group-item list-group-item-{{ finding.severity|lower }} border-start border-{{ finding.severity|lower }} border-4">
-                                        <div class="d-flex align-items-start">
-                                            <div class="flex-shrink-0">
-                                                <i class="bi bi-exclamation-circle text-{{ finding.severity|lower }} me-2" style="font-size: 1.25rem;"></i>
-                                            </div>
-                                            <div>
-                                                <strong>{{ finding.name }}</strong>: {{ finding.description }}
-                                                <div class="mt-2 text-primary">
-                                                    <i class="bi bi-tools"></i> Solution: {{ finding.service_solution }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                                {% else %}
-                                <div class="alert alert-success">
-                                    <i class="bi bi-check-circle-fill me-2"></i> No significant issues detected in this category.
-                                </div>
-                                {% endif %}
-
-                                <div class="text-center mt-3">
-                                    <a href="#" class="btn btn-primary service-inquiry-btn" 
-                                        data-service="{{ category.name }}" 
-                                        data-findings="{{ category.findings|length }}">
-                                        <i class="bi bi-shield-check me-2"></i> Learn About Our {{ category.name }} Services
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+                <!-- Dynamic explanation based on score -->
+                {% if scan.risk_assessment.overall_score >= 90 %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Excellent! Your security posture is very strong. Continue maintaining these high standards with regular assessments and staying current with evolving threats.
                 </div>
-                
-                <!-- Security Headers Results -->
-                {% if scan.security_headers and 'error' not in scan.security_headers %}
-                <h3 class="section-title">HTTP Security Headers</h3>
-                
-                <div class="row">
-                    <div class="col-md-4 mb-4">
-                        <div class="summary-card">
-                            <h3>Security Headers Score</h3>
-                            <div class="summary-value {% if scan.security_headers.score >= 80 %}score-low{% elif scan.security_headers.score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ scan.security_headers.score }}</div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ scan.security_headers.score|default(0) }}%; background-color: {% if scan.security_headers.score is defined and scan.security_headers.score >= 80 %}var(--low-color){% elif scan.security_headers.score is defined and scan.security_headers.score >= 60 %}var(--medium-color){% else %}var(--high-color){% endif %}"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-8">
-                        {% if scan.security_headers.headers %}
-                        <div class="card">
-                            <div class="card-body p-0">
-                                <table class="table mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Header</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for header, found in scan.security_headers.headers.items() %}
-                                        <tr>
-                                            <td><code>{{ header }}</code></td>
-                                            <td>{% if found %}<span class="text-success"><i class="bi bi-check-circle-fill me-2"></i> Present</span>{% else %}<span class="text-danger"><i class="bi bi-x-circle-fill me-2"></i> Missing</span>{% endif %}</td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
+                {% elif scan.risk_assessment.overall_score >= 75 %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Good job! Your security measures are effective, though there are some areas that could be improved. Address the medium-risk issues identified to further strengthen your security posture.
+                </div>
+                {% elif scan.risk_assessment.overall_score >= 60 %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Your security posture needs attention. Several vulnerabilities have been detected that could put your systems at risk. Prioritize addressing the high-risk issues identified in this report.
+                </div>
+                {% elif scan.risk_assessment.overall_score >= 40 %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Your systems have significant security gaps that require immediate attention. These vulnerabilities could be exploited by attackers, putting your data and operations at risk.
+                </div>
+                {% else %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-x-circle-fill me-2"></i>
+                    <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Critical security issues detected! Your systems are at high risk of compromise. Immediate remediation is strongly recommended to protect your data and systems from attack.
                 </div>
                 {% endif %}
-            
-                <!-- Web Framework Detection -->
-                {% if scan.frameworks and scan.frameworks.count > 0 %}
-                <h3 class="section-title">Web Frameworks</h3>
-                <div class="row">
-                    <div class="col-md-8">
-                        <p>We detected the following web frameworks on your site:</p>
-                        <ul class="list-group">
-                            {% for framework in scan.frameworks.frameworks %}
-                            <li class="list-group-item d-flex align-items-center">
-                                <i class="bi bi-code-slash me-3 text-primary"></i>
-                                {{ framework }}
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle-fill me-2"></i> <strong>Note:</strong> Some frameworks may expose version information that can help attackers target known vulnerabilities. Make sure all frameworks are up to date.
-                        </div>
-                    </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>Why This Matters:</strong> This summary helps you prioritize security efforts based on risk level and potential impact to your organization.
                 </div>
-                {% endif %}
+            </div>
+        </div>
 
-                <!-- Cookie Security Analysis -->
-                {% if scan.cookies and 'error' not in scan.cookies %}
-                <h3 class="section-title">Cookie Security</h3>
-                <div class="row">
-                    <div class="col-md-4 mb-4">
-                        <div class="summary-card">
-                            <h3>Cookie Security Score</h3>
-                            <div class="summary-value {% if scan.cookies.score >= 80 %}score-low{% elif scan.cookies.score >= 60 %}score-medium{% else %}score-high{% endif %}">{{ scan.cookies.score }}</div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ scan.cookies.score|default(0) }}%; background-color: {% if scan.cookies.score is defined and scan.cookies.score >= 80 %}var(--low-color){% elif scan.cookies.score is defined and scan.cookies.score >= 60 %}var(--medium-color){% else %}var(--high-color){% endif %}"></div>
-                            </div>
+        <!-- Placeholder for Vulnerability Details Section -->
+        <div class="card mb-4 fade-in">
+            <div class="card-header">
+                <i class="bi bi-shield-exclamation"></i>
+                <h2 class="mb-0">Vulnerability Details</h2>
+            </div>
+            <div class="card-body">
+                <!-- Critical Findings Section -->
+                <h3 class="section-title"><i class="bi bi-exclamation-octagon me-2"></i>Critical Vulnerabilities</h3>
+                
+                <div class="findings">
+                    <!-- Example Critical Finding -->
+                    <div class="finding critical">
+                        <div class="title">
+                            <span>Outdated SSL/TLS Configuration</span>
+                            <span class="severity critical">Critical</span>
                         </div>
-                    </div>
-                    
-                    <div class="col-md-8">
-                        <div class="card">
-                            <div class="card-body p-0">
-                                <table class="table mb-0">
-                                    <tbody>
-                                        <tr>
-                                            <th>Total Cookies</th>
-                                            <td>{{ scan.cookies.total_cookies }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Secure Cookies</th>
-                                            <td>{{ scan.cookies.secure_cookies }} / {{ scan.cookies.total_cookies }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>HttpOnly Cookies</th>
-                                            <td>{{ scan.cookies.httponly_cookies }} / {{ scan.cookies.total_cookies }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>SameSite Cookies</th>
-                                            <td>{{ scan.cookies.samesite_cookies }} / {{ scan.cookies.total_cookies }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                        <p>Your system is using outdated SSL protocols (SSLv3/TLSv1.0) which contain known vulnerabilities that can be exploited to perform man-in-the-middle attacks.</p>
                         
-                        {% if scan.cookies.severity in ['High', 'Medium'] %}
-                        <div class="finding {% if scan.cookies.severity == 'High' %}high{% else %}medium{% endif %} mt-3">
-                            <div class="title">Cookie Security Issues <span class="severity {% if scan.cookies.severity == 'High' %}high{% else %}medium{% endif %}">{{ scan.cookies.severity }}</span></div>
-                            <p>Your website cookies are not properly secured. This could allow attackers to steal session information or perform cross-site request forgery attacks.</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-      <div class="card mb-4 fade-in explanation">
-    <div class="card-header">
-        <h3 class="mb-0">Understanding the Security Services Assessment</h3>
-    </div>
-    <div class="card-body">
-        <p>This section categorizes security issues by service areas that need improvement:</p>
-        <ul>
-            <li><strong>Endpoint Security:</strong> Protection for computers, mobile devices, and other network endpoints against malware and unauthorized access.</li>
-            <li><strong>Network Defense:</strong> Protection for network infrastructure and internet connectivity against intrusions and attacks.</li>
-            <li><strong>Data Protection:</strong> Solutions to secure, backup, and manage critical business data against theft or loss.</li>
-            <li><strong>Access Management:</strong> Controls ensuring only authorized users can access systems and sensitive information.</li>
-        </ul>
-        
-        <!-- Dynamic explanation for each category -->
-        {% for category_key, category in scan.service_categories.items() %}
-        <div class="mt-3">
-            <h4>{{ category.name }} Analysis</h4>
-            {% if category.risk_level == 'Critical' %}
-            <div class="alert alert-danger">
-                <i class="bi bi-x-circle-fill me-2"></i>
-                <strong>Critical Risk:</strong> Immediate action is required for your {{ category.name.lower() }}. The issues detected represent significant vulnerabilities that could be easily exploited by attackers, potentially leading to system compromise, data breach, or operational disruption.
-            </div>
-            {% elif category.risk_level == 'High' %}
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>High Risk:</strong> Your {{ category.name.lower() }} has important security gaps that need prompt attention. These vulnerabilities could be exploited by determined attackers and should be addressed as part of your short-term security roadmap.
-            </div>
-            {% elif category.risk_level == 'Medium' %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Medium Risk:</strong> Your {{ category.name.lower() }} needs improvement. While not immediately critical, the issues detected could be exploited under certain circumstances and should be addressed as part of your overall security strategy.
-            </div>
-            {% else %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>Low Risk:</strong> Your {{ category.name.lower() }} appears to be well-configured. Continue to maintain these good security practices and stay vigilant as threats evolve.
-            </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-        
-        <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> Each category requires different expertise and solutions. Risk levels (Critical, High, Medium, Low) indicate which areas need the most urgent attention to improve your security posture.
-        </div>
-    </div>
-</div>  
-<!-- Network Discovery Section -->
-<div class="card mb-4 fade-in">
-    <div class="card-header">
-        <h2 class="mb-0">Network Discovery</h2>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <h3 class="h4 mb-3 text-primary">Client & Gateway Information</h3>
-                <div class="card">
-                    <div class="card-body p-0">
-                        <table class="table mb-0">
-                            <tbody>
-                                <tr>
-                                    <th>Client IP</th>
-                                    <td>{{ client_ip }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Network Type</th>
-                                    <td>{{ network_type }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Likely Gateway IPs</th>
-                                    <td>
-                                        {% if gateway_guesses %}
-                                            <ul class="mb-0">
-                                            {% for gateway in gateway_guesses %}
-                                                <li>{{ gateway }}</li>
-                                            {% endfor %}
-                                            </ul>
-                                        {% else %}
-                                            Gateway detection not possible
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <h3 class="h4 mb-3 text-primary">Gateway Security Status</h3>
-                <div class="finding high">
-                    <div class="title">Gateway Security Assessment <span class="severity high">High</span></div>
-                    <p>{{ gateway_info }}</p>
-                    <div class="recommendations mt-3">
-                        <strong><i class="bi bi-shield-fill-check me-2"></i>Recommendation:</strong>
-                        <p class="mb-0">Consider implementing a dedicated hardware firewall or properly configured software firewall to protect your network from unauthorized access.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-        <!-- Gateway Port Analysis -->
-        {% if scan.network and scan.network.gateway and scan.network.gateway.results %}
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2 class="mb-0">Gateway Port Analysis</h2>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-warning mb-4">
-                    <i class="bi bi-info-circle-fill me-2"></i>
-                    <strong>Note:</strong> This analysis is based on common network configurations and may not represent the exact state of your network gateway.
-                </div>
-                
-                <h3 class="h4 mb-3 text-primary">Detected Gateway Services</h3>
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Service</th>
-                                <th>Details</th>
-                                <th>Risk Level</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for result in scan.network.gateway.results %}
-                            <tr>
-                                <td><strong>{{ result[0].split('(')[0].strip() }}</strong></td>
-                                <td>{{ result[0] }}</td>
-                                <td>
-                                    <span class="severity {% if result[1] == 'Critical' %}critical{% elif result[1] == 'High' %}high{% elif result[1] == 'Medium' %}medium{% elif result[1] == 'Low' %}low{% else %}low{% endif %}">
-                                        {{ result[1] }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="alert alert-info mt-4">
-                    <i class="bi bi-lightbulb-fill me-2"></i>
-                    <strong>Recommendation:</strong> Consider using a dedicated hardware firewall or properly configured software firewall to protect your gateway from unauthorized access.
-                </div>
-            </div>
-        </div>
-        {% endif %}
-<!-- Network Discovery Explanation -->
-<div class="card mb-4 fade-in explanation">
-    <div class="card-header">
-        <h3 class="mb-0">Understanding Network Discovery</h3>
-    </div>
-    <div class="card-body">
-        <p>This section analyzes your network infrastructure and gateway configuration:</p>
-        <ul>
-            <li><strong>Gateway Security:</strong> Your network gateway is the entry point to your internal network and requires proper security configuration.</li>
-            <li><strong>Client IP:</strong> The IP address from which you're connecting to the internet.</li>
-            <li><strong>Network Type:</strong> Identifies whether you're on a private or public network, which affects security considerations.</li>
-        </ul>
-        
-        <!-- Dynamic explanation based on gateway assessment -->
-        {% if 'high' in gateway_info|lower or 'critical' in gateway_info|lower %}
-        <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>High Risk:</strong> Your network gateway has significant security issues that could allow attackers to penetrate your network. Gateway devices are prime targets for attackers because compromising them can provide access to all connected devices. Consider implementing a hardware firewall or properly configured security solution immediately.
-        </div>
-        {% elif 'medium' in gateway_info|lower %}
-        <div class="alert alert-warning">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>Medium Risk:</strong> Your network gateway has some security concerns that should be addressed. While not critically vulnerable, these issues could be exploited by determined attackers to gain access to your network. Review your gateway security settings and consider upgrading security measures.
-        </div>
-        {% else %}
-        <div class="alert alert-success">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            <strong>Low Risk:</strong> Your network gateway appears to be relatively secure. Continue to maintain good security practices and regularly check for firmware updates to protect against new vulnerabilities.
-        </div>
-        {% endif %}
-        
-        <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> Your network gateway is often the first line of defense against external threats. Improperly configured gateways can leave your entire network vulnerable to attacks. Proper gateway security helps prevent unauthorized access to your systems.
-        </div>
-    </div>
-</div>
-        <!-- Sensitive Content Analysis -->
-        {% if scan.sensitive_content and 'error' not in scan.sensitive_content %}
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2 class="mb-0">Sensitive Content Analysis</h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-5">
-                        <h3 class="h4 mb-3 text-primary">Content Discovery</h3>
-                        <div class="summary-card">
-                            <div class="icon-circle mb-3">
-                                <i class="bi bi-file-earmark-lock"></i>
-                            </div>
-                            <h3>Sensitive Paths Found</h3>
-                            <div class="summary-value {% if scan.sensitive_content.sensitive_paths_found > 5 %}score-critical{% elif scan.sensitive_content.sensitive_paths_found > 2 %}score-high{% elif scan.sensitive_content.sensitive_paths_found > 0 %}score-medium{% else %}score-low{% endif %}">
-                                {{ scan.sensitive_content.sensitive_paths_found }}
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ scan.sensitive_content.sensitive_paths_found * 10 }}%; background-color: {% if scan.sensitive_content.sensitive_paths_found > 5 %}var(--critical-color){% elif scan.sensitive_content.sensitive_paths_found > 2 %}var(--high-color){% elif scan.sensitive_content.sensitive_paths_found > 0 %}var(--medium-color){% else %}var(--low-color){% endif %}"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-7">
-                        <h3 class="h4 mb-3 text-primary">Risk Assessment</h3>
-                        <div class="finding {% if scan.sensitive_content.severity == 'Critical' %}critical{% elif scan.sensitive_content.severity == 'High' %}high{% elif scan.sensitive_content.severity == 'Medium' %}medium{% else %}low{% endif %}">
-                            <div class="title">Sensitive Content Exposure <span class="severity {{ scan.sensitive_content.severity|lower }}">{{ scan.sensitive_content.severity }}</span></div>
-                            <p>
-                                {% if scan.sensitive_content.sensitive_paths_found > 0 %}
-                                    Potentially sensitive content was discovered on your website that could provide attackers with valuable information for planning more targeted attacks.
-                                {% else %}
-                                    No obvious sensitive content was discovered during the scan. Continue maintaining good security practices.
-                                {% endif %}
-                            </p>
-                            
-                            {% if scan.sensitive_content.sensitive_paths_found > 0 %}
-                            <div class="recommendations">
-                                <strong><i class="bi bi-shield-fill-check me-2"></i>Recommendation:</strong>
-                                <p class="mb-0">Restrict access to sensitive directories and files by moving them outside the web root or configuring proper access controls.</p>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                
-                {% if scan.sensitive_content.paths %}
-                <h3 class="section-title mt-4">Detected Sensitive Paths</h3>
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Path</th>
-                                <th>Risk Level</th>
-                                <th>Recommendation</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for path in scan.sensitive_content.paths %}
-                            <tr>
-                                <td><code>{{ path }}</code></td>
-                                <td>
-                                    {% if path in ['/admin', '/wp-admin', '/administrator', '/phpmyadmin', '/.git', '/.env', '/config.php', '/wp-config.php'] %}
-                                    <span class="severity high">High</span>
-                                    {% else %}
-                                    <span class="severity medium">Medium</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if path in ['/admin', '/wp-admin', '/administrator', '/phpmyadmin'] %}
-                                    Secure with strong authentication and restrict access by IP if possible
-                                    {% elif path in ['/.git', '/.env', '/config.php', '/wp-config.php'] %}
-                                    Block access to these files/directories via web server configuration
-                                    {% elif path in ['/backup', '/db', '/logs'] %}
-                                    Move to a location outside the web root or block access
-                                    {% else %}
-                                    Review access permissions and consider restricting if not needed
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- SSL/TLS Certificate section -->
-        {% if scan.ssl_certificate and 'error' not in scan.ssl_certificate %}
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2 class="mb-0">Web Security</h2>
-            </div>
-            <div class="card-body">
-                <!-- SSL/TLS Certificate Results -->
-                <h3 class="section-title">SSL/TLS Certificate</h3>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card mb-4">
-                            <div class="card-body p-0">
-                                <table class="table mb-0">
-                                    <tbody>
-                                        <tr>
-                                            <th>Issuer</th>
-                                            <td>{{ scan.ssl_certificate.issuer }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Status</th>
-                                            <td>
-                                                <span class="severity {% if scan.ssl_certificate.status == 'Valid' %}low{% else %}high{% endif %}">{{ scan.ssl_certificate.status|upper }}</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th>Valid Until</th>
-                                            <td>{{ scan.ssl_certificate.valid_until }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Days Remaining</th>
-                                            <td>{{ scan.ssl_certificate.days_remaining }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Protocol</th>
-                                            <td>{{ scan.ssl_certificate.protocol_version }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Weak Protocol</th>
-                                            <td>
-                                                <span class="severity {% if scan.ssl_certificate.weak_protocol %}high{% else %}low{% endif %}">{{ 'Yes' if scan.ssl_certificate.weak_protocol else 'No' }}</span>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        {% if scan.ssl_certificate.is_expired or scan.ssl_certificate.expiring_soon or scan.ssl_certificate.weak_protocol %}
-                        <div class="findings">
-                            {% if scan.ssl_certificate.is_expired %}
-                            <div class="finding high">
-                                <div class="title">Expired SSL Certificate <span class="severity high">High</span></div>
-                                <p>Your SSL certificate has expired and needs to be renewed immediately.</p>
-                                <div class="recommendations">
-                                    <strong><i class="bi bi-shield-fill-check me-2"></i>Recommendation:</strong>
-                                    <p class="mb-0">Renew your SSL certificate immediately to secure your website and restore trust for your visitors.</p>
-                                </div>
-                            </div>
-                            {% elif scan.ssl_certificate.expiring_soon %}
-                            <div class="finding medium">
-                                <div class="title">SSL Certificate Expiring Soon <span class="severity medium">Medium</span></div>
-                                <p>Your SSL certificate will expire in {{ scan.ssl_certificate.days_remaining }} days.</p>
-                                <div class="recommendations">
-                                    <strong><i class="bi bi-shield-fill-check me-2"></i>Recommendation:</strong>
-                                    <p class="mb-0">Renew your SSL certificate before it expires to avoid security warnings for your visitors.</p>
-                                </div>
-                            </div>
-                            {% endif %}
-                            
-                            {% if scan.ssl_certificate.weak_protocol %}
-                            <div class="finding high">
-                                <div class="title">Weak SSL/TLS Protocol <span class="severity high">High</span></div>
-                                <p>Your server is using {{ scan.ssl_certificate.protocol_version }}, which is considered insecure.</p>
-                                <div class="recommendations">
-                                    <strong><i class="bi bi-shield-fill-check me-2"></i>Recommendation:</strong>
-                                    <p class="mb-0">Upgrade to TLS 1.2 or higher to maintain proper encryption standards.</p>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% else %}
-                        <div class="finding low">
-                            <div class="title">SSL Certificate Status <span class="severity low">Low Risk</span></div>
-                            <p>Your SSL certificate is valid and using a secure protocol.</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-<!-- Sensitive Content Analysis Explanation -->
-<div class="card mb-4 fade-in explanation">
-    <div class="card-header">
-        <h3 class="mb-0">Understanding Sensitive Content Analysis</h3>
-    </div>
-    <div class="card-body">
-        <p>This section identifies potentially sensitive content on your website that should be protected:</p>
-        <ul>
-            <li><strong>Sensitive Paths:</strong> URLs that might expose configuration files, administrative interfaces, or other sensitive content.</li>
-            <li><strong>Risk Assessment:</strong> The security implications of the discovered sensitive content.</li>
-        </ul>
-        
-        <!-- Dynamic explanation based on sensitive content findings -->
-        {% if scan.sensitive_content and 'error' not in scan.sensitive_content %}
-            {% if scan.sensitive_content.sensitive_paths_found > 5 %}
-            <div class="alert alert-danger">
-                <i class="bi bi-x-circle-fill me-2"></i>
-                <strong>Critical Exposure ({{ scan.sensitive_content.sensitive_paths_found }} paths):</strong> Your website has numerous exposed sensitive paths that could be used by attackers to gain unauthorized access or collect information for targeted attacks. These exposures significantly increase your attack surface and should be addressed immediately.
-            </div>
-            {% elif scan.sensitive_content.sensitive_paths_found > 2 %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Moderate Exposure ({{ scan.sensitive_content.sensitive_paths_found }} paths):</strong> Several sensitive paths were detected on your website. These could provide attackers with valuable information about your systems or potentially direct access to administrative functions. These exposures should be reviewed and protected as needed.
-            </div>
-            {% elif scan.sensitive_content.sensitive_paths_found > 0 %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Minor Exposure ({{ scan.sensitive_content.sensitive_paths_found }} paths):</strong> A few sensitive paths were detected on your website. While limited in number, these could still provide attackers with information useful for planning more targeted attacks. Consider implementing protections for these paths.
-            </div>
-            {% else %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>No Exposure Detected:</strong> No obvious sensitive content was discovered during the scan. Continue maintaining good security practices by carefully controlling access to administrative and configuration files.
-            </div>
-            {% endif %}
-        {% endif %}
-        
-        <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> Exposed sensitive content can provide attackers with valuable information about your systems or direct access to administrative functions. Protecting these paths is crucial for maintaining security. Even seemingly harmless information can help attackers plan more targeted attacks.
-        </div>
-    </div>
-</div>
-        <!-- Threat Scenario Analysis -->
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2 class="mb-0">Threat Scenario Analysis</h2>
-            </div>
-            <div class="card-body">
-                <p class="mb-4">Based on the vulnerabilities identified in this scan, these are potential threat scenarios that could affect your systems:</p>
-                
-                <div class="row">
-                    {% for threat in scan.threat_scenarios %}
-                    <div class="col-lg-6 mb-4">
-                        <div class="finding {% if threat.impact == 'Critical' %}critical{% elif threat.impact == 'High' %}high{% elif threat.impact == 'Medium' %}medium{% else %}low{% endif %}">
-                            <div class="title">{{ threat.name }} <span class="severity {{ threat.impact|lower }}">{{ threat.impact }}</span></div>
-                            <p>{{ threat.description }}</p>
-                            <div class="d-flex justify-content-between mt-3">
-                                <div>
-                                    <strong>Impact: </strong>
-                                    <span class="severity {{ threat.impact|lower }}">{{ threat.impact }}</span>
-                                </div>
-                                <div>
-                                    <strong>Likelihood: </strong>
-                                    <span class="severity {{ threat.likelihood|lower }}">{{ threat.likelihood }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                
-                {% if not scan.threat_scenarios %}
-                <div class="finding low">
-                    <div class="title">General Security Posture <span class="severity low">Low Risk</span></div>
-                    <p>No specific high-risk threat scenarios were identified based on this scan. However, all systems remain potential targets for common attacks like phishing, social engineering, or exploitation of newly discovered vulnerabilities.</p>
-                </div>
-                {% endif %}
-                
-                <div class="alert alert-info mt-4">
-                    <i class="bi bi-info-circle-fill me-2"></i>
-                    <strong>Note:</strong> These threat scenarios are based on the security findings in this report. A comprehensive security program should include regular assessment, monitoring, and testing to identify and mitigate potential threats.
-                </div>
-            </div>
-        </div>
-        <!-- Threat Scenario Analysis Explanation -->
-<div class="card mb-4 fade-in explanation">
-    <div class="card-header">
-        <h3 class="mb-0">Understanding Threat Scenario Analysis</h3>
-    </div>
-    <div class="card-body">
-        <p>This section outlines potential attack scenarios based on discovered vulnerabilities:</p>
-        <ul>
-            <li><strong>Threat Name:</strong> The type of attack that could target your systems.</li>
-            <li><strong>Impact:</strong> The potential damage if the attack is successful (Critical, High, Medium, Low).</li>
-            <li><strong>Likelihood:</strong> The probability of this attack occurring based on your current security posture.</li>
-        </ul>
-        
-        <!-- Dynamic explanation based on threat scenarios -->
-        {% if scan.threat_scenarios and scan.threat_scenarios|length > 0 %}
-            {% set high_impact_count = 0 %}
-            {% for threat in scan.threat_scenarios %}
-                {% if threat.impact == 'Critical' or threat.impact == 'High' %}
-                    {% set high_impact_count = high_impact_count + 1 %}
-                {% endif %}
-            {% endfor %}
-            
-            {% if high_impact_count >= 2 %}
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>High-Risk Profile:</strong> Multiple high-impact threat scenarios have been identified. These represent realistic attack vectors that could cause significant damage to your systems or data. Prioritize addressing the vulnerabilities that enable these scenarios to reduce your overall risk profile.
-            </div>
-            {% elif high_impact_count == 1 %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Moderate Risk Profile:</strong> A high-impact threat scenario has been identified, along with several lower-risk scenarios. While your overall security posture has some strengths, there are still important vulnerabilities that should be addressed to prevent potential attacks.
-            </div>
-            {% else %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>Low-Risk Profile:</strong> The identified threat scenarios are generally low to medium impact. Your security posture appears relatively strong, though continuous improvement is always recommended as attack techniques evolve.
-            </div>
-            {% endif %}
-        {% else %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>Minimal Risk Profile:</strong> No specific high-risk threat scenarios were identified during this scan. Your security posture appears strong, though all systems remain potential targets for common attacks like phishing or social engineering.
-            </div>
-        {% endif %}
-        
-        <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> Understanding realistic threat scenarios helps prioritize security improvements. High-impact, high-likelihood threats should be addressed first. This analysis translates technical vulnerabilities into business risks, making it easier to understand the practical implications of security issues.
-        </div>
-    </div>
-</div>
-        <!-- Industry-Specific Risk Assessment -->
-        {% if scan.industry and scan.industry.benchmarks %}
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2 class="mb-0">{{ scan.industry.name }} Industry Risk Assessment</h2>
-            </div>
-            <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-6 mb-4">
-                        <div class="summary-card">
-                            <div class="icon-circle">
-                                <i class="bi bi-graph-up"></i>
-                            </div>
-                            <h3>Industry Comparison</h3>
-                            <div class="summary-value {% if scan.industry.benchmarks.percentile > 50 %}score-low{% elif scan.industry.benchmarks.percentile > 30 %}score-medium{% else %}score-high{% endif %}">
-                                {{ scan.industry.benchmarks.percentile }}%
-                            </div>
-                            <p>Your security score is <strong>{{ scan.industry.benchmarks.comparison }}</strong> the average in your industry by <strong>{{ scan.industry.benchmarks.difference }} points</strong>.</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ scan.industry.benchmarks.percentile }}%; background-color: {% if scan.industry.benchmarks.percentile > 70 %}var(--low-color){% elif scan.industry.benchmarks.percentile > 40 %}var(--medium-color){% else %}var(--high-color){% endif %}"></div>
-                            </div>
-                            <small class="text-muted mt-2">Your position compared to other {{ scan.industry.name }} organizations</small>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6 mb-4">
-                        <div class="summary-card">
-                            <div class="icon-circle">
-                                <i class="bi bi-clipboard-check"></i>
-                            </div>
-                            <h3>Compliance Requirements</h3>
-                            <ul class="list-group">
-                                {% for compliance in scan.industry.compliance %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {{ compliance }}
-                                    {% if scan.risk_assessment.overall_score > 75 %}
-                                    <span class="badge bg-success rounded-pill">Likely Compliant</span>
-                                    {% elif scan.risk_assessment.overall_score > 60 %}
-                                    <span class="badge bg-warning text-dark rounded-pill">Needs Review</span>
-                                    {% else %}
-                                    <span class="badge bg-danger rounded-pill">At Risk</span>
-                                    {% endif %}
-                                </li>
-                                {% endfor %}
+                        <div class="recommendations">
+                            <h5><i class="bi bi-lightbulb me-2"></i>Recommendations</h5>
+                            <ul>
+                                <li>Disable SSLv3 and TLSv1.0 protocols immediately</li>
+                                <li>Configure servers to use TLSv1.2 or TLSv1.3 only</li>
+                                <li>Update cipher suites to only use strong encryption</li>
                             </ul>
                         </div>
                     </div>
                 </div>
                 
-                <h3 class="section-title">Critical Security Controls for {{ scan.industry.name }}</h3>
-                <div class="row">
-                    {% for control in scan.industry.critical_controls %}
-                    <div class="col-md-6 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">
-                                    <i class="bi bi-shield-check text-primary me-2"></i>
-                                    {{ control }}
-                                </h5>
-                                <p class="card-text">
-                                    {% if scan.risk_assessment.overall_score > 75 %}
-                                    <span class="text-success"><i class="bi bi-check-circle-fill me-2"></i> Likely implemented</span>
-                                    {% elif scan.risk_assessment.overall_score > 60 %}
-                                    <span class="text-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i> May need enhancement</span>
-                                    {% else %}
-                                    <span class="text-danger"><i class="bi bi-x-circle-fill me-2"></i> Implementation recommended</span>
-                                    {% endif %}
-                                </p>
-                            </div>
+                <!-- High Severity Findings Section -->
+                <h3 class="section-title"><i class="bi bi-exclamation-triangle me-2"></i>High Severity Issues</h3>
+                
+                <div class="findings">
+                    <!-- Example High Severity Finding -->
+                    <div class="finding high">
+                        <div class="title">
+                            <span>Missing Security Headers</span>
+                            <span class="severity high">High</span>
+                        </div>
+                        <p>Your web application is missing important security headers that help protect against common web vulnerabilities like XSS, clickjacking, and MIME sniffing attacks.</p>
+                        
+                        <div class="recommendations">
+                            <h5><i class="bi bi-lightbulb me-2"></i>Recommendations</h5>
+                            <ul>
+                                <li>Implement Content-Security-Policy (CSP) headers</li>
+                                <li>Add X-XSS-Protection and X-Frame-Options headers</li>
+                                <li>Include Strict-Transport-Security (HSTS) headers</li>
+                            </ul>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
                 
-                <div class="alert alert-info mt-4">
-                    <i class="bi bi-info-circle-fill me-2"></i> <strong>Industry Insight:</strong> 
-                    {{ scan.industry.name }} organizations typically prioritize 
-                    {% if scan.industry.type == 'healthcare' %}
-                    patient data protection, electronic medical record security, and HIPAA compliance.
-                    {% elif scan.industry.type == 'financial' %}
-                    transaction security, data encryption, and fraud prevention controls.
-                    {% elif scan.industry.type == 'retail' %}
-                    payment security, customer data protection, and point-of-sale system security.
-                    {% elif scan.industry.type == 'education' %}
-                    student data protection, network security across campus environments, and educational platform security.
-                    {% elif scan.industry.type == 'manufacturing' %}
-                    operational technology security, intellectual property protection, and supply chain risk management.
-                    {% elif scan.industry.type == 'government' %}
-                    data classification, compliance with federal standards, and critical infrastructure protection.
-                    {% else %}
-                    data protection, network security, and access control measures.
-                    {% endif %}
-                    Our team specializes in {{ scan.industry.name }}-specific security solutions.
-                </div>
+                <!-- Example Medium and Low Severity Findings Section -->
+                <h3 class="section-title"><i class="bi bi-exclamation-circle me-2"></i>Medium & Low Severity Issues</h3>
                 
-                <div class="text-center mt-4">
-                    <a href="#" class="btn btn-primary industry-consultation-btn">
-                        <i class="bi bi-headset me-2"></i> Get {{ scan.industry.name }}-Specific Security Consultation
-                    </a>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="finding medium">
+                            <div class="title">
+                                <span>Insecure Cookie Configuration</span>
+                                <span class="severity medium">Medium</span>
+                            </div>
+                            <p>Session cookies are not using the secure and httpOnly flags, which could expose user sessions to theft or hijacking attacks.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="finding low">
+                            <div class="title">
+                                <span>Server Information Disclosure</span>
+                                <span class="severity low">Low</span>
+                            </div>
+                            <p>HTTP headers are revealing unnecessary information about server software and versions.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        {% endif %}
-        <!-- Industry-Specific Risk Assessment Explanation -->
-<div class="card mb-4 fade-in explanation">
-    <div class="card-header">
-        <h3 class="mb-0">Understanding Industry-Specific Risk Assessment</h3>
-    </div>
-    <div class="card-body">
-        <p>This section compares your security posture to other organizations in your industry:</p>
-        <ul>
-            <li><strong>Industry Comparison:</strong> How your security score compares to industry averages.</li>
-            <li><strong>Percentile:</strong> Your ranking compared to other organizations in your industry.</li>
-            <li><strong>Compliance Requirements:</strong> Industry-specific regulations and standards relevant to your organization.</li>
-        </ul>
-        
-        <!-- Dynamic explanation based on industry benchmarks -->
-        {% if scan.industry and scan.industry.benchmarks %}
-            {% if scan.industry.benchmarks.percentile > 75 %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>Industry Leader ({{ scan.industry.benchmarks.percentile }}th percentile):</strong> Your organization's security posture is exceptional compared to industry peers. You're implementing security practices that exceed industry standards, putting you in a strong position to defend against most threats while likely meeting regulatory requirements.
-            </div>
-            {% elif scan.industry.benchmarks.percentile > 50 %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>Above Average ({{ scan.industry.benchmarks.percentile }}th percentile):</strong> Your organization performs better than the majority of your industry peers in terms of security. While there's still room for improvement, you've implemented many important security controls that help protect your assets.
-            </div>
-            {% elif scan.industry.benchmarks.percentile > 25 %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Below Average ({{ scan.industry.benchmarks.percentile }}th percentile):</strong> Your security posture falls below the industry average. This may expose your organization to more risks than your competitors and could potentially create compliance concerns. Focus on implementing the industry-standard security controls identified in this report.
-            </div>
-            {% else %}
-            <div class="alert alert-danger">
-                <i class="bi bi-x-circle-fill me-2"></i>
-                <strong>Significant Gap ({{ scan.industry.benchmarks.percentile }}th percentile):</strong> Your security posture is significantly below industry standards. This puts your organization at higher risk for security incidents and may lead to regulatory compliance issues. Urgent attention is needed to implement basic security controls common in your industry.
-            </div>
-            {% endif %}
-        {% endif %}
-        
-        <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> Different industries face different threats and have different regulatory requirements. Understanding how your security compares to industry peers helps benchmark your security program and identify areas where improvement is most needed. Industry-specific compliance requirements often include mandatory security controls.
-        </div>
-    </div>
-</div>
-        <!-- Risk Factor Breakdown -->
-        {% if scan.risk_assessment and scan.risk_assessment.risk_factors %}
+
+        <!-- Remediation Plan Section -->
         <div class="card mb-4 fade-in">
             <div class="card-header">
-                <h2 class="mb-0">Risk Factor Breakdown</h2>
+                <i class="bi bi-tools"></i>
+                <h2 class="mb-0">Remediation Plan</h2>
             </div>
             <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>Next Steps:</strong> This action plan prioritizes issues based on risk level and implementation difficulty.
+                </div>
+                
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>Risk Factor</th>
-                                <th>Score</th>
-                                <th>Weight</th>
-                                <th>Impact</th>
+                                <th>Priority</th>
+                                <th>Issue</th>
+                                <th>Severity</th>
+                                <th>Effort</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for factor in scan.risk_assessment.risk_factors %}
                             <tr>
-                                <td><strong>{{ factor.name }}</strong></td>
-                                <td style="width: 40%;">
-                                    <div class="progress">
-                                        <div class="progress-bar" role="progressbar" style="width: {{ factor.score*10 }}%; background-color: 
-                                            {% if factor.score >= 8 %}var(--low-color){% elif factor.score >= 5 %}var(--medium-color){% else %}var(--high-color){% endif %};">
-                                            {{ factor.score }}/10
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>{{ factor.weight }}%</td>
-                                <td>{{ (factor.weighted_score/factor.weight*1000)|int / 10 }}%</td>
+                                <td>1</td>
+                                <td>Upgrade SSL/TLS Configuration</td>
+                                <td><span class="badge bg-critical">Critical</span></td>
+                                <td>Medium</td>
+                                <td><span class="status-indicator status-critical"></span> Not Started</td>
                             </tr>
-                            {% endfor %}
+                            <tr>
+                                <td>2</td>
+                                <td>Implement Security Headers</td>
+                                <td><span class="badge bg-high">High</span></td>
+                                <td>Low</td>
+                                <td><span class="status-indicator status-critical"></span> Not Started</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>Secure Cookie Configuration</td>
+                                <td><span class="badge bg-medium">Medium</span></td>
+                                <td>Low</td>
+                                <td><span class="status-indicator status-critical"></span> Not Started</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-                <p class="text-muted"><i class="bi bi-info-circle me-2"></i> A higher score means better security for that factor.</p>
-            </div>
-        </div>
-        {% endif %}
-        <!-- Risk Factor Breakdown Explanation -->
-<div class="card mb-4 fade-in explanation">
-    <div class="card-header">
-        <h3 class="mb-0">Understanding Risk Factor Breakdown</h3>
-    </div>
-    <div class="card-body">
-        <p>This section details how different security factors contribute to your overall risk score:</p>
-        <ul>
-            <li><strong>Risk Factor:</strong> Specific security aspects evaluated during the scan.</li>
-            <li><strong>Score:</strong> How well you performed in each factor (higher is better).</li>
-            <li><strong>Weight:</strong> How much each factor influences your overall security score.</li>
-            <li><strong>Impact:</strong> The effect each factor has on your total security posture.</li>
-        </ul>
-        
-        <!-- Dynamic explanation based on risk factors -->
-        {% if scan.risk_assessment and scan.risk_assessment.risk_factors %}
-            {% set lowest_score = 10 %}
-            {% set lowest_factor = "" %}
-            {% set highest_weight = 0 %}
-            {% set highest_weight_factor = "" %}
-            
-            {% for factor in scan.risk_assessment.risk_factors %}
-                {% if factor.score < lowest_score %}
-                    {% set lowest_score = factor.score %}
-                    {% set lowest_factor = factor.name %}
-                {% endif %}
                 
-                {% if factor.weight > highest_weight %}
-                    {% set highest_weight = factor.weight %}
-                    {% set highest_weight_factor = factor.name %}
-                {% endif %}
-            {% endfor %}
-            
-            <div class="alert alert-warning">
-                <i class="bi bi-info-circle-fill me-2"></i>
-                <strong>Key Insights:</strong> 
-                <ul>
-                    {% if lowest_factor != "" %}
-                    <li><strong>Your weakest area is {{ lowest_factor }}</strong> with a score of {{ lowest_score }}/10. Focusing on this area would help improve your security.</li>
-                    {% endif %}
-                    
-                    {% if highest_weight_factor != "" %}
-                    <li><strong>The most heavily weighted factor is {{ highest_weight_factor }}</strong> at {{ highest_weight }}% of your total score. This area has the biggest impact on your overall security posture.</li>
-                    {% endif %}
-                </ul>
-            </div>
-        {% endif %}
-        
-        <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> Not all security factors have equal importance. This breakdown helps you understand which factors are most critical for your overall security and where to focus improvement efforts for maximum impact. Addressing high-weight factors with low scores will improve your security most efficiently.
-        </div>
-    </div>
-</div>
-        <!-- Host Operating System Information -->
-        {% if scan.is_domain is defined and scan.is_domain %}
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2 class="mb-0">Host Operating System</h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h3 class="h4 mb-3 text-primary">Server Information</h3>
-                        <div class="card">
-                            <div class="card-body p-0">
-                                <table class="table mb-0">
-                                    <tbody>
-                                        <tr>
-                                            <th>Server OS</th>
-                                            <td>
-                                                {% if scan.server_info is defined and scan.server_info.os %}
-                                                    {{ scan.server_info.os }}
-                                                {% else %}
-                                                    Unknown (Server information not disclosed)
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th>Web Server</th>
-                                            <td>
-                                                {% if scan.server_info is defined and scan.server_info.web_server %}
-                                                    {{ scan.server_info.web_server }}
-                                                {% else %}
-                                                    Unknown
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th>Server Version</th>
-                                            <td>
-                                                {% if scan.server_info is defined and scan.server_info.version %}
-                                                    {{ scan.server_info.version }}
-                                                {% else %}
-                                                    Unknown (Hidden for security)
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h3 class="h4 mb-3 text-primary">Security Status</h3>
-                        <div class="finding {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">
-                            <div class="title">OS Updates <span class="severity {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">{{ scan.system.os_updates.severity }}</span></div>
-                            <p>{{ scan.system.os_updates.message }}</p>
-                            
-                            {% if scan.system.os_updates.severity != 'Low' %}
-                            <div class="recommendations">
-                                <strong><i class="bi bi-shield-fill-check me-2"></i>Recommendation:</strong>
-                                <p class="mb-0">Apply all available security updates to protect against known vulnerabilities.</p>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-        
-        <!-- Local Operating System Information -->
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2 class="mb-0">Client System Information</h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h3 class="h4 mb-3 text-primary">Your System</h3>
-                        <div class="card">
-                            <div class="card-body p-0">
-                                <table class="table mb-0">
-                                    <tbody>
-                                        <tr>
-                                            <th>Operating System</th>
-                                            <td>{{ scan.client_info.os }}</td>
-                                        </tr>
-                                        {% if scan.client_info.windows_version %}
-                                        <tr>
-                                            <th>Windows Version</th>
-                                            <td>{{ scan.client_info.windows_version }}</td>
-                                        </tr>
-                                        {% endif %}
-                                        <tr>
-                                            <th>Browser</th>
-                                            <td>{{ scan.client_info.browser }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h3 class="h4 mb-3 text-primary">Security Status</h3>
-                        <div class="finding {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">
-                            <div class="title">System Updates <span class="severity {% if scan.system.os_updates.severity == 'High' or scan.system.os_updates.severity == 'Critical' %}high{% elif scan.system.os_updates.severity == 'Medium' %}medium{% else %}low{% endif %}">{{ scan.system.os_updates.severity }}</span></div>
-                            <p>{{ scan.system.os_updates.message }}</p>
-                            
-                            {% if scan.system.os_updates.severity != 'Low' %}
-                            <div class="recommendations">
-                                <strong><i class="bi bi-shield-fill-check me-2"></i>Recommendation:</strong>
-                                <p class="mb-0">Keep your system updated with the latest security patches to protect against known vulnerabilities.</p>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Client System Information Explanation -->
-<div class="card mb-4 fade-in explanation">
-    <div class="card-header">
-        <h3 class="mb-0">Understanding Client System Information</h3>
-    </div>
-    <div class="card-body">
-        <p>This section provides details about the operating system and browser you're using:</p>
-        <ul>
-            <li><strong>Operating System:</strong> The software that manages your computer hardware and provides services for computer programs.</li>
-            <li><strong>Windows Version:</strong> The specific release of Windows you're running (if applicable).</li>
-            <li><strong>Browser:</strong> The software you use to access websites and web applications.</li>
-        </ul>
-        
-        <!-- Dynamic explanation based on system update status -->
-        {% if scan.system and scan.system.os_updates %}
-            {% if scan.system.os_updates.severity == 'Critical' or scan.system.os_updates.severity == 'High' %}
-            <div class="alert alert-danger">
-                <i class="bi bi-x-circle-fill me-2"></i>
-                <strong>Critical Update Status:</strong> Your system is significantly out of date and missing important security patches. Outdated systems are much more vulnerable to known exploits and malware. Update your system immediately to protect against known security vulnerabilities.
-            </div>
-            {% elif scan.system.os_updates.severity == 'Medium' %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Updates Needed:</strong> Your system is missing some security updates. While not critically vulnerable, these missing updates could expose your system to certain threats. We recommend updating your system soon to maintain proper security.
-            </div>
-            {% else %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>System Up to Date:</strong> Your system appears to be current with security updates. Keeping systems updated is one of the most important security practices. Continue to install updates promptly when they become available.
-            </div>
-            {% endif %}
-        {% endif %}
-        
-        <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>Why This Matters:</strong> Outdated operating systems often contain known security vulnerabilities that attackers can exploit. Regular updates are one of the most important security practices. Many successful cyberattacks target systems that haven't been updated with available security patches.
-        </div>
-    </div>
-</div>
-        <!-- Key Recommendations -->
-        {% if scan.recommendations %}
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2 class="mb-0">Key Recommendations</h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for recommendation in scan.recommendations %}
-                    <div class="col-md-6 mb-3">
-                        <div class="d-flex">
-                            <div class="flex-shrink-0">
-                                <div class="status-indicator status-warning me-3 mt-1"></div>
-                            </div>
-                            <div>
-                                <strong>{{ recommendation }}</strong>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-        
-        <!-- Actions Buttons -->
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2 class="mb-0">Next Steps</h2>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-primary mb-4">
-                    <div class="d-flex">
-                        <div class="flex-shrink-0">
-                            <i class="bi bi-lightbulb-fill me-3" style="font-size: 2rem;"></i>
-                        </div>
-                        <div>
-                            <strong>Need help addressing these vulnerabilities?</strong>
-                            <p class="mb-0">Our security experts can help you implement the recommendations from this report to strengthen your security posture.</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="row mb-4">
-                    <div class="col-md-4 mb-3">
-                        <a href="/scan" class="btn btn-primary w-100">
-                            <i class="bi bi-shield-fill me-2"></i> Run Another Scan
-                        </a>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <a href="#" class="btn btn-primary w-100" id="emailReportBtn">
-                            <i class="bi bi-envelope-fill me-2"></i> Email This Report
-                        </a>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <a href="#" class="btn btn-primary w-100" id="printReportBtn">
-                            <i class="bi bi-printer-fill me-2"></i> Print Report</a>
-                    </div>
-                </div>
-                
-                <div class="row mt-5">
-                    <div class="col-lg-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h4 class="text-primary mb-3">Our Security Services Include:</h4>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <ul class="list-unstyled">
-                                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Vulnerability Remediation</li>
-                                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Network Security Configuration</li>
-                                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Email Security Setup</li>
-                                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> System Security Updates</li>
-                                        </ul>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <ul class="list-unstyled">
-                                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Web Application Hardening</li>
-                                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Security Awareness Training</li>
-                                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Ongoing Security Monitoring</li>
-                                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Cybersecurity Consulting</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-lg-6 mb-4">
-                        <div class="card h-100 bg-primary text-white">
-                            <div class="card-body d-flex flex-column">
-                                <h4 class="mb-3">Contact Us Today</h4>
-                                <p>Let our security experts help you implement these recommendations and strengthen your security posture.</p>
-                                <div class="mt-auto">
-                                    <div class="d-grid gap-2">
-                                        <a href="tel:+14704810400" class="btn btn-light text-primary fw-bold mb-2">
-                                            <i class="bi bi-telephone-fill me-2"></i> Call: 470-481-0400
-                                        </a>
-                                        <a href="mailto:sales@cengatech.com" class="btn btn-light text-primary fw-bold">
-                                            <i class="bi bi-envelope-fill me-2"></i> Email: sales@cengatech.com
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="alert alert-warning mt-4">
-                    <div class="d-flex">
-                        <div class="flex-shrink-0">
-                            <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
-                        </div>
-                        <div>
-                            <strong>Important:</strong> 
-                            <p class="mb-0">This assessment provides an overview of potential security risks. Contact our team for a comprehensive evaluation and customized solutions to address your specific needs.</p>
-                        </div>
-                    </div>
+                <div class="text-center mt-4">
+                    <a href="#" class="btn btn-primary service-inquiry-btn" data-service="Security Remediation" data-findings="3">
+                        <i class="bi bi-shield-check me-2"></i> Get Expert Remediation Help
+                    </a>
                 </div>
             </div>
         </div>
@@ -1845,262 +440,3 @@
                                      placeholder="Please share any specific concerns or questions..."></textarea>
                         </div>
                     </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="submitInquiryBtn">Request Information</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Industry Consultation Modal -->
-    <div class="modal fade" id="industryConsultationModal" tabindex="-1" aria-labelledby="industryConsultationModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="industryConsultationModalLabel">
-                        {{ scan.industry.name }} Security Consultation
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Our security experts specialize in {{ scan.industry.name }} security requirements and compliance.</p>
-                    <p>We can help your organization meet industry-specific security standards and best practices.</p>
-                
-                    <form id="industryConsultationForm">
-                        <input type="hidden" id="industryScanId" name="scan_id" value="{{ scan.scan_id }}">
-                        <input type="hidden" id="industryType" name="industry" value="{{ scan.industry.type }}">
-                    
-                        <div class="mb-3">
-                            <label for="industryName" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="industryName" name="name" 
-                                   value="{{ scan.client_info.name }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="industryEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="industryEmail" name="email" 
-                                   value="{{ scan.client_info.email }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="industryPhone" class="form-label">Phone (optional)</label>
-                            <input type="tel" class="form-control" id="industryPhone" name="phone" 
-                                   value="{{ scan.client_info.phone }}">
-                        </div>
-                    
-                        <div class="mb-3">
-                            <label for="industryMessage" class="form-label">Message</label>
-                            <textarea class="form-control" id="industryMessage" name="message" rows="3"
-                                     placeholder="Please share your specific security concerns..."></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="submitIndustryBtn">Get Consultation</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add JavaScript for functionality -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add explanation class to all explanation divs
-            const addExplanationClass = function() {
-                // Find all explanation headers (those containing "Understanding")
-                const explanationHeaders = Array.from(document.querySelectorAll('.card-header')).filter(
-                    header => header.textContent.includes('Understanding')
-                );
-        
-                // Add 'explanation' class to parent card divs
-                explanationHeaders.forEach(header => {
-                    const card = header.closest('.card');
-                    if (card) {
-                        card.classList.add('explanation');
-                    }
-                    });
-            };
-    
-            // Create toggle functionality
-            const setupToggle = function() {
-                const toggleCheckbox = document.getElementById('toggleExplanations');
-        
-                if (!toggleCheckbox) {
-                    console.warn('Toggle checkbox not found. Skipping explanation toggle setup.');
-                    return;
-                }
-        
-                // Function to toggle visibility
-                const toggleExplanations = function() {
-                    const explanations = document.querySelectorAll('.explanation');
-                    const isVisible = toggleCheckbox.checked;
-            
-                    explanations.forEach(explanation => {
-                        explanation.style.display = isVisible ? 'block' : 'none';
-                    });
-            
-                    // Save preference to local storage
-                    localStorage.setItem('showExplanations', isVisible);
-                };
-        
-                // Set initial state from local storage if available
-                const storedPreference = localStorage.getItem('showExplanations');
-                if (storedPreference !== null) {
-                    toggleCheckbox.checked = storedPreference === 'true';
-                    toggleExplanations();
-                }
-        
-                // Add event listener
-                toggleCheckbox.addEventListener('change', toggleExplanations);
-            };
-    
-            // Add some basic styling for explanation cards
-            const addExplanationStyles = function() {
-                const style = document.createElement('style');
-                style.textContent = `
-                    .explanation {
-                        border-left: 4px solid #3498db;
-                        background-color: #f8f9fa;
-                        margin-top: -1rem;
-                        margin-bottom: 2rem;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-                    }
-            
-                    .explanation .card-header {
-                        background-color: #e3f2fd;
-                        color: #0d6efd;
-                        font-weight: 600;
-                    }
-                    
-                    @media print {
-                        #toggleExplanations, 
-                        .form-check.form-switch {
-                            display: none !important;
-                        }
-                    }
-                `;
-                document.head.appendChild(style);
-            };
-    
-            // Initialize
-            addExplanationClass();
-            addExplanationStyles();
-            setupToggle();
-        });
-        // Print functionality
-        document.getElementById('printReportBtn').addEventListener('click', function() {
-            window.print();
-        });
-        
-        document.getElementById('floatingPrintBtn').addEventListener('click', function() {
-            window.print();
-        });
-        
-        // Service inquiry modal handling
-        const serviceButtons = document.querySelectorAll('.service-inquiry-btn');
-        serviceButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const service = this.getAttribute('data-service');
-                const findings = this.getAttribute('data-findings');
-                
-                document.getElementById('serviceName').textContent = service;
-                document.getElementById('findingCount').textContent = findings > 0 ? findings : 'several';
-                document.getElementById('inquiryService').value = service;
-                document.getElementById('inquiryFindings').value = findings;
-                
-                var modal = new bootstrap.Modal(document.getElementById('serviceInquiryModal'));
-                modal.show();
-            });
-        });
-        
-        // Industry consultation modal handling
-        const industryButton = document.querySelector('.industry-consultation-btn');
-        if (industryButton) {
-            industryButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                var modal = new bootstrap.Modal(document.getElementById('industryConsultationModal'));
-                modal.show();
-            });
-        }
-        
-        // Form submission handlers
-        document.getElementById('submitInquiryBtn').addEventListener('click', function() {
-            // Add form submission logic here
-            alert('Thank you for your inquiry. We will contact you shortly.');
-            bootstrap.Modal.getInstance(document.getElementById('serviceInquiryModal')).hide();
-        });
-        
-        if (document.getElementById('submitIndustryBtn')) {
-            document.getElementById('submitIndustryBtn').addEventListener('click', function() {
-                // Add form submission logic here
-                alert('Thank you for your consultation request. Our industry experts will contact you shortly.');
-                bootstrap.Modal.getInstance(document.getElementById('industryConsultationModal')).hide();
-            });
-        }
-        
-       // Email report button
-document.getElementById('emailReportBtn').addEventListener('click', function(e) {
-    e.preventDefault();
-    const email = prompt('Please enter your email address to receive this report:');
-    if (email && email.includes('@')) {
-        // Get the scan ID from the hidden input
-        const scanId = document.getElementById('scan-id').value;
-        
-        // Create form data
-        const formData = new FormData();
-        formData.append('scan_id', scanId);
-        formData.append('email', email);
-        
-        // Show loading message
-        alert('Sending report to your email...');
-        
-        // Send AJAX request to the email report API
-        fetch('/api/email_report', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert(`Thank you! The report has been sent to ${email}.`);
-            } else {
-                alert(`Error: ${data.message || 'Failed to send email. Please try again.'}`);
-            }
-        })
-        .catch(error => {
-            console.error('Error sending email:', error);
-            alert('Failed to send email. Please try again.');
-        });
-    } else if (email) {
-        alert('Please enter a valid email address.');
-    }
-});
-        
-        // Add animation effects when scrolling
-        document.addEventListener('DOMContentLoaded', function() {
-            const cards = document.querySelectorAll('.fade-in');
-            
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = 1;
-                        entry.target.style.transform = 'translateY(0)';
-                    }
-                });
-            }, { threshold: 0.1 });
-            
-            cards.forEach(card => {
-                card.style.opacity = 0;
-                card.style.transform = 'translateY(20px)';
-                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-                observer.observe(card);
-            });
-        });
-    </script>
-</body>
-</html>
