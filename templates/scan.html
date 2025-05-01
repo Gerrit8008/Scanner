@@ -173,7 +173,8 @@
 </head>
 <body>
     <div class="header fade-in">
-        <img src="/static/images/logo.png" alt="Company Logo" class="logo">
+        <img src="/static/images/logo.png" alt="Company Logo" class="logo" 
+             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjUwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjEwIiB5PSIzMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE4IiBmaWxsPSJ3aGl0ZSI+Q2VudHJhbCBHZW9yZ2lhPC90ZXh0Pjx0ZXh0IHg9IjEwIiB5PSI0NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSI+VGVjaG5vbG9neTwvdGV4dD48L3N2Zz4='; this.style.maxWidth='180px';">
         <h1>Start Security Scan</h1>
         <p>Complete the form below to begin your vulnerability assessment</p>
     </div>
@@ -578,6 +579,28 @@
                     element.style.transform = 'translateY(0)';
                 }, 100 * index);
             });
+            // Check for error messages in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorMessage = urlParams.get('error');
+                if (errorMessage) {
+            // Create error alert
+            const errorAlert = document.createElement('div');
+            errorAlert.className = 'alert alert-danger mb-4';
+            errorAlert.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>${errorMessage}`;
+    
+             // Insert at the top of the card body
+            const cardBody = document.querySelector('.card-body');
+            cardBody.insertBefore(errorAlert, cardBody.firstChild);
+    
+            // Auto-dismiss after 8 seconds
+            setTimeout(() => {
+                errorAlert.style.opacity = '0';
+                setTimeout(() => errorAlert.remove(), 500);
+            }, 8000);
+    
+            // Clear the error from URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            }
         }
         
         // Setup form steps navigation
@@ -780,17 +803,17 @@
                 setTimeout(() => {
                     scanProgress.style.display = 'none';
                     scanComplete.style.display = 'block';
-                    
-                    // In a real application, you would redirect to results page
-                    // after successful scan completion
-                    
-                    // For demo: Redirect after showing completion message
-                    /*
-                    setTimeout(() => {
-                        window.location.href = '/results';
-                    }, 3000);
-                    */
-                }, 14000); // Show completion after scan finishes (14 seconds in this demo)
+    
+                    // In a real application, you would redirect to results page with a valid scan_id
+                    // For demo: Instead of redirecting, let the user click the button
+                    const viewResultsBtn = document.querySelector('#scanComplete a.btn');
+                    viewResultsBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        // Generate a demo scan_id for testing
+                        const demoScanId = 'demo-' + Math.random().toString(36).substring(2, 10);
+                        window.location.href = `/results?scan_id=${demoScanId}`;
+                    });
+                }, 14000);
             });
         }
         
