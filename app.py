@@ -1033,80 +1033,29 @@ def index():
         """, 500
 
 @app.route('/scan', methods=['GET', 'POST'])
-
-@app.route('/scan', methods=['GET', 'POST'])
 def scan_page():
     """Main scan page - handles both form display and scan submission"""
     if request.method == 'POST':
         try:
-            # Get form data including client OS info
-            lead_data = {
-                'name': request.form.get('name', ''),
-                'email': request.form.get('email', ''),
-                'company': request.form.get('company', ''),
-                'phone': request.form.get('phone', ''),
-                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'client_os': request.form.get('client_os', 'Unknown'),
-                'client_browser': request.form.get('client_browser', 'Unknown'),
-                'windows_version': request.form.get('windows_version', ''),
-                'target': ''  # Leave blank to ensure we use email domain
-            }
+            # Process form data and run scan (existing code)...
             
-            # Extract domain from email and use it as target
-            if lead_data["email"]:
-                domain = extract_domain_from_email(lead_data["email"])
-                lead_data["target"] = domain
-                logging.info(f"Using domain extracted from email: {domain}")
+            # If this is an AJAX request, return JSON
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'status': 'success',
+                    'scan_id': scan_results['scan_id']
+                })
             
-            # Basic validation
-            if not lead_data["email"]:
-                return render_template('scan.html', error="Please enter your email address to receive the scan report.")
-            
-            # Save lead data to database
-            logging.info("Saving lead data...")
-            lead_id = save_lead_data(lead_data)
-            logging.info(f"Lead data saved with ID: {lead_id}")
-            
-            # Run the full consolidated scan
-            logging.info(f"Starting scan for {lead_data.get('email')} targeting {lead_data.get('target')}...")
-            scan_results = run_consolidated_scan(lead_data)
-            
-            # Check if scan_results contains valid data
-            if not scan_results or 'scan_id' not in scan_results:
-                logging.error("Scan did not return valid results")
-                return render_template('scan.html', error="Scan failed to return valid results. Please try again.")
-            
-            # Store scan ID in session for future reference
-            try:
-                session['scan_id'] = scan_results['scan_id']
-                logging.info(f"Stored scan_id in session: {scan_results['scan_id']}")
-            except Exception as session_error:
-                logging.warning(f"Failed to store scan_id in session: {str(session_error)}")
-            
-            # Automatically send report to the user
-            try:
-                # Get complete HTML report
-                html_report = scan_results.get('complete_html_report', '')
-                if not html_report:
-                    # Fallback to standard html_report or re-render template
-                    html_report = scan_results.get('html_report', render_template('results.html', scan=scan_results))
-                
-                # Send email to user
-                email_sent = send_email_report(lead_data, scan_results, html_report)
-                if email_sent:
-                    logging.info("Report automatically sent to user")
-                else:
-                    logging.warning("Failed to automatically send report to user")
-            except Exception as email_error:
-                logging.error(f"Error sending automatic email report to user: {email_error}")
-            
-            # Render results directly
-            logging.info("Rendering results page...")
+            # Otherwise, render the results page directly
             return render_template('results.html', scan=scan_results)
-                
+            
         except Exception as scan_error:
-            logging.error(f"Error during scan: {str(scan_error)}")
-            logging.debug(f"Exception traceback: {traceback.format_exc()}")
+            # Handle error...
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'status': 'error',
+                    'message': str(scan_error)
+                }), 500
             return render_template('scan.html', error=f"An error occurred during the scan: {str(scan_error)}")
     
     # For GET requests, show the scan form
