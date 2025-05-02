@@ -602,9 +602,7 @@
                     <div class="title">
                         <span>Firewall Configuration</span>
                         <span class="severity {{ scan.system.firewall.severity|lower }}">{{ scan.system.firewall.severity }}</span>
-                    </div
-                        </div>
-                    
+                    </div>
                     <p>{{ scan.system.firewall.status }}</p>
                     
                     <div class="alert alert-info mt-3">
@@ -920,35 +918,47 @@
                 window.print();
             });
             
-            // Enhanced Email report button handler - FIXED VERSION
+            // ===== FIXED EMAIL MODAL CODE =====
+            // Create a single modal instance that we'll reuse
+            let emailModal = null;
+            
+            // Remove any existing click handlers from the email button
             const emailReportBtn = document.getElementById('emailReportBtn');
-            const emailReportModal = document.getElementById('emailReportModal');
-
-            // Remove the existing event listener from the main script
             if (emailReportBtn) {
+                // Create a completely new button to replace the old one
                 const newEmailBtn = emailReportBtn.cloneNode(true);
                 emailReportBtn.parentNode.replaceChild(newEmailBtn, emailReportBtn);
                 
-                // Add the event listener with improved modal handling
+                // Set up the click handler on the new button
                 document.getElementById('emailReportBtn').addEventListener('click', function(e) {
                     e.preventDefault();
+                    e.stopPropagation(); // Stop event propagation
                     
-                    // Create a bootstrap modal instance if it doesn't exist
-                    const modal = new bootstrap.Modal(emailReportModal);
-                    modal.show();
+                    // Initialize the modal if it doesn't exist
+                    if (!emailModal) {
+                        const modalElement = document.getElementById('emailReportModal');
+                        emailModal = new bootstrap.Modal(modalElement, {
+                            backdrop: 'static',  // Prevent closing when clicking outside
+                            keyboard: false      // Prevent closing with keyboard
+                        });
+                    }
+                    
+                    // Show the modal
+                    emailModal.show();
                 });
             }
             
-            // Enhanced form submission with loading indicator
+            // Set up the form submission handler
             const emailReportForm = document.getElementById('emailReportForm');
             if (emailReportForm) {
-                // Remove any existing listeners
+                // Create a new form to replace the old one
                 const newForm = emailReportForm.cloneNode(true);
                 emailReportForm.parentNode.replaceChild(newForm, emailReportForm);
                 
-                // Add enhanced form submission handling
+                // Set up the submit handler on the new form
                 document.getElementById('emailReportForm').addEventListener('submit', function(e) {
                     e.preventDefault();
+                    e.stopPropagation(); // Stop event propagation
                     
                     const submitBtn = this.querySelector('button[type="submit"]');
                     const originalText = submitBtn.innerHTML;
@@ -983,9 +993,10 @@
                             alert('There was an error sending the report: ' + (data.message || 'Unknown error'));
                         }
                         
-                        // Close modal properly
-                        const modal = bootstrap.Modal.getInstance(emailReportModal);
-                        if (modal) modal.hide();
+                        // Hide the modal
+                        if (emailModal) {
+                            emailModal.hide();
+                        }
                     })
                     .catch(error => {
                         submitBtn.disabled = false;
@@ -995,9 +1006,21 @@
                 });
             }
             
-            // Service inquiry buttons
+            // Service inquiry buttons - using similar pattern to fix potential issues
+            let serviceInquiryModal = null;
+            
             document.querySelectorAll('.service-inquiry-btn').forEach(function(button) {
-                button.addEventListener('click', function() {
+                // Create new buttons to replace old ones
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+            });
+            
+            // Re-select all the new buttons and attach handlers
+            document.querySelectorAll('.service-inquiry-btn').forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
                     // Get service and findings from data attributes
                     const service = this.getAttribute('data-service');
                     const findings = this.getAttribute('data-findings');
@@ -1009,38 +1032,66 @@
                     // Update modal title
                     document.getElementById('serviceInquiryModalLabel').textContent = 'Inquiry: ' + service;
                     
+                    // Initialize the modal if it doesn't exist
+                    if (!serviceInquiryModal) {
+                        const modalElement = document.getElementById('serviceInquiryModal');
+                        serviceInquiryModal = new bootstrap.Modal(modalElement, {
+                            backdrop: 'static',
+                            keyboard: false
+                        });
+                    }
+                    
                     // Show modal
-                    const modal = new bootstrap.Modal(document.getElementById('serviceInquiryModal'));
-                    modal.show();
+                    serviceInquiryModal.show();
                 });
             });
             
             // Service inquiry form submission
-            document.getElementById('serviceInquiryForm').addEventListener('submit', function(e) {
-                e.preventDefault();
+            const serviceInquiryForm = document.getElementById('serviceInquiryForm');
+            if (serviceInquiryForm) {
+                // Create a new form to replace the old one
+                const newForm = serviceInquiryForm.cloneNode(true);
+                serviceInquiryForm.parentNode.replaceChild(newForm, serviceInquiryForm);
                 
-                const formData = new FormData(this);
-                
-                fetch('/api/service_inquiry', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert('Your inquiry has been submitted. Our team will contact you soon.');
-                    } else {
-                        alert('There was an error submitting your inquiry: ' + (data.message || 'Unknown error'));
-                    }
+                // Set up the submit handler on the new form
+                document.getElementById('serviceInquiryForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('serviceInquiryModal'));
-                    modal.hide();
-                })
-                .catch(error => {
-                    alert('Error: ' + error.message);
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+                    
+                    const formData = new FormData(this);
+                    
+                    fetch('/api/service_inquiry', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                        
+                        if (data.status === 'success') {
+                            alert('Your inquiry has been submitted. Our team will contact you soon.');
+                        } else {
+                            alert('There was an error submitting your inquiry: ' + (data.message || 'Unknown error'));
+                        }
+                        
+                        // Close modal properly
+                        if (serviceInquiryModal) {
+                            serviceInquiryModal.hide();
+                        }
+                    })
+                    .catch(error => {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                        alert('Error: ' + error.message);
+                    });
                 });
-            });
+            }
             
             // Initialize tooltips
             if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tooltip !== 'undefined') {
