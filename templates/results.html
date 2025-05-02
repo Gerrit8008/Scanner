@@ -38,21 +38,81 @@
         <div class="card risk-score my-4">
             {% if scan.risk_assessment and scan.risk_assessment.overall_score is defined %}
             <div class="card-body text-center py-4">
-                <div class="score-badge {% if scan.risk_assessment.risk_level == 'Low' %}bg-low{% elif scan.risk_assessment.risk_level == 'Medium' %}bg-medium{% elif scan.risk_assessment.risk_level == 'High' %}bg-high{% else %}bg-critical{% endif %}">
-                    <div class="score-value">{{ scan.risk_assessment.overall_score }}</div>
-                    <div class="score-label">{{ scan.risk_assessment.risk_level }} RISK</div>
-                </div>
+                <div class="score-container">
+                    <div class="score-gauge">
+                        <svg viewBox="0 0 120 120" class="gauge">
+                            <circle class="gauge-background" r="54" cx="60" cy="60" stroke-width="12"></circle>
+                            <circle class="gauge-value" r="54" cx="60" cy="60" stroke-width="12" 
+                                    style="stroke: {{ scan.risk_assessment.color }}; 
+                                           stroke-dasharray: {{ scan.risk_assessment.overall_score * 3.39 }} 339;"></circle>
+                            <text class="gauge-text" x="60" y="60" text-anchor="middle" alignment-baseline="middle"
+                                  style="fill: {{ scan.risk_assessment.color }};">
+                                {{ scan.risk_assessment.overall_score }}
+                            </text>
+                        </svg>
+                        <div class="score-label">{{ scan.risk_assessment.risk_level }}</div>
+                    </div>
+            
+                    {% if scan.industry and scan.industry.benchmarks %}
+                    <div class="industry-comparison mt-4">
+                        <h4>{{ scan.industry.name }} Industry Comparison</h4>
                 
-                <!-- Industry Benchmark Information -->
-                {% if scan.industry and scan.industry.benchmarks %}
-                <div class="mt-4">
-                    <h4>Industry Comparison: {{ scan.industry.name }}</h4>
-                    <p>Your security score is <strong>{{ scan.industry.benchmarks.difference }} points {{ scan.industry.benchmarks.comparison }}</strong> 
-                       the industry average of {{ scan.industry.benchmarks.avg_score }}.</p>
-                    <p>You are in the <strong>{{ scan.industry.benchmarks.percentile }}th percentile</strong> 
-                       for your industry.</p>
+                        <div class="comparison-meter">
+                            <div class="meter-scale">
+                                <span>0</span>
+                                <span>25</span>
+                                <span>50</span>
+                                <span>75</span>
+                                <span>100</span>
+                            </div>
+                            <div class="meter-track">
+                                <!-- Industry average marker -->
+                                <div class="industry-avg-marker" style="left: {{ scan.industry.benchmarks.avg_score }}%;">
+                                    <div class="marker-line"></div>
+                                    <div class="marker-label">Industry Average</div>
+                                </div>
+                        
+                                <!-- Your score marker -->
+                                <div class="your-score-marker" style="left: {{ scan.risk_assessment.overall_score }}%;">
+                                    <div class="marker-line"></div>
+                                    <div class="marker-label">Your Score</div>
+                                </div>
+                            </div>
+                        </div>
+                
+                        <div class="standing-badge mt-3">
+                            <span class="badge 
+                                {% if scan.industry.benchmarks.percentile >= 75 %}bg-success
+                                {% elif scan.industry.benchmarks.percentile >= 50 %}bg-info
+                                {% elif scan.industry.benchmarks.percentile >= 25 %}bg-warning
+                                {% else %}bg-danger{% endif %}">
+                                {{ scan.industry.benchmarks.standing }}
+                            </span>
+                        </div>
+                
+                        <p class="mt-2">{{ scan.industry.benchmarks.message }}</p>
+                
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <h5>Recommended Compliance Standards</h5>
+                                <ul class="list-group">
+                                    {% for compliance in scan.industry.benchmarks.key_compliance %}
+                                    <li class="list-group-item">{{ compliance }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Critical Security Controls</h5>
+                                <ul class="list-group">
+                                    {% for control in scan.industry.benchmarks.critical_controls %}
+                                    <li class="list-group-item">{{ control }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
             {% else %}
             <div class="card-body text-center py-4">
