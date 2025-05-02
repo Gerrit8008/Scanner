@@ -604,121 +604,68 @@
         }
         
         // Setup form steps navigation
-        function setupFormSteps() {
-            const step1 = document.getElementById('step1');
-            const step2 = document.getElementById('step2');
-            const step3 = document.getElementById('step3');
-            const step4 = document.getElementById('step4');
-            
-            const step1Bullet = document.getElementById('step1-bullet');
-            const step2Bullet = document.getElementById('step2-bullet');
-            const step3Bullet = document.getElementById('step3-bullet');
-            const step4Bullet = document.getElementById('step4-bullet');
-            
-            // Next buttons
-            document.getElementById('step1Next').addEventListener('click', function() {
-                // Validate step 1 fields
-                const name = document.getElementById('name').value;
-                const company = document.getElementById('company').value;
-                const email = document.getElementById('email').value;
-                const privacyConsent = document.getElementById('privacy-consent').checked;
-                
-                if (!name || !company || !email || !privacyConsent) {
-                    alert('Please fill in all required fields and accept the privacy policy.');
+        function setupFormSubmission() {
+            const scanForm = document.getElementById('scanForm');
+            const scanProgress = document.getElementById('scanProgress');
+            const scanComplete = document.getElementById('scanComplete');
+    
+            scanForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+        
+                // Check terms consent
+                if (!document.getElementById('terms-consent').checked) {
+                    alert('Please accept the terms to proceed with the scan.');
                     return;
                 }
-                
-                // Move to step 2
-                step1.classList.remove('active');
-                step2.classList.add('active');
-                
-                // Update bullets
-                step1Bullet.classList.remove('active');
-                step1Bullet.classList.add('completed');
-                step2Bullet.classList.add('active');
-            });
+        
+                // Hide form, show progress
+                this.style.display = 'none';
+                scanProgress.style.display = 'block';
             
-            document.getElementById('step2Next').addEventListener('click', function() {
-                // Validate step 2 fields
-                const industry = document.getElementById('industry').value;
-                const companySize = document.getElementById('company-size').value;
-                const companyWebsite = document.getElementById('company-website').value;
+                // Scroll to top of progress
+                scanProgress.scrollIntoView({ behavior: 'smooth' });
+        
+                // Collect form data
+                const formData = new FormData(this);
+        
+                // Simulate scan progress for UI experience
+                simulateScanProgress();
+        
+                // Submit the form data to the server via AJAX
+                fetch('/scan', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.redirected) {
+                    // If the server redirects, follow that redirect
+                        window.location.href = response.url;
+                        return null;
+                    }
+                        return response.text();
+                })
+                .then(htmlContent => {
+                    if (htmlContent) {
+                        // If we got HTML content, display it
+                        scanProgress.style.display = 'none';
+                        scanComplete.style.display = 'block';
                 
-                if (!industry || !companySize || !companyWebsite) {
-                    alert('Please fill in all required fields.');
-                    return;
-                }
-                
-                // Move to step 3
-                step2.classList.remove('active');
-                step3.classList.add('active');
-                
-                // Update bullets
-                step2Bullet.classList.remove('active');
-                step2Bullet.classList.add('completed');
-                step3Bullet.classList.add('active');
-            });
-            
-            document.getElementById('step3Next').addEventListener('click', function() {
-                // At least one scan option should be selected
-                const scanOptions = document.querySelectorAll('input[name="scan_options[]"]:checked');
-                              
-                if (scanOptions.length === 0) {
-                    alert('Please select at least one scan option.');
-                    return;
-                }
-                
-                // Move to step 4
-                step3.classList.remove('active');
-                step4.classList.add('active');
-                
-                // Update bullets
-                step3Bullet.classList.remove('active');
-                step3Bullet.classList.add('completed');
-                step4Bullet.classList.add('active');
-                
-                // Update summary
-                document.getElementById('summary-name').textContent = document.getElementById('name').value;
-                document.getElementById('summary-company').textContent = document.getElementById('company').value;
-                document.getElementById('summary-website').textContent = 'https://' + document.getElementById('company-website').value;
-                document.getElementById('summary-email').textContent = document.getElementById('email').value;
-                
-                // Update selected scans
-                let selectedScans = [];
-                if (document.getElementById('network-scan').checked) selectedScans.push('Network Vulnerabilities');
-                if (document.getElementById('web-scan').checked) selectedScans.push('Web Application Vulnerabilities');
-                if (document.getElementById('ssl-scan').checked) selectedScans.push('SSL/TLS Configuration');
-                if (document.getElementById('dns-scan').checked) selectedScans.push('DNS Security Issues');
-                
-                document.getElementById('summary-scans').textContent = selectedScans.join(', ');
-            });
-            
-            // Previous buttons
-            document.getElementById('step2Prev').addEventListener('click', function() {
-                step2.classList.remove('active');
-                step1.classList.add('active');
-                
-                step2Bullet.classList.remove('active');
-                step1Bullet.classList.remove('completed');
-                step1Bullet.classList.add('active');
-            });
-            
-            document.getElementById('step3Prev').addEventListener('click', function() {
-                step3.classList.remove('active');
-                step2.classList.add('active');
-                
-                step3Bullet.classList.remove('active');
-                step2Bullet.classList.remove('completed');
-                step2Bullet.classList.add('active');
-            });
-            
-            document.getElementById('step4Prev').addEventListener('click', function() {
-                step4.classList.remove('active');
-                step3.classList.add('active');
-                
-                step4Bullet.classList.remove('active');
-                step3Bullet.classList.remove('completed');
-                step3Bullet.classList.add('active');
+                        // Update the "View Detailed Results" link to use the proper URL
+                        // (It will include the real scan_id from the session)
+                        const viewResultsBtn = document.querySelector('#scanComplete a.btn');
+                        viewResultsBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            window.location.href = '/results';
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while processing your scan. Please try again.');
+                    // Reset the form view
+                    scanProgress.style.display = 'none';
+                    this.style.display = 'block';
+                });
             });
         }
         
