@@ -917,3 +917,108 @@ body {
         margin-bottom: 1rem;
     }
 }
+.score-gauge {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.gauge {
+    width: 100%;
+    height: 100%;
+}
+
+.gauge-background {
+    fill: none;
+    stroke: #e6e6e6;
+    transform: rotate(135deg);
+    transform-origin: center;
+    stroke-dasharray: 339 339;
+}
+
+.gauge-value {
+    fill: none;
+    transform: rotate(135deg);
+    transform-origin: center;
+    transition: stroke-dasharray 1s ease;
+}
+
+.gauge-text {
+    font-size: 24px;
+    font-weight: bold;
+    dominant-baseline: middle;
+    text-anchor: middle;
+}
+
+.score-label {
+    position: absolute;
+    bottom: -30px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.comparison-meter {
+    position: relative;
+    height: 60px;
+    margin: 30px 0;
+}
+
+.meter-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.meter-track {
+    height: 8px;
+    background: linear-gradient(to right, #dc3545, #ffc107, #28a745);
+    border-radius: 4px;
+    position: relative;
+}
+
+.industry-avg-marker, .your-score-marker {
+    position: absolute;
+    transform: translateX(-50%);
+}
+
+.marker-line {
+    height: 16px;
+    width: 2px;
+    background-color: #333;
+    margin: 0 auto;
+}
+
+.industry-avg-marker .marker-line {
+    background-color: #6c757d;
+}
+
+.your-score-marker .marker-line {
+    background-color: #007bff;
+}
+
+.marker-label {
+    font-size: 12px;
+    white-space: nowrap;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.industry-avg-marker .marker-label {
+    top: 16px;
+}
+
+.your-score-marker .marker-label {
+    bottom: 16px;
+}
+
+.standing-badge .badge {
+    font-size: 16px;
+    padding: 8px 16px;
+    border-radius: 30px;
+}
