@@ -930,45 +930,82 @@
                 window.print();
             });
             
-            // Email report
-            document.getElementById('emailReportBtn').addEventListener('click', function() {
-                const modal = new bootstrap.Modal(document.getElementById('emailReportModal'));
-                modal.show();
-            });
+            // Enhanced Email report button handler
+            document.addEventListener('DOMContentLoaded', function() {
+                // Get the button and modal elements
+                const emailReportBtn = document.getElementById('emailReportBtn');
+                const emailReportModal = document.getElementById('emailReportModal');
+    
+                // Remove the existing event listener from the main script
+                if (emailReportBtn) {
+                    const newEmailBtn = emailReportBtn.cloneNode(true);
+                    emailReportBtn.parentNode.replaceWith(newEmailBtn, emailReportBtn);
+        
+                    // Add the event listener with improved modal handling
+                    document.getElementById('emailReportBtn').addEventListener('click', function(e) {
+                        e.preventDefault();
             
-            document.getElementById('emailReportForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const scanId = document.getElementById('scan-id').value;
-                const email = document.getElementById('emailAddress').value;
-                
-                if (!scanId || !email) {
-                    alert('Missing required information. Please try again.');
-                    return;
+                        // Create a bootstrap modal instance if it doesn't exist
+                        const modal = new bootstrap.Modal(emailReportModal);
+                        modal.show();
+                    });
                 }
+    
+                // Enhanced form submission with loading indicator
+                const emailReportForm = document.getElementById('emailReportForm');
+                if (emailReportForm) {
+                    // Remove any existing listeners
+                    const newForm = emailReportForm.cloneNode(true);
+                    emailReportForm.parentNode.replaceChild(newForm, emailReportForm);
+        
+                    // Add enhanced form submission handling
+                    document.getElementById('emailReportForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+            
+                        const submitBtn = this.querySelector('button[type="submit"]');
+                        const originalText = submitBtn.innerHTML;
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+            
+                        const scanId = document.getElementById('scan-id').value;
+                        const email = document.getElementById('emailAddress').value;
+            
+                        if (!scanId || !email) {
+                            alert('Missing required information. Please try again.');
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                            return;
+                        }
+                        
+                        fetch('/api/email_report', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `scan_id=${scanId}&email=${encodeURIComponent(email)}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
                 
-                fetch('/api/email_report', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `scan_id=${scanId}&email=${encodeURIComponent(email)}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert('The report has been sent to your email.');
-                    } else {
-                        alert('There was an error sending the report: ' + (data.message || 'Unknown error'));
-                    }
-                    
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('emailReportModal'));
-                    modal.hide();
-                })
-                .catch(error => {
-                    alert('Error: ' + error.message);
-                });
+                            if (data.status === 'success') {
+                                alert('The report has been sent to your email.');
+                            } else {
+                                alert('There was an error sending the report: ' + (data.message || 'Unknown error'));
+                            }
+                
+                            // Close modal properly
+                const modal = bootstrap.Modal.getInstance(emailReportModal);
+                            if (modal) modal.hide();
+                        })
+                        .catch(error => {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                            alert('Error: ' + error.message);
+                        });
+                    });
+                }
             });
             
             // Service inquiry buttons
