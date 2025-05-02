@@ -8,6 +8,21 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/css/styles.css">
     <style>
+        /* Root variables */
+        :root {
+            --primary-color: #ff6900;
+            --secondary-color: #333;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --border-color: #dee2e6;
+            --low-color: #28a745;
+            --medium-color: #ffc107;
+            --high-color: #dc3545;
+            --critical-color: #721c24;
+        }
+
         /* Additional styles for enhanced visuals */
         .animated-progress-fill {
             animation: progressAnimation 1.5s ease-out forwards;
@@ -43,6 +58,10 @@
         
         .finding {
             transition: transform 0.2s ease;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
         
         .finding:hover {
@@ -63,104 +82,24 @@
         
         .header {
             background: linear-gradient(135deg, var(--secondary-color) 0%, #343a40 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            margin-bottom: 2rem;
         }
         
         .footer {
             background: linear-gradient(135deg, var(--secondary-color) 0%, #343a40 100%);
+            color: white;
+            padding: 1.5rem 0;
+            margin-top: 3rem;
         }
         
         /* Improved severity badges */
         .severity {
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        }
-        
-        /* Smooth hover transitions */
-        .btn, .card, .summary-card {
-            transition: all 0.3s ease;
-        }
-        
-        /* Additional styles for results page */
-        :root {
-            --primary-color: #ff6900;
-            --secondary-color: #333;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --light-color: #f8f9fa;
-            --dark-color: #212529;
-            --border-color: #dee2e6;
-            --low-color: #28a745;
-            --medium-color: #ffc107;
-            --high-color: #dc3545;
-            --critical-color: #721c24;
-        }
-        
-        /* Print button styling */
-        .print-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-        
-        .print-button:hover {
-            transform: scale(1.1);
-            background-color: #e05e00;
-        }
-        
-        /* Icon styling */
-        .icon-circle {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background-color: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px auto;
-            border: 1px solid #e9ecef;
-        }
-        
-        .icon-circle i {
-            font-size: 2.5rem;
-            color: var(--primary-color);
-        }
-        
-        /* Finding and severity styles */
-        .finding {
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .finding .title {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-        
-        .finding .title span {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-        
-        .severity {
             padding: 5px 10px;
-            border-radius: 20px;
+            border-radius: 4px;
             font-size: 0.85rem;
             font-weight: 600;
             text-transform: uppercase;
@@ -186,6 +125,74 @@
             color: white;
         }
         
+        /* Smooth hover transitions */
+        .btn, .card, .summary-card {
+            transition: all 0.3s ease;
+        }
+        
+        /* Finding styles */
+        .finding .title {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .finding .title span {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        /* Core styles for page appearance */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.25rem 1.5rem;
+        }
+
+        .card-body {
+            padding: 2rem;
+            background-color: #fff;
+        }
+        
+        /* Icon styling */
+        .icon-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px auto;
+            border: 1px solid #e9ecef;
+        }
+        
+        .icon-circle i {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+        }
+        
         /* Status indicators */
         .status-indicator {
             display: inline-block;
@@ -199,12 +206,19 @@
             background-color: var(--critical-color);
         }
         
-        .status-pending {
-            background-color: var(--medium-color);
+        /* Score values */
+        .score-value {
+            font-size: 3rem;
+            font-weight: bold;
+            line-height: 1;
+            color: white;
         }
         
-        .status-complete {
-            background-color: var(--low-color);
+        .score-label {
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: white;
         }
         
         /* Badge backgrounds */
@@ -259,20 +273,6 @@
             transition: width 1.5s ease-out;
         }
         
-        /* Score values */
-        .score-value {
-            font-size: 3rem;
-            font-weight: bold;
-            line-height: 1;
-            margin-bottom: 5px;
-        }
-        
-        .score-label {
-            font-size: 1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
         .summary-value {
             font-size: 2rem;
             font-weight: bold;
@@ -288,27 +288,30 @@
             color: var(--secondary-color);
         }
         
-        /* Print styles */
-        @media print {
-            .print-button, .no-print {
-                display: none !important;
-            }
-            
-            .card {
-                box-shadow: none !important;
-                border: 1px solid #ddd !important;
-            }
-            
-            body {
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            
-            .container {
-                width: 100% !important;
-                max-width: none !important;
-                padding: 0 !important;
-            }
+        /* Print button styling */
+        .print-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .print-button:hover {
+            transform: scale(1.1);
+            background-color: #e05e00;
         }
     </style>
 </head>
@@ -321,9 +324,9 @@
             </div>
             <img src="/static/images/logo.png" alt="Company Logo" class="logo" onerror="this.style.display='none';">
             <h1>Comprehensive Security Scan Results</h1>
-            <p class="mb-0">April 30, 2025</p>
+            <p class="mb-0">Scan date: {{ scan.timestamp|default('April 30, 2025') }}</p>
             <!-- Hidden scan_id field for email functionality -->
-            <input type="hidden" id="scan-id" value="{{ scan.scan_id }}">
+            <input type="hidden" id="scan-id" value="{{ scan.scan_id|default('') }}">
             
             <!-- Report Action Buttons -->
             <div class="mt-3">
@@ -338,44 +341,27 @@
     </div>
 
     <div class="container">
-        <!-- Warning Alert for Critical Issues -->
-        {% if scan.risk_assessment and scan.risk_assessment.overall_score < 50 %}
-        <div id="warningAlert" class="alert alert-danger warning-alert scale-in">
-            <div class="d-flex align-items-center">
-                <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 2.5rem;"></i>
-                <div>
-                    <strong>CRITICAL VULNERABILITIES DETECTED!</strong>
-                    <p class="mb-2">Contact us immediately for assistance with the critical security issues identified below.</p>
-                    <div class="mt-3">
-                        <a href="tel:+14704810400" class="btn btn-danger me-2">
-                            <i class="bi bi-telephone-fill me-2"></i> Call Now: 470-481-0400
-                        </a>
-                        <a href="mailto:sales@cengatech.com" class="btn btn-danger">
-                            <i class="bi bi-envelope-fill me-2"></i> Email Us
-                        </a>
-                    </div>
+        <!-- Overall Risk Score -->
+        <div class="card risk-score my-4">
+            {% if scan.risk_assessment and scan.risk_assessment.overall_score is defined %}
+            <div class="card-body text-center py-4">
+                <div class="score-badge {% if scan.risk_assessment.risk_level == 'Low' %}bg-low{% elif scan.risk_assessment.risk_level == 'Medium' %}bg-medium{% elif scan.risk_assessment.risk_level == 'High' %}bg-high{% else %}bg-critical{% endif %}">
+                    <div class="score-value">{{ scan.risk_assessment.overall_score }}</div>
+                    <div class="score-label">{{ scan.risk_assessment.risk_level }} RISK</div>
                 </div>
             </div>
-        </div>
-        {% endif %}
-
-        <!-- Overall Risk Score -->
-        <div class="card risk-score fade-in my-4">
-            {% if scan.risk_assessment and scan.risk_assessment.overall_score is defined %}
-            <div class="score-badge {% if scan.risk_assessment.risk_level == 'Low' %}bg-low{% elif scan.risk_assessment.risk_level == 'Medium' %}bg-medium{% elif scan.risk_assessment.risk_level == 'High' %}bg-high{% else %}bg-critical{% endif %} scale-in">
-                <div class="score-value text-white">{{ scan.risk_assessment.overall_score }}</div>
-                <div class="score-label text-white">{{ scan.risk_assessment.risk_level }} RISK</div>
-            </div>
             {% else %}
-            <div class="score-badge bg-medium scale-in">
-                <div class="score-value text-white">N/A</div>
-                <div class="score-label text-white">UNKNOWN</div>
+            <div class="card-body text-center py-4">
+                <div class="score-badge bg-medium">
+                    <div class="score-value">N/A</div>
+                    <div class="score-label">UNKNOWN</div>
+                </div>
             </div>
             {% endif %}
         </div>
         
         <!-- Executive Summary -->
-        <div class="card mb-4 fade-in">
+        <div class="card mb-4">
             <div class="card-header">
                 <i class="bi bi-clipboard-data"></i>
                 <h2 class="mb-0">Executive Summary</h2>
@@ -387,12 +373,21 @@
                             <i class="bi bi-shield-exclamation"></i>
                         </div>
                         <h3>Security Score</h3>
-                        <div class="summary-value {% if scan.risk_assessment.overall_score > 75 %}score-low{% elif scan.risk_assessment.overall_score > 50 %}score-medium{% else %}score-high{% endif %}">
-                            {{ scan.risk_assessment.overall_score }}/100
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill animated-progress-fill" style="--progress-width: {{ scan.risk_assessment.overall_score }}%; background-color: {% if scan.risk_assessment.overall_score > 75 %}var(--low-color){% elif scan.risk_assessment.overall_score > 50 %}var(--medium-color){% else %}var(--high-color){% endif %}"></div>
-                        </div>
+                        {% if scan.risk_assessment and scan.risk_assessment.overall_score is defined %}
+                            <div class="summary-value {% if scan.risk_assessment.overall_score > 75 %}text-low{% elif scan.risk_assessment.overall_score > 50 %}text-medium{% else %}text-high{% endif %}">
+                                {{ scan.risk_assessment.overall_score }}/100
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ scan.risk_assessment.overall_score }}%; background-color: {% if scan.risk_assessment.overall_score > 75 %}var(--low-color){% elif scan.risk_assessment.overall_score > 50 %}var(--medium-color){% else %}var(--high-color){% endif %}"></div>
+                            </div>
+                        {% else %}
+                            <div class="summary-value text-medium">
+                                75/100
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 75%; background-color: var(--medium-color)"></div>
+                            </div>
+                        {% endif %}
                     </div>
                     
                     <div class="col-md-4 mb-4 text-center">
@@ -425,59 +420,8 @@
             </div>
         </div>
 
-        <!-- Understanding the Executive Summary - Explanation Card -->
-        <div class="card mb-4 fade-in explanation">
-            <div class="card-header">
-                <i class="bi bi-lightbulb"></i>
-                <h3 class="mb-0">Understanding the Executive Summary</h3>
-            </div>
-            <div class="card-body">
-                <p>The Executive Summary provides a high-level overview of your security posture:</p>
-                <ul>
-                    <li><strong>Security Score:</strong> Indicates your overall security level on a scale of 0-100. Higher scores mean better protection.</li>
-                    <li><strong>Critical Issues:</strong> Vulnerabilities that require immediate attention due to their high risk potential.</li>
-                    <li><strong>Secure Elements:</strong> Areas where your security practices meet or exceed industry standards.</li>
-                </ul>
-                
-                <!-- Dynamic explanation based on score -->
-                {% if scan.risk_assessment and scan.risk_assessment.overall_score is defined %}
-                  {% if scan.risk_assessment.overall_score >= 90 %}
-                  <div class="alert alert-success">
-                      <i class="bi bi-check-circle-fill me-2"></i>
-                      <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Excellent! Your security posture is very strong. Continue maintaining these high standards with regular assessments and staying current with evolving threats.
-                  </div>
-                  {% elif scan.risk_assessment.overall_score >= 75 %}
-                  <div class="alert alert-success">
-                      <i class="bi bi-check-circle-fill me-2"></i>
-                      <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Good job! Your security measures are effective, though there are some areas that could be improved. Address the medium-risk issues identified to further strengthen your security posture.
-                  </div>
-                  {% elif scan.risk_assessment.overall_score >= 60 %}
-                  <div class="alert alert-warning">
-                      <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                      <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Your security posture needs attention. Several vulnerabilities have been detected that could put your systems at risk. Prioritize addressing the high-risk issues identified in this report.
-                  </div>
-                  {% elif scan.risk_assessment.overall_score >= 40 %}
-                  <div class="alert alert-danger">
-                      <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                      <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Your systems have significant security gaps that require immediate attention. These vulnerabilities could be exploited by attackers, putting your data and operations at risk.
-                  </div>
-                  {% else %}
-                  <div class="alert alert-danger">
-                      <i class="bi bi-x-circle-fill me-2"></i>
-                      <strong>Your Score ({{ scan.risk_assessment.overall_score }}):</strong> Critical security issues detected! Your systems are at high risk of compromise. Immediate remediation is strongly recommended to protect your data and systems from attack.
-                  </div>
-                  {% endif %}
-                {% endif %}
-                
-                <div class="alert alert-info mt-3">
-                    <i class="bi bi-info-circle-fill me-2"></i>
-                    <strong>Why This Matters:</strong> This summary helps you prioritize security efforts based on risk level and potential impact to your organization.
-                </div>
-            </div>
-        </div>
-
-        <!-- Placeholder for Vulnerability Details Section -->
-        <div class="card mb-4 fade-in">
+        <!-- Vulnerability Details Section -->
+        <div class="card mb-4">
             <div class="card-header">
                 <i class="bi bi-shield-exclamation"></i>
                 <h2 class="mb-0">Vulnerability Details</h2>
@@ -488,7 +432,7 @@
                 
                 <div class="findings">
                     <!-- Example Critical Finding -->
-                    <div class="finding critical">
+                    <div class="finding">
                         <div class="title">
                             <span>Outdated SSL/TLS Configuration</span>
                             <span class="severity critical">Critical</span>
@@ -511,7 +455,7 @@
                 
                 <div class="findings">
                     <!-- Example High Severity Finding -->
-                    <div class="finding high">
+                    <div class="finding">
                         <div class="title">
                             <span>Missing Security Headers</span>
                             <span class="severity high">High</span>
@@ -534,7 +478,7 @@
                 
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="finding medium">
+                        <div class="finding">
                             <div class="title">
                                 <span>Insecure Cookie Configuration</span>
                                 <span class="severity medium">Medium</span>
@@ -543,7 +487,7 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="finding low">
+                        <div class="finding">
                             <div class="title">
                                 <span>Server Information Disclosure</span>
                                 <span class="severity low">Low</span>
@@ -556,7 +500,7 @@
         </div>
 
         <!-- Remediation Plan Section -->
-        <div class="card mb-4 fade-in">
+        <div class="card mb-4">
             <div class="card-header">
                 <i class="bi bi-tools"></i>
                 <h2 class="mb-0">Remediation Plan</h2>
@@ -582,21 +526,21 @@
                             <tr>
                                 <td>1</td>
                                 <td>Upgrade SSL/TLS Configuration</td>
-                                <td><span class="badge bg-critical">Critical</span></td>
+                                <td><span class="badge bg-danger">Critical</span></td>
                                 <td>Medium</td>
                                 <td><span class="status-indicator status-critical"></span> Not Started</td>
                             </tr>
                             <tr>
                                 <td>2</td>
                                 <td>Implement Security Headers</td>
-                                <td><span class="badge bg-high">High</span></td>
+                                <td><span class="badge bg-warning text-dark">High</span></td>
                                 <td>Low</td>
                                 <td><span class="status-indicator status-critical"></span> Not Started</td>
                             </tr>
                             <tr>
                                 <td>3</td>
                                 <td>Secure Cookie Configuration</td>
-                                <td><span class="badge bg-medium">Medium</span></td>
+                                <td><span class="badge bg-info text-dark">Medium</span></td>
                                 <td>Low</td>
                                 <td><span class="status-indicator status-critical"></span> Not Started</td>
                             </tr>
@@ -605,7 +549,7 @@
                 </div>
                 
                 <div class="text-center mt-4">
-                    <a href="#" class="btn btn-primary service-inquiry-btn" data-service="Security Remediation" data-findings="3">
+                    <a href="#" class="btn btn-primary" id="remediation-help-btn">
                         <i class="bi bi-shield-check me-2"></i> Get Expert Remediation Help
                     </a>
                 </div>
@@ -630,299 +574,69 @@
         <i class="bi bi-printer"></i>
     </button>
 
-    <!-- Service Inquiry Modal -->
-    <div class="modal fade" id="serviceInquiryModal" tabindex="-1" aria-labelledby="serviceInquiryModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="serviceInquiryModalLabel">Learn More About Our Services</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>We've detected <span id="findingCount" class="text-danger fw-bold">several</span> issues 
-                    related to <span id="serviceName" class="fw-bold">security services</span>.</p>
-                    
-                    <p>Our team can help you address these issues with tailored solutions. 
-                    Please provide your information below to receive detailed information about our services:</p>
-                    
-                    <form id="serviceInquiryForm">
-                        <input type="hidden" id="inquiryService" name="service">
-                        <input type="hidden" id="inquiryFindings" name="findings">
-                        <input type="hidden" id="inquiryScanId" name="scan_id" value="{{ scan.scan_id }}">
-                        
-                        <div class="mb-3">
-                            <label for="inquiryName" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="inquiryName" name="name" 
-                                   value="{{ scan.client_info.name }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="inquiryEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="inquiryEmail" name="email" 
-                                   value="{{ scan.client_info.email }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="inquiryPhone" class="form-label">Phone (optional)</label>
-                            <input type="tel" class="form-control" id="inquiryPhone" name="phone" 
-                                   value="{{ scan.client_info.phone }}">
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="inquiryMessage" class="form-label">Additional Information</label>
-                            <textarea class="form-control" id="inquiryMessage" name="message" rows="3"
-                                     placeholder="Please share any specific concerns or questions..."></textarea>
-                        </div>
-                        
-                        <div class="text-center mt-4">
-                            <button type="button" class="btn btn-primary" id="submitInquiryBtn">
-                                <i class="bi bi-send me-2"></i> Submit Inquiry
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Email Report Modal -->
-    <div class="modal fade" id="emailReportModal" tabindex="-1" aria-labelledby="emailReportModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="emailReportModalLabel">Email Security Report</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Please provide the email address where you'd like to receive this security report:</p>
-                    
-                    <form id="emailReportForm">
-                        <input type="hidden" name="scan_id" value="{{ scan.scan_id }}">
-                        
-                        <div class="mb-3">
-                            <label for="reportEmail" class="form-label">Email Address</label>
-                            <input type="email" class="form-control" id="reportEmail" name="email" 
-                                   value="{{ scan.client_info.email }}" required>
-                        </div>
-                        
-                        <div class="text-center mt-4">
-                            <button type="button" class="btn btn-primary" id="sendReportBtn">
-                                <i class="bi bi-envelope me-2"></i> Send Report
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- JavaScript -->
+    <!-- Simple JavaScript for essential functionality -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        /* Debug code to prevent page disappearing */
-        console.log('Results page loaded successfully at ' + new Date().toLocaleTimeString());
+        // Log page load
+        console.log('Results page loaded at ' + new Date().toLocaleTimeString());
+
+        // Safe function to get element
+        function getElement(id) {
+            return document.getElementById(id);
+        }
         
-        // Log navigation attempts
-        window.addEventListener('beforeunload', function(e) {
-            console.log('Navigation attempt at ' + new Date().toLocaleTimeString());
-            // Uncomment this to prevent navigation away (for debugging only)
-            // e.preventDefault();
-            // e.returnValue = '';
-        });
-        
-        // Log errors that might cause page to crash
-        window.addEventListener('error', function(e) {
-            console.error('JavaScript error occurred:', e.message);
-            console.error('File:', e.filename);
-            console.error('Line:', e.lineno);
-            console.error('Column:', e.colno);
-            console.error('Error object:', e.error);
-            
-            // Prevent the error from crashing the page
-            e.preventDefault();
-            
-            // Show error message to user
-            alert('An error occurred: ' + e.message);
-        });
-        
+        // Simple event handling
         document.addEventListener('DOMContentLoaded', function() {
-            // Log that DOM content is fully loaded
-            console.log('DOM content fully loaded at ' + new Date().toLocaleTimeString());
-            
-            // Toggle explanations
-            const toggleExplanations = document.getElementById('toggleExplanations');
-            if (toggleExplanations) {
-                toggleExplanations.addEventListener('change', function() {
-                    const explanations = document.querySelectorAll('.explanation');
-                    explanations.forEach(el => {
-                        if (this.checked) {
-                            el.style.display = 'block';
-                        } else {
-                            el.style.display = 'none';
-                        }
-                    });
-                });
-            }
-            
-            // Email report button
-            const emailReportBtn = document.getElementById('emailReportBtn');
-            if (emailReportBtn) {
-                emailReportBtn.addEventListener('click', function() {
-                    const emailReportModal = new bootstrap.Modal(document.getElementById('emailReportModal'));
-                    emailReportModal.show();
-                });
-            }
-            
-            // Send report button
-            const sendReportBtn = document.getElementById('sendReportBtn');
-            if (sendReportBtn) {
-                sendReportBtn.addEventListener('click', function() {
-                    const form = document.getElementById('emailReportForm');
-                    const email = form.querySelector('input[name="email"]').value;
-                    const scanId = form.querySelector('input[name="scan_id"]').value;
-                    
-                    if (!email) {
-                        alert('Please enter an email address.');
-                        return;
-                    }
-                    
-                    // Disable button and show loading state
-                    this.disabled = true;
-                    this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
-                    
-                    // Send request to server
-                    fetch('/api/email_report', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: new URLSearchParams({
-                            scan_id: scanId,
-                            email: email
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        // Re-enable button
-                        sendReportBtn.disabled = false;
-                        sendReportBtn.innerHTML = '<i class="bi bi-envelope me-2"></i> Send Report';
-                        
-                        if (data.status === 'success') {
-                            alert('Report sent successfully!');
-                            bootstrap.Modal.getInstance(document.getElementById('emailReportModal')).hide();
-                        } else {
-                            alert('Error sending report: ' + (data.message || 'Unknown error'));
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        sendReportBtn.disabled = false;
-                        sendReportBtn.innerHTML = '<i class="bi bi-envelope me-2"></i> Send Report';
-                        alert('Error sending report: ' + error.message);
-                    });
-                });
-            }
-            
-            // Print report button
-            const printReportBtn = document.getElementById('printReportBtn');
-            if (printReportBtn) {
-                printReportBtn.addEventListener('click', function() {
+            // Print button
+            var printBtn = getElement('printReportBtn');
+            if (printBtn) {
+                printBtn.addEventListener('click', function() {
                     window.print();
                 });
             }
             
             // Floating print button
-            const floatingPrintBtn = document.getElementById('floatingPrintBtn');
+            var floatingPrintBtn = getElement('floatingPrintBtn');
             if (floatingPrintBtn) {
                 floatingPrintBtn.addEventListener('click', function() {
                     window.print();
                 });
             }
             
-            // Service inquiry button
-            const serviceInquiryBtns = document.querySelectorAll('.service-inquiry-btn');
-            serviceInquiryBtns.forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    const service = this.getAttribute('data-service');
-                    const findings = this.getAttribute('data-findings');
-                    
-                    // Update modal fields
-                    document.getElementById('serviceName').textContent = service;
-                    document.getElementById('findingCount').textContent = findings;
-                    document.getElementById('inquiryService').value = service;
-                    document.getElementById('inquiryFindings').value = findings;
-                    
-                    // Show modal
-                    const modal = new bootstrap.Modal(document.getElementById('serviceInquiryModal'));
-                    modal.show();
-                });
-            });
-            
-            // Submit inquiry button
-            const submitInquiryBtn = document.getElementById('submitInquiryBtn');
-            if (submitInquiryBtn) {
-                submitInquiryBtn.addEventListener('click', function() {
-                    const form = document.getElementById('serviceInquiryForm');
-                    const name = form.querySelector('#inquiryName').value;
-                    const email = form.querySelector('#inquiryEmail').value;
-                    
-                    if (!name || !email) {
-                        alert('Please provide your name and email address.');
-                        return;
-                    }
-                    
-                    // Disable button and show loading state
-                    this.disabled = true;
-                    this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
-                    
-                    // Prepare form data
-                    const formData = new FormData(form);
-                    
-                    // Send request to server
-                    fetch('/api/service_inquiry', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        // Re-enable button
-                        submitInquiryBtn.disabled = false;
-                        submitInquiryBtn.innerHTML = '<i class="bi bi-send me-2"></i> Submit Inquiry';
-                        
-                        if (data.status === 'success') {
-                            alert('Your inquiry has been submitted successfully! Our team will contact you shortly.');
-                            bootstrap.Modal.getInstance(document.getElementById('serviceInquiryModal')).hide();
-                        } else {
-                            alert('Error submitting inquiry: ' + (data.message || 'Unknown error'));
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        submitInquiryBtn.disabled = false;
-                        submitInquiryBtn.innerHTML = '<i class="bi bi-send me-2"></i> Submit Inquiry';
-                        alert('Error submitting inquiry: ' + error.message);
-                    });
+            // Toggle explanations
+            var toggleExplanations = getElement('toggleExplanations');
+            if (toggleExplanations) {
+                toggleExplanations.addEventListener('change', function() {
+                    var explanations = document.querySelectorAll('.explanation');
+                    explanations.forEach(function(el) {
+                        el.style.display = this.checked ? 'block' : 'none';
+                    }.bind(this));
                 });
             }
             
-            // Animate progress bars
-            document.querySelectorAll('.animated-progress-fill').forEach(el => {
-                // Get the width from the CSS variable
-                const width = getComputedStyle(el).getPropertyValue('--progress-width');
-                
-                // Apply animation
-                setTimeout(() => {
-                    el.style.width = width;
-                }, 100);
-            });
+            // Email report button
+            var emailReportBtn = getElement('emailReportBtn');
+            if (emailReportBtn) {
+                emailReportBtn.addEventListener('click', function() {
+                    alert('Email report functionality will be implemented soon.');
+                });
+            }
             
-            // Animate scale-in elements
-            document.querySelectorAll('.scale-in').forEach((el, index) => {
-                setTimeout(() => {
-                    el.style.animation = 'scaleIn 0.5s ease-out forwards';
-                }, 100 * index);
+            // Remediation help button
+            var remediationHelpBtn = getElement('remediation-help-btn');
+            if (remediationHelpBtn) {
+                remediationHelpBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    alert('Our experts will contact you soon to help with remediation.');
+                });
+            }
+            
+            // Animate progress fills after page loads
+            var progressFills = document.querySelectorAll('.progress-fill');
+            progressFills.forEach(function(el) {
+                setTimeout(function() {
+                    el.style.width = el.style.width || '75%';
+                }, 100);
             });
         });
     </script>
