@@ -2292,37 +2292,37 @@ def generate_html_report(scan_results, is_integrated=False, output_dir=None):
                     </div>
                 """
         
-       # Add threat scenarios section
-      if 'threat_scenarios' in scan_results:
-          html += """
-              <h2>Potential Threat Scenarios</h2>
-              <p>Based on the security scan results, these are potential threats that could affect your systems:</p>
-          """
+         # Add threat scenarios section
+        if 'threat_scenarios' in scan_results:
+            html += """
+                <h2>Potential Threat Scenarios</h2>
+                <p>Based on the security scan results, these are potential threats that could affect your systems:</p>
+            """
     
-          for threat in scan_results.get('threat_scenarios', []):
-              name = threat.get('name', 'Unknown Threat')
-              description = threat.get('description', 'No description provided')
-              impact = threat.get('impact', 'Unknown')
-              likelihood = threat.get('likelihood', 'Unknown')
+            for threat in scan_results.get('threat_scenarios', []):
+                name = threat.get('name', 'Unknown Threat')
+                description = threat.get('description', 'No description provided')
+                impact = threat.get('impact', 'Unknown')
+                likelihood = threat.get('likelihood', 'Unknown')
         
-              html += f"""
-                  <div class="threat">
-                      <h3>{name}</h3>
-                      <p>{description}</p>
-                      <p><strong>Impact:</strong> {impact} | <strong>Likelihood:</strong> {likelihood}</p>
-                  </div>
-              """
+                html += f"""
+                    <div class="threat">
+                        <h3>{name}</h3>
+                        <p>{description}</p>
+                        <p><strong>Impact:</strong> {impact} | <strong>Likelihood:</strong> {likelihood}</p>
+                    </div>
+                """
         
-              # Add footer
-              html += """
-                      <div class="footer">
-                          <p>This report was generated automatically and is intended for informational purposes only.</p>
-                          <p>For a comprehensive security assessment, contact a cybersecurity professional.</p>
-                      </div>
-                  </div>
-              </body>
-              </html>
-              """
+                # Add footer
+                html += """
+                        <div class="footer">
+                            <p>This report was generated automatically and is intended for informational purposes only.</p>
+                            <p>For a comprehensive security assessment, contact a cybersecurity professional.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
         
         return html
     except Exception as e:
