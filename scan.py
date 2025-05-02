@@ -582,76 +582,47 @@ def server_lookup(domain):
 
 def get_client_and_gateway_ip(request):
     """
-    Detects client IP and makes educated guesses about possible gateway IPs
-    based on common network configurations.
+    Detect client IP and guess possible gateway IPs based on common network configurations.
     """
-    # Get client IP (this will get the actual client IP or proxy IP)
-    client_ip = request.remote_addr
-    
-    # For more accurate client IP detection in production environments
-    # with proxies or load balancers, check the X-Forwarded-For header
-    if request.headers.get('X-Forwarded-For'):
-        # The first IP in the list is usually the client's real IP
-        forwarded_ips = request.headers.get('X-Forwarded-For').split(',')
-        client_ip = forwarded_ips[0].strip()
-    
-    # Initialize variables
-    gateway_guesses = []
-    network_type = "Unknown"
-    
     try:
-        # Parse the IP address to determine if it's public or private
-        ip_obj = ipaddress.ip_address(client_ip)
+        # Get client IP from request
+        client_ip = request.remote_addr or "0.0.0.0"  # Default to 0.0.0.0 if remote_addr is None
+        if request.headers.get('X-Forwarded-For'):
+            forwarded_ips = request.headers.get('X-Forwarded-For').split(',')
+            if forwarded_ips and forwarded_ips[0].strip():
+                client_ip = forwarded_ips[0].strip()
+            else:
+                logging.warning("X-Forwarded-For header is empty or invalid.")
         
+        # Validate client IP
+        ip_obj = ipaddress.ip_address(client_ip)
+        gateway_guesses = []
+        network_type = "Unknown"
+
         if ip_obj.is_private:
-            # Client is on a private network
             network_type = "Private Network"
-            
-            # Determine network class and make gateway guesses
             if client_ip.startswith('192.168.'):
-                # Class C private network (most common for home networks)
-                network_type = "Class C Private Network (typical home/small office)"
                 first_two_octets = '.'.join(client_ip.split('.')[:2])
-                gateway_guesses = [
-                    f"{first_two_octets}.0.1",     # 192.168.0.1
-                    f"{first_two_octets}.1.1",     # 192.168.1.1
-                    f"{first_two_octets}.0.254",   # 192.168.0.254
-                    f"{first_two_octets}.1.254"    # 192.168.1.254
-                ]
+                gateway_guesses = [f"{first_two_octets}.1", f"{first_two_octets}.254"]
             elif client_ip.startswith('10.'):
-                # Class A private network (common in larger organizations)
-                network_type = "Class A Private Network (typical for larger organizations)"
                 first_octet = client_ip.split('.')[0]
-                second_octet = client_ip.split('.')[1]
-                gateway_guesses = [
-                    f"{first_octet}.{second_octet}.0.1",
-                    f"{first_octet}.0.0.1",
-                    f"{first_octet}.{second_octet}.0.254",
-                    f"{first_octet}.0.0.254"
-                ]
+                gateway_guesses = [f"{first_octet}.0.0.1", f"{first_octet}.255.255.254"]
             elif client_ip.startswith('172.'):
-                # Check if it's in the 172.16.0.0 to 172.31.255.255 range (Class B)
                 second_octet = int(client_ip.split('.')[1])
                 if 16 <= second_octet <= 31:
-                    network_type = "Class B Private Network"
                     first_two_octets = '.'.join(client_ip.split('.')[:2])
-                    gateway_guesses = [
-                        f"{first_two_octets}.0.1",
-                        f"{first_two_octets}.1.1",
-                        f"{first_two_octets}.0.254",
-                        f"{first_two_octets}.1.254"
-                    ]
+                    gateway_guesses = [f"{first_two_octets}.1", f"{first_two_octets}.254"]
         else:
-            # Client is on a public network
             network_type = "Public Network"
-            # Can't reliably guess gateway IP for public networks
-            gateway_guesses = ["Gateway detection not possible for public IP addresses"]
-            
-    except ValueError:
-        # Invalid IP address
-        return client_ip, ["Invalid IP format - cannot determine gateway"], "Unknown"
-    
-    return client_ip, gateway_guesses, network_type
+            gateway_guesses = ["Gateway detection not possible for public IPs"]
+
+        return client_ip, gateway_guesses, network_type
+    except ValueError as e:
+        logging.error(f"Invalid client IP: {e}")
+        return "Invalid IP", ["No valid gateway guesses"], "Unknown"
+    except IndexError as e:
+        logging.error(f"Error during gateway checks: {e}")
+        return "Invalid IP", ["No valid gateway guesses"], "Unknown"
 
 def get_default_gateway_ip(request):
     """Enhanced gateway IP detection for web environment"""
