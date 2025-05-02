@@ -98,6 +98,7 @@ def save_scan_results(scan_results):
         logging.error(f"Error saving scan results to database: {e}")
         logging.debug(traceback.format_exc())
         return None
+        
 def get_scan_results(scan_id):
     """Retrieve scan results from database"""
     try:
@@ -125,7 +126,7 @@ def get_scan_results(scan_id):
         
         # Add the HTML report back (if available)
         if row['html_report']:
-            scan_results['html_report'] = row['html_report']
+            scan_results['complete_html_report'] = row['html_report']
         
         conn.close()
         logging.info(f"Retrieved scan results for ID: {scan_id}")
