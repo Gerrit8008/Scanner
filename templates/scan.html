@@ -522,26 +522,248 @@
                     </div>
                 </div>
                 
-                <!-- What We Scan Card -->
-                <div class="card mb-4 fade-in">
-                    <div class="card-header">
-                        <i class="bi bi-search"></i>
-                        <h2 class="mb-0">What We Scan</h2>
+                <!-- What We Scan Section -->
+<div class="card mb-4 fade-in">
+    <div class="card-header">
+        <i class="bi bi-search"></i>
+        <h2 class="mb-0">What We Scan</h2>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-primary mb-4">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Comprehensive Security Assessment:</strong>
+            <p class="mb-0">Our multi-layered security scan examines your organization's digital footprint across all major vulnerability areas, providing a complete view of your security posture.</p>
+        </div>
+        
+        <div class="row">
+            <!-- Network Security -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100 finding">
+                    <div class="card-header bg-light">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle me-3">
+                                <i class="bi bi-hdd-network"></i>
+                            </div>
+                            <h4 class="mb-0">Network Security</h4>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-3 mb-4">
-                                <div class="summary-card text-center h-100">
-                                    <div class="icon-circle">
-                                        <i class="bi bi-hdd-network"></i>
-                                    </div>
-                                    <h4>Network Security</h4>
-                                    <ul class="list-unstyled text-start">
-                                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Open Ports</li>
-                                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Exposed Services</li>
-                                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Gateway Security</li>
-                                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Firewall Configuration</li>
-                                    </ul>
+                        <p class="text-muted mb-3">We analyze your network infrastructure to identify potential entry points for attackers.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>Open Port Detection</strong>
+                        </div>
+                        <p class="text-muted small ms-4 mb-3">We identify exposed services on your network that could be exploited by attackers.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>Gateway Security Analysis</strong>
+                        </div>
+                        <p class="text-muted small ms-4 mb-3">We examine your network gateways to ensure they're properly configured and protected.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>Firewall Configuration Check</strong>
+                        </div>
+                        <p class="text-muted small ms-4">We verify your firewall settings to ensure unauthorized access is properly blocked.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Web Security -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100 finding">
+                    <div class="card-header bg-light">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle me-3">
+                                <i class="bi bi-globe"></i>
+                            </div>
+                            <h4 class="mb-0">Web Security</h4>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">We examine your web presence to identify vulnerabilities that could lead to compromises.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>SSL/TLS Certificate Analysis</strong>
+                        </div>
+                        <p class="text-muted small ms-4 mb-3">We verify that your encryption is up-to-date and properly configured.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>Security Headers Assessment</strong>
+                        </div>
+                        <p class="text-muted small ms-4 mb-3">We check for HTTP security headers that protect against common web attacks.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>CMS Vulnerability Detection</strong>
+                        </div>
+                        <p class="text-muted small ms-4">We identify outdated content management systems with known security flaws.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Email Security -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100 finding">
+                    <div class="card-header bg-light">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle me-3">
+                                <i class="bi bi-envelope"></i>
+                            </div>
+                            <h4 class="mb-0">Email Security</h4>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">We analyze your email configuration to prevent spoofing and phishing attacks.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>SPF Record Verification</strong>
+                        </div>
+                        <p class="text-muted small ms-4 mb-3">We check if you've properly specified which servers can send email on your behalf.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>DKIM Implementation Check</strong>
+                        </div>
+                        <p class="text-muted small ms-4 mb-3">We verify if your emails are cryptographically signed to prove authenticity.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>DMARC Policy Analysis</strong>
+                        </div>
+                        <p class="text-muted small ms-4">We examine how your domain handles emails that fail authentication checks.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Security -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100 finding">
+                    <div class="card-header bg-light">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle me-3">
+                                <i class="bi bi-shield-lock"></i>
+                            </div>
+                            <h4 class="mb-0">System Security</h4>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">We examine your system configuration to identify security weaknesses.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>OS Update Verification</strong>
+                        </div>
+                        <p class="text-muted small ms-4 mb-3">We check if your systems have critical security patches installed.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>Firewall Status Check</strong>
+                        </div>
+                        <p class="text-muted small ms-4 mb-3">We verify your firewall is active and properly configured.</p>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator status-good me-2"></span>
+                            <strong>Security Policy Analysis</strong>
+                        </div>
+                        <p class="text-muted small ms-4">We review your security settings for potential weaknesses.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Advanced Scan Options -->
+        <div class="card mt-3">
+            <div class="card-header bg-light">
+                <h4 class="mb-0"><i class="bi bi-gear-fill me-2"></i>Advanced Scan Options</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <span class="badge rounded-pill bg-primary"><i class="bi bi-search"></i></span>
+                            </div>
+                            <div>
+                                <h5 class="mb-1">Deep Content Analysis</h5>
+                                <p class="text-muted small mb-0">Scans for sensitive content exposure, insecure error messages, and information leakage.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <span class="badge rounded-pill bg-primary"><i class="bi bi-database"></i></span>
+                            </div>
+                            <div>
+                                <h5 class="mb-1">DNS Security Analysis</h5>
+                                <p class="text-muted small mb-0">Examines DNS records for misconfigurations and security vulnerabilities.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <span class="badge rounded-pill bg-primary"><i class="bi bi-plugin"></i></span>
+                            </div>
+                            <div>
+                                <h5 class="mb-1">Plugin & Extension Audit</h5>
+                                <p class="text-muted small mb-0">Identifies outdated or vulnerable plugins that could compromise your security.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <span class="badge rounded-pill bg-primary"><i class="bi bi-card-checklist"></i></span>
+                            </div>
+                            <div>
+                                <h5 class="mb-1">Compliance Check</h5>
+                                <p class="text-muted small mb-0">Evaluates your security posture against industry standards and regulations.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Industry Benchmark -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h4 class="mb-0"><i class="bi bi-graph-up me-2"></i>Industry Benchmarking</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Our scan compares your security posture against industry benchmarks, helping you understand how your organization measures up to peers in:</p>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-3 col-6 text-center mb-3">
+                                <div class="p-3 rounded bg-light">
+                                    <i class="bi bi-hospital text-primary fs-3 mb-2"></i>
+                                    <div>Healthcare</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 text-center mb-3">
+                                <div class="p-3 rounded bg-light">
+                                    <i class="bi bi-bank text-primary fs-3 mb-2"></i>
+                                    <div>Financial Services</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 text-center mb-3">
+                                <div class="p-3 rounded bg-light">
+                                    <i class="bi bi-shop text-primary fs-3 mb-2"></i>
+                                    <div>Retail</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 text-center mb-3">
+                                <div class="p-3 rounded bg-light">
+                                    <i class="bi bi-building text-primary fs-3 mb-2"></i>
+                                    <div>Manufacturing</div>
                                 </div>
                             </div>
                         </div>
@@ -549,7 +771,16 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Start Scan Button -->
+        <div class="text-center mt-4">
+            <a href="/scan" class="btn btn-primary btn-lg">
+                <i class="bi bi-shield-check me-2"></i>Start Your Security Scan Now
+            </a>
+            <p class="text-muted mt-2">Comprehensive assessment takes approximately 5-10 minutes</p>
+        </div>
     </div>
+</div>
     
     <!-- Privacy Policy Modal -->
     <div class="modal fade" id="privacyModal" tabindex="-1" aria-labelledby="privacyModalLabel" aria-hidden="true">
