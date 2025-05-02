@@ -157,7 +157,7 @@ def get_industry_benchmarks():
     return {
         'healthcare': {
             'name': 'Healthcare',
-            'compliance': ['HIPAA', 'HITECH', 'FDA'],
+            'compliance': ['HIPAA', 'HITECH', 'FDA', 'NIST 800-66'],
             'critical_controls': [
                 'PHI Data Encryption',
                 'Network Segmentation',
@@ -176,7 +176,7 @@ def get_industry_benchmarks():
         },
         'financial': {
             'name': 'Financial Services',
-            'compliance': ['PCI DSS', 'SOX', 'GLBA'],
+            'compliance': ['PCI DSS', 'SOX', 'GLBA', 'GDPR', 'NIST 800-53'],
             'critical_controls': [
                 'Multi-factor Authentication',
                 'Encryption of Financial Data',
@@ -195,7 +195,7 @@ def get_industry_benchmarks():
         },
         'retail': {
             'name': 'Retail',
-            'compliance': ['PCI DSS', 'CCPA', 'GDPR'],
+            'compliance': ['PCI DSS', 'CCPA', 'GDPR', 'ISO 27001'],
             'critical_controls': [
                 'Point-of-Sale Security',
                 'Payment Data Protection',
@@ -214,7 +214,7 @@ def get_industry_benchmarks():
         },
         'education': {
             'name': 'Education',
-            'compliance': ['FERPA', 'COPPA', 'State Privacy Laws'],
+            'compliance': ['FERPA', 'COPPA', 'State Privacy Laws', 'NIST 800-171'],
             'critical_controls': [
                 'Student Data Protection',
                 'Campus Network Security',
@@ -252,7 +252,7 @@ def get_industry_benchmarks():
         },
         'government': {
             'name': 'Government',
-            'compliance': ['FISMA', 'NIST 800-53', 'FedRAMP'],
+            'compliance': ['FISMA', 'NIST 800-53', 'FedRAMP', 'CMMC'],
             'critical_controls': [
                 'Data Classification',
                 'Continuous Monitoring',
@@ -271,7 +271,7 @@ def get_industry_benchmarks():
         },
         'default': {
             'name': 'General Business',
-            'compliance': ['General Data Protection', 'Industry Best Practices'],
+            'compliance': ['General Data Protection', 'Industry Best Practices', 'ISO 27001'],
             'critical_controls': [
                 'Data Protection',
                 'Secure Authentication',
@@ -290,16 +290,16 @@ def get_industry_benchmarks():
         }
     }
 
-def calculate_industry_percentile(score, industry_type='default'):
+def calculate_improved_industry_percentile(score, industry_type='default'):
     """
-    Calculate percentile and comparison information for a security score within an industry
+    Calculate percentile with improved user-friendly outputs
     
     Args:
         score (int): Security score (0-100)
         industry_type (str): Industry type to compare against
         
     Returns:
-        dict: Percentile information
+        dict: Percentile information with user-friendly explanations
     """
     # Get benchmarks
     benchmarks = get_industry_benchmarks()
@@ -314,58 +314,51 @@ def calculate_industry_percentile(score, industry_type='default'):
     # Determine if score is above or below average
     comparison = "above" if difference > 0 else "below"
     
-    # Calculate percentile
+    # Calculate percentile with simpler logic
     percentile_dist = industry['percentile_distribution']
-    percentile = 0
     
-    # Find which percentile the score falls into
     if score >= percentile_dist[90]:
         percentile = 90
+        standing = "Top 10%"
+        message = "Your security posture is among the best in your industry."
+        color = "#28a745"  # green
     elif score >= percentile_dist[75]:
         percentile = 75
+        standing = "Top 25%"
+        message = "Your security posture is better than most in your industry."
+        color = "#5cb85c"  # light green
     elif score >= percentile_dist[50]:
         percentile = 50
+        standing = "Above Average"
+        message = "Your security posture is above the industry median."
+        color = "#17a2b8"  # info blue
     elif score >= percentile_dist[25]:
         percentile = 25
+        standing = "Below Average"
+        message = "Your security meets minimum standards but lags behind industry leaders."
+        color = "#ffc107"  # warning yellow
     elif score >= percentile_dist[10]:
         percentile = 10
+        standing = "Bottom 25%"
+        message = "Your security posture needs significant improvement compared to industry standards."
+        color = "#fd7e14"  # orange
+    else:
+        percentile = 5
+        standing = "Bottom 10%"
+        message = "Your security posture is critically below industry standards. Immediate action is needed."
+        color = "#dc3545"  # red
     
-    # For scores between the defined percentiles, calculate an approximate percentile
-    # This is a simplified linear interpolation
-    if percentile < 90:
-        next_percentile = None
-        if percentile == 0 and score < percentile_dist[10]:
-            next_percentile = 10
-            prev_score = 0
-            next_score = percentile_dist[10]
-        elif percentile == 10:
-            next_percentile = 25
-            prev_score = percentile_dist[10]
-            next_score = percentile_dist[25]
-        elif percentile == 25:
-            next_percentile = 50
-            prev_score = percentile_dist[25]
-            next_score = percentile_dist[50]
-        elif percentile == 50:
-            next_percentile = 75
-            prev_score = percentile_dist[50]
-            next_score = percentile_dist[75]
-        elif percentile == 75:
-            next_percentile = 90
-            prev_score = percentile_dist[75]
-            next_score = percentile_dist[90]
-        
-        if next_percentile:
-            # Linear interpolation
-            if next_score - prev_score > 0:  # Avoid division by zero
-                percentile = percentile + (next_percentile - percentile) * (score - prev_score) / (next_score - prev_score)
-    
-    # Return the benchmark data
+    # Return the benchmark data with user-friendly information
     return {
-        'percentile': round(percentile),
+        'percentile': percentile,
+        'standing': standing,
+        'message': message,
         'comparison': comparison,
         'difference': abs(difference),
-        'avg_score': avg_score
+        'avg_score': avg_score,
+        'color': color,
+        'key_compliance': industry['compliance'][:3],  # Just show top 3 for clarity
+        'critical_controls': industry['critical_controls'][:3]  # Just show top 3 for clarity
     }
 
 # ---------------------------- UTILITY FUNCTIONS ----------------------------
@@ -647,9 +640,49 @@ def scan_gateway_ports(gateway_info):
         # Add client IP information safely
         results.append((f"Client detected at IP: {client_ip}", "Info"))
         
-        # Rest of function with proper error checking...
+        # Add gateway detection information
+        gateway_ips = []
+        if isinstance(gateway_info, str) and "Likely gateways:" in gateway_info:
+            gateways = gateway_info.split("Likely gateways:")[1].strip()
+            if "|" in gateways:
+                gateways = gateways.split("|")[0].strip()
+            gateway_ips = [g.strip() for g in gateways.split(",")]
+            results.append((f"Potential gateway IPs: {', '.join(gateway_ips)}", "Info"))
+        
+        # Scan common ports on gateway IPs
+        if gateway_ips:
+            for ip in gateway_ips:
+                if not ip or not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip):
+                    continue  # Skip invalid IPs
+                
+                for port, (service, severity) in GATEWAY_PORT_WARNINGS.items():
+                    try:
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                            s.settimeout(1.0)  # Quick timeout
+                            result = s.connect_ex((ip, port))
+                            if result == 0:
+                                results.append((f"Port {port} ({service}) is open on {ip}", severity))
+                    except socket.error:
+                        pass  # Ignore socket errors for individual port checks
+        else:
+            results.append(("Could not identify gateway IPs to scan", "Medium"))
+        
+        # Add network type information if available
+        if isinstance(gateway_info, str) and "Network Type:" in gateway_info:
+            network_type = gateway_info.split("Network Type:")[1].split("|")[0].strip()
+            results.append((f"Network type detected: {network_type}", "Info"))
+            
+            # Add specific warnings based on network type
+            if "public" in network_type.lower():
+                results.append(("Device is connected to a public network which poses higher security risks", "High"))
+            elif "guest" in network_type.lower():
+                results.append(("Device is connected to a guest network which may have limited security", "Medium"))
     except Exception as e:
         results.append((f"Error analyzing gateway: {str(e)}", "High"))
+    
+    # Make sure we return at least some results
+    if not results:
+        results.append(("Gateway information unavailable", "Medium"))
     
     return results
 
@@ -1303,154 +1336,118 @@ def analyze_port_risks(open_ports):
 
 # ---------------------------- ANALYSIS AND REPORTING FUNCTIONS ----------------------------
 
+def calculate_simplified_risk_score(scan_results):
+    """
+    Calculate a simplified risk score that's more intuitive for users
+    
+    Args:
+        scan_results (dict): Dictionary containing all scan results
+        
+    Returns:
+        dict: Risk assessment information
+    """
+    # Start with 100 points and subtract based on issues found
+    base_score = 100
+    deductions = []
+    
+    # Weight categories differently
+    category_weights = {
+        'network_security': 0.25,
+        'web_security': 0.25,
+        'email_security': 0.20,
+        'system_security': 0.30
+    }
+    
+    # Network security deductions
+    if 'network' in scan_results:
+        if 'open_ports' in scan_results['network']:
+            port_count = scan_results['network']['open_ports'].get('count', 0)
+            # More open ports = higher risk
+            if port_count > 15:
+                deductions.append(('network_security', 25, 'Excessive open ports'))
+            elif port_count > 10:
+                deductions.append(('network_security', 15, 'Many open ports'))
+            elif port_count > 5:
+                deductions.append(('network_security', 10, 'Several open ports'))
+            elif port_count > 0:
+                deductions.append(('network_security', 5, 'Few open ports'))
+    
+    # Web security deductions
+    if 'ssl_certificate' in scan_results:
+        ssl = scan_results['ssl_certificate']
+        if ssl.get('is_expired', False):
+            deductions.append(('web_security', 25, 'Expired SSL certificate'))
+        elif ssl.get('expiring_soon', False):
+            deductions.append(('web_security', 15, 'SSL certificate expiring soon'))
+        elif ssl.get('weak_protocol', False):
+            deductions.append(('web_security', 10, 'Weak SSL/TLS protocol'))
+    
+    # Email security deductions
+    if 'email_security' in scan_results:
+        email = scan_results['email_security']
+        if 'spf' in email and email['spf']['severity'] in ['High', 'Critical']:
+            deductions.append(('email_security', 15, 'Missing or misconfigured SPF record'))
+        if 'dmarc' in email and email['dmarc']['severity'] in ['High', 'Critical']:
+            deductions.append(('email_security', 15, 'Missing or misconfigured DMARC record'))
+        if 'dkim' in email and email['dkim']['severity'] in ['High', 'Critical']:
+            deductions.append(('email_security', 15, 'Missing or misconfigured DKIM record'))
+    
+    # System security deductions
+    if 'system' in scan_results:
+        if 'os_updates' in scan_results['system'] and scan_results['system']['os_updates']['severity'] in ['High', 'Critical']:
+            deductions.append(('system_security', 20, 'Missing critical OS updates'))
+        if 'firewall' in scan_results['system'] and scan_results['system']['firewall']['severity'] in ['High', 'Critical']:
+            deductions.append(('system_security', 20, 'Firewall issues detected'))
+    
+    # Calculate weighted score deductions
+    total_deduction = 0
+    for category, points, reason in deductions:
+        weight = category_weights.get(category, 0.25)
+        total_deduction += points * weight
+    
+    # Calculate final score (ensure it doesn't go below 0)
+    final_score = max(0, int(base_score - total_deduction))
+    
+    # Determine risk level based on score
+    if final_score >= 90:
+        risk_level = "Excellent"
+        color = "#28a745"  # green
+    elif final_score >= 70:
+        risk_level = "Good"
+        color = "#5cb85c"  # light green
+    elif final_score >= 50:
+        risk_level = "Fair"
+        color = "#ffc107"  # yellow
+    elif final_score >= 30:
+        risk_level = "Poor"
+        color = "#fd7e14"  # orange
+    else:
+        risk_level = "Critical"
+        color = "#dc3545"  # red
+    
+    # Calculate category scores
+    category_scores = {}
+    for category in category_weights.keys():
+        category_deductions = [d[1] for d in deductions if d[0] == category]
+        max_possible = 100 * category_weights.get(category, 0.25)
+        deducted = sum(category_deductions) * category_weights.get(category, 0.25)
+        category_score = max(0, int(max_possible - deducted))
+        category_scores[category] = int((category_score / max_possible) * 100)  # Convert to percentage
+    
+    # Return detailed results including top issues found
+    return {
+        'overall_score': final_score,
+        'risk_level': risk_level,
+        'color': color,
+        'deductions': deductions,
+        'category_scores': category_scores
+    }
+
 def calculate_risk_score(scan_results):
-    """Calculate overall risk score based on all scan results"""
-    try:
-        risk_factors = []
-        total_weight = 0
-        weighted_score = 0
-        
-        # Define risk factors and their weights
-        risk_weights = {
-            'ssl_certificate': 15,
-            'security_headers': 15,
-            'cms': 10,
-            'cookies': 5,
-            'sensitive_content': 20,
-            'email_security': 15,
-            'open_ports': 20
-        }
-        
-        # Get domain from email if present
-        target_domain = scan_results.get('target', '')
-        if 'email' in scan_results and not target_domain:
-            email = scan_results.get('email', '')
-            target_domain = extract_domain_from_email(email)
-            
-        # Process SSL certificate
-        if 'ssl_certificate' in scan_results and 'error' not in scan_results['ssl_certificate']:
-            ssl_severity = scan_results['ssl_certificate'].get('severity', 'Low')
-            ssl_score = 10 - SEVERITY.get(ssl_severity, 1)
-            risk_factors.append({
-                'name': 'SSL/TLS Certificate',
-                'score': ssl_score,
-                'weight': risk_weights['ssl_certificate'],
-                'weighted_score': ssl_score * risk_weights['ssl_certificate'] / 10
-            })
-            weighted_score += ssl_score * risk_weights['ssl_certificate']
-            total_weight += risk_weights['ssl_certificate']
-        
-        # Process security headers
-        if 'security_headers' in scan_results and 'error' not in scan_results['security_headers']:
-            header_score = scan_results['security_headers'].get('score', 0) / 10
-            risk_factors.append({
-                'name': 'Security Headers',
-                'score': header_score,
-                'weight': risk_weights['security_headers'],
-                'weighted_score': header_score * risk_weights['security_headers'] / 10
-            })
-            weighted_score += header_score * risk_weights['security_headers']
-            total_weight += risk_weights['security_headers']
-        
-        # Process CMS
-        if 'cms' in scan_results and 'error' not in scan_results['cms']:
-            cms_severity = scan_results['cms'].get('severity', 'Low')
-            cms_score = 10 - SEVERITY.get(cms_severity, 1)
-            risk_factors.append({
-                'name': 'Content Management System',
-                'score': cms_score,
-                'weight': risk_weights['cms'],
-                'weighted_score': cms_score * risk_weights['cms'] / 10
-            })
-            weighted_score += cms_score * risk_weights['cms']
-            total_weight += risk_weights['cms']
-        
-        # Process cookies
-        if 'cookies' in scan_results and 'error' not in scan_results['cookies']:
-            cookie_score = scan_results['cookies'].get('score', 0) / 10
-            risk_factors.append({
-                'name': 'Cookie Security',
-                'score': cookie_score,
-                'weight': risk_weights['cookies'],
-                'weighted_score': cookie_score * risk_weights['cookies'] / 10
-            })
-            weighted_score += cookie_score * risk_weights['cookies']
-            total_weight += risk_weights['cookies']
-        
-        # Process sensitive content
-        if 'sensitive_content' in scan_results and 'error' not in scan_results['sensitive_content']:
-            sensitive_severity = scan_results['sensitive_content'].get('severity', 'Low')
-            sensitive_score = 10 - SEVERITY.get(sensitive_severity, 1)
-            risk_factors.append({
-                'name': 'Sensitive Content Exposure',
-                'score': sensitive_score,
-                'weight': risk_weights['sensitive_content'],
-                'weighted_score': sensitive_score * risk_weights['sensitive_content'] / 10
-            })
-            weighted_score += sensitive_score * risk_weights['sensitive_content']
-            total_weight += risk_weights['sensitive_content']
-        
-        # Process email security
-        if 'email_security' in scan_results:
-            email_sec = scan_results['email_security']
-            if 'error' not in email_sec:
-                spf_severity = email_sec.get('spf', {}).get('severity', 'Low')
-                dmarc_severity = email_sec.get('dmarc', {}).get('severity', 'Low')
-                dkim_severity = email_sec.get('dkim', {}).get('severity', 'Low')
-                
-                avg_severity_value = (SEVERITY.get(spf_severity, 1) + 
-                                      SEVERITY.get(dmarc_severity, 1) + 
-                                      SEVERITY.get(dkim_severity, 1)) / 3
-                
-                email_score = 10 - avg_severity_value
-                risk_factors.append({
-                    'name': 'Email Security',
-                    'score': email_score,
-                    'weight': risk_weights['email_security'],
-                    'weighted_score': email_score * risk_weights['email_security'] / 10
-                })
-                weighted_score += email_score * risk_weights['email_security']
-                total_weight += risk_weights['email_security']
-        
-        # Process open ports
-        if 'network' in scan_results and 'open_ports' in scan_results['network']:
-            ports_severity = scan_results['network']['open_ports'].get('severity', 'Low')
-            ports_score = 10 - SEVERITY.get(ports_severity, 1)
-            risk_factors.append({
-                'name': 'Open Ports',
-                'score': ports_score,
-                'weight': risk_weights['open_ports'],
-                'weighted_score': ports_score * risk_weights['open_ports'] / 10
-            })
-            weighted_score += ports_score * risk_weights['open_ports']
-            total_weight += risk_weights['open_ports']
-        
-        # Calculate final score
-        overall_score = 0
-        if total_weight > 0:
-            overall_score = int((weighted_score / total_weight) * 100)
-        
-        # Determine risk level
-        if overall_score >= 90:
-            risk_level = "Low"
-        elif overall_score >= 70:
-            risk_level = "Medium"
-        elif overall_score >= 50:
-            risk_level = "High"
-        else:
-            risk_level = "Critical"
-        
-        return {
-            'overall_score': overall_score,
-            'risk_level': risk_level,
-            'risk_factors': risk_factors
-        }
-    except Exception as e:
-        return {
-            'error': str(e),
-            'overall_score': 0,
-            'risk_level': 'Unknown'
-        }
+    """
+    Legacy function for compatibility - now using the simplified version
+    """
+    return calculate_simplified_risk_score(scan_results)
 
 def get_severity_level(score):
     """Convert a numerical score to a severity level"""
@@ -1710,6 +1707,78 @@ def generate_html_report(scan_results, is_integrated=False, output_dir=None):
                     color: #777;
                     font-size: 14px;
                 }
+                
+                /* Improved gauge style for score visualization */
+                .score-gauge {
+                    width: 200px;
+                    height: 200px;
+                    margin: 0 auto;
+                    position: relative;
+                }
+                .gauge {
+                    width: 100%;
+                    height: 100%;
+                }
+                .gauge-background {
+                    fill: none;
+                    stroke: #e6e6e6;
+                    transform: rotate(135deg);
+                    transform-origin: center;
+                    stroke-dasharray: 339 339;
+                }
+                .gauge-value {
+                    fill: none;
+                    transform: rotate(135deg);
+                    transform-origin: center;
+                    transition: stroke-dasharray 1s ease;
+                }
+                .gauge-text {
+                    font-size: 24px;
+                    font-weight: bold;
+                    dominant-baseline: middle;
+                    text-anchor: middle;
+                }
+                
+                /* Industry comparison styles */
+                .industry-comparison {
+                    margin-top: 30px;
+                    padding: 20px;
+                    background-color: #f8f9fa;
+                    border-radius: 8px;
+                }
+                .comparison-meter {
+                    position: relative;
+                    height: 60px;
+                    margin: 30px 0;
+                }
+                .meter-scale {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 5px;
+                }
+                .meter-track {
+                    height: 8px;
+                    background: linear-gradient(to right, #dc3545, #ffc107, #28a745);
+                    border-radius: 4px;
+                    position: relative;
+                }
+                .industry-avg-marker, .your-score-marker {
+                    position: absolute;
+                    transform: translateX(-50%);
+                }
+                .marker-line {
+                    height: 16px;
+                    width: 2px;
+                    background-color: #333;
+                    margin: 0 auto;
+                }
+                .marker-label {
+                    font-size: 12px;
+                    white-space: nowrap;
+                    position: absolute;
+                    left: 50%;
+                    transform: translateX(-50%);
+                }
             </style>
         </head>
         <body>
@@ -1727,23 +1796,80 @@ def generate_html_report(scan_results, is_integrated=False, output_dir=None):
         if 'risk_assessment' in scan_results and 'overall_score' in scan_results['risk_assessment']:
             risk_score = scan_results['risk_assessment']['overall_score']
             risk_level = scan_results['risk_assessment']['risk_level']
+            color = scan_results['risk_assessment'].get('color', '#92d36e')  # Default to green if no color
             
-            # Determine color based on risk level
-            score_color = "#92d36e"  # Green (Low)
-            if risk_level == "Medium":
-                score_color = "#ffcc00"  # Yellow
-            elif risk_level == "High":
-                score_color = "#ff9933"  # Orange
-            elif risk_level == "Critical":
-                score_color = "#ff4d4d"  # Red
-            
+            # Add the improved gauge visualization
             html += f"""
-                    <div class="score-container">
-                        <div style="font-size: 18px;">Overall Risk Score</div>
-                        <div class="score" style="color: {score_color};">{risk_score}</div>
-                        <div><span class="severity {risk_level}">{risk_level} Risk</span></div>
+                <div class="score-container">
+                    <div class="score-gauge">
+                        <svg viewBox="0 0 120 120" class="gauge">
+                            <circle class="gauge-background" r="54" cx="60" cy="60" stroke-width="12"></circle>
+                            <circle class="gauge-value" r="54" cx="60" cy="60" stroke-width="12" 
+                                    style="stroke: {color}; 
+                                          stroke-dasharray: {risk_score * 3.39} 339;"></circle>
+                            <text class="gauge-text" x="60" y="60" text-anchor="middle" alignment-baseline="middle"
+                                  style="fill: {color};">
+                                {risk_score}
+                            </text>
+                        </svg>
+                        <div class="score-label">{risk_level} Risk</div>
                     </div>
+                </div>
             """
+            
+            # Add industry benchmarking if available
+            if 'industry' in scan_results and scan_results['industry'].get('benchmarks'):
+                benchmarks = scan_results['industry']['benchmarks']
+                industry_name = scan_results['industry'].get('name', 'Your Industry')
+                
+                html += f"""
+                <div class="industry-comparison">
+                    <h3>{industry_name} Comparison</h3>
+                    <p>{benchmarks['message']}</p>
+                    
+                    <div class="comparison-meter">
+                        <div class="meter-scale">
+                            <span>0</span>
+                            <span>25</span>
+                            <span>50</span>
+                            <span>75</span>
+                            <span>100</span>
+                        </div>
+                        <div class="meter-track">
+                            <!-- Industry average marker -->
+                            <div class="industry-avg-marker" style="left: {benchmarks['avg_score']}%;">
+                                <div class="marker-line"></div>
+                                <div class="marker-label">Industry Average</div>
+                            </div>
+                            
+                            <!-- Your score marker -->
+                            <div class="your-score-marker" style="left: {risk_score}%;">
+                                <div class="marker-line"></div>
+                                <div class="marker-label">Your Score</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="standing-badge">
+                        <p>Your Standing: <strong>{benchmarks['standing']}</strong></p>
+                    </div>
+                    
+                    <div class="row">
+                        <div>
+                            <h4>Recommended Compliance Standards</h4>
+                            <ul>
+                """
+                
+                # Add compliance standards
+                for compliance in benchmarks.get('key_compliance', []):
+                    html += f"<li>{compliance}</li>\n"
+                
+                html += """
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                """
         
         # Add scan scope information
         html += """
@@ -2048,12 +2174,13 @@ __all__ = [
     'check_open_ports',
     'analyze_port_risks',
     'calculate_risk_score',
+    'calculate_simplified_risk_score',
     'get_severity_level',
     'get_recommendations',
     'generate_threat_scenario',
     'generate_html_report',
     'determine_industry',
     'get_industry_benchmarks',
-    'calculate_industry_percentile',
+    'calculate_improved_industry_percentile',
     'categorize_risks_by_services'
 ]
