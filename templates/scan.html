@@ -6,8 +6,184 @@
     <title>Start Security Scan - Vulnerability Scanner</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/static/css/styles.css">
     <style>
+        :root {
+            --primary-color: #ff6900;
+            --secondary-color: #333;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --border-color: #dee2e6;
+            --low-color: #28a745;
+            --medium-color: #ffc107;
+            --high-color: #dc3545;
+            --critical-color: #721c24;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 5px solid rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.25rem 1.5rem;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+        }
+
+        .card-body {
+            padding: 2rem;
+            background-color: #fff;
+        }
+
+        .form-label.required:after {
+            content: '*';
+            color: var(--danger-color);
+            margin-left: 0.25rem;
+        }
+
+        .section-title {
+            margin-bottom: 1.5rem;
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .progress-container {
+            margin-top: 2rem;
+        }
+
+        .progress-step {
+            margin-bottom: 2rem;
+        }
+
+        .progress-step h5 {
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .progress-bar-container {
+            height: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 5px;
+            transition: width 0.5s ease-out;
+            text-align: center;
+            font-size: 0.75rem;
+            line-height: 10px;
+            color: white;
+            overflow: visible;
+            white-space: nowrap;
+            padding: 0 0.5rem;
+        }
+
+        .progress-step-status {
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+            color: #6c757d;
+        }
+
+        .status-in-progress {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .status-complete {
+            color: var(--low-color);
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #e05e00;
+            border-color: #e05e00;
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .footer {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 1.5rem 0;
+            margin-top: 3rem;
+        }
+
+        .footer p {
+            margin-bottom: 0;
+        }
+
         /* Custom styles for scan form */
         .scan-step {
             display: none;
@@ -579,94 +755,158 @@
                     element.style.transform = 'translateY(0)';
                 }, 100 * index);
             });
+            
             // Check for error messages in URL
             const urlParams = new URLSearchParams(window.location.search);
             const errorMessage = urlParams.get('error');
-                if (errorMessage) {
-            // Create error alert
-            const errorAlert = document.createElement('div');
-            errorAlert.className = 'alert alert-danger mb-4';
-            errorAlert.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>${errorMessage}`;
-    
-             // Insert at the top of the card body
-            const cardBody = document.querySelector('.card-body');
-            cardBody.insertBefore(errorAlert, cardBody.firstChild);
-    
-            // Auto-dismiss after 8 seconds
-            setTimeout(() => {
-                errorAlert.style.opacity = '0';
-                setTimeout(() => errorAlert.remove(), 500);
-            }, 8000);
-    
-            // Clear the error from URL
-            window.history.replaceState({}, document.title, window.location.pathname);
+            if (errorMessage) {
+                // Create error alert
+                const errorAlert = document.createElement('div');
+                errorAlert.className = 'alert alert-danger mb-4';
+                errorAlert.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>${errorMessage}`;
+        
+                // Insert at the top of the card body
+                const cardBody = document.querySelector('.card-body');
+                cardBody.insertBefore(errorAlert, cardBody.firstChild);
+        
+                // Auto-dismiss after 8 seconds
+                setTimeout(() => {
+                    errorAlert.style.opacity = '0';
+                    setTimeout(() => errorAlert.remove(), 500);
+                }, 8000);
+        
+                // Clear the error from URL
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
         
         // Setup form steps navigation
-        function setupFormSubmission() {
-            const scanForm = document.getElementById('scanForm');
-            const scanProgress = document.getElementById('scanProgress');
-            const scanComplete = document.getElementById('scanComplete');
-    
-            scanForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-        
-                // Check terms consent
-                if (!document.getElementById('terms-consent').checked) {
-                    alert('Please accept the terms to proceed with the scan.');
+        function setupFormSteps() {
+            const steps = ['step1', 'step2', 'step3', 'step4'];
+            const bullets = ['step1-bullet', 'step2-bullet', 'step3-bullet', 'step4-bullet'];
+            
+            // Next button handlers
+            document.getElementById('step1Next').addEventListener('click', function() {
+                // Validate required fields in step 1
+                const name = document.getElementById('name');
+                const company = document.getElementById('company');
+                const email = document.getElementById('email');
+                const privacyConsent = document.getElementById('privacy-consent');
+                
+                if (!name.value || !company.value || !email.value || !privacyConsent.checked) {
+                    alert('Please fill in all required fields and accept the privacy policy.');
                     return;
                 }
-        
-                // Hide form, show progress
-                this.style.display = 'none';
-                scanProgress.style.display = 'block';
-            
-                // Scroll to top of progress
-                scanProgress.scrollIntoView({ behavior: 'smooth' });
-        
-                // Collect form data
-                const formData = new FormData(this);
-        
-                // Simulate scan progress for UI experience
-                simulateScanProgress();
-        
-                // Submit the form data to the server via AJAX
-                fetch('/scan', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (response.redirected) {
-                    // If the server redirects, follow that redirect
-                        window.location.href = response.url;
-                        return null;
-                    }
-                        return response.text();
-                })
-                .then(htmlContent => {
-                    if (htmlContent) {
-                        // If we got HTML content, display it
-                        scanProgress.style.display = 'none';
-                        scanComplete.style.display = 'block';
                 
-                        // Update the "View Detailed Results" link to use the proper URL
-                        // (It will include the real scan_id from the session)
-                        const viewResultsBtn = document.querySelector('#scanComplete a.btn');
-                        viewResultsBtn.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            window.location.href = '/results';
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while processing your scan. Please try again.');
-                    // Reset the form view
-                    scanProgress.style.display = 'none';
-                    this.style.display = 'block';
-                });
+                // Move to step 2
+                switchStep(0, 1);
             });
+            
+            document.getElementById('step2Next').addEventListener('click', function() {
+                // Validate required fields in step 2
+                const industry = document.getElementById('industry');
+                const companySize = document.getElementById('company-size');
+                const companyWebsite = document.getElementById('company-website');
+                
+                if (!industry.value || !companySize.value || !companyWebsite.value) {
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+                
+                // Move to step 3
+                switchStep(1, 2);
+            });
+            
+            document.getElementById('step3Next').addEventListener('click', function() {
+                // At least one scan option should be selected
+                const scanOptions = document.querySelectorAll('input[name="scan_options[]"]:checked');
+                if (scanOptions.length === 0) {
+                    alert('Please select at least one scan option.');
+                    return;
+                }
+                
+                // Move to step 4
+                switchStep(2, 3);
+                
+                // Update summary
+                updateSummary();
+            });
+            
+            // Previous button handlers
+            document.getElementById('step2Prev').addEventListener('click', function() {
+                switchStep(1, 0);
+            });
+            
+            document.getElementById('step3Prev').addEventListener('click', function() {
+                switchStep(2, 1);
+            });
+            
+            document.getElementById('step4Prev').addEventListener('click', function() {
+                switchStep(3, 2);
+            });
+            
+            // Function to switch between steps
+            function switchStep(currentIndex, nextIndex) {
+                // Hide current step
+                document.getElementById(steps[currentIndex]).classList.remove('active');
+                
+                // Show next step
+                document.getElementById(steps[nextIndex]).classList.add('active');
+                
+                // Update bullets
+                for (let i = 0; i < bullets.length; i++) {
+                    const bullet = document.getElementById(bullets[i]);
+                    
+                    if (i < nextIndex) {
+                        // Previous steps
+                        bullet.classList.remove('active');
+                        bullet.classList.add('completed');
+                        bullet.innerHTML = '<i class="bi bi-check"></i>';
+                    } else if (i === nextIndex) {
+                        // Current step
+                        bullet.classList.add('active');
+                        bullet.classList.remove('completed');
+                        bullet.innerHTML = i + 1;
+                    } else {
+                        // Future steps
+                        bullet.classList.remove('active');
+                        bullet.classList.remove('completed');
+                        bullet.innerHTML = i + 1;
+                    }
+                }
+                
+                // Scroll to top of form
+                document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Function to update the summary in step 4
+            function updateSummary() {
+                document.getElementById('summary-name').textContent = document.getElementById('name').value;
+                document.getElementById('summary-company').textContent = document.getElementById('company').value;
+                document.getElementById('summary-website').textContent = 'https://' + document.getElementById('company-website').value;
+                document.getElementById('summary-email').textContent = document.getElementById('email').value;
+                
+                // Get selected scan options
+                const scanOptions = [];
+                document.querySelectorAll('input[name="scan_options[]"]:checked').forEach(option => {
+                    switch (option.value) {
+                        case 'network':
+                            scanOptions.push('Network Vulnerabilities');
+                            break;
+                        case 'web':
+                            scanOptions.push('Web Application Vulnerabilities');
+                            break;
+                        case 'ssl':
+                            scanOptions.push('SSL/TLS Configuration');
+                            break;
+                        case 'dns':
+                            scanOptions.push('DNS Security Issues');
+                            break;
+                    }
+                });
+                
+                document.getElementById('summary-scans').textContent = scanOptions.join(', ');
+            }
         }
         
         // Setup domain management
@@ -743,14 +983,15 @@
                 // Simulate scan progress
                 simulateScanProgress();
                 
-                // In a real application, you would submit the form data here
+                // For a real application, you would submit the form data here
                 // via fetch API or similar method
                 
-                // For demo purposes, show completion after scan completes
+                // For demo purposes, we'll just simulate the scan process
+                // and show completion after the scan completes
                 setTimeout(() => {
                     scanProgress.style.display = 'none';
                     scanComplete.style.display = 'block';
-    
+                    
                     // In a real application, you would redirect to results page with a valid scan_id
                     // For demo: Instead of redirecting, let the user click the button
                     const viewResultsBtn = document.querySelector('#scanComplete a.btn');
@@ -760,7 +1001,7 @@
                         const demoScanId = 'demo-' + Math.random().toString(36).substring(2, 10);
                         window.location.href = `/results?scan_id=${demoScanId}`;
                     });
-                }, 14000);
+                }, 14000); // This matches the total time of all progress animations
             });
         }
         
@@ -810,5 +1051,3 @@
             }, 50);
         }
     </script>
-</body>
-</html>
