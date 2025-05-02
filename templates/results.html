@@ -7,6 +7,34 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        /* Fix for modal flashing */
+        .modal {
+            z-index: 1050 !important;
+        }
+        .modal-backdrop {
+            z-index: 1040 !important;
+        }
+        
+        /* Prevent stacking context issues */
+        .list-group-item:hover {
+            z-index: auto !important;
+        }
+        
+        /* Prevent any flickering */
+        .modal.fade {
+            transition: opacity 0.15s linear;
+        }
+        
+        /* Ensure clean placement in DOM */
+        body > .modal {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -491,6 +519,8 @@
                     </div>
                 </div>
                 {% endif %}
+            </div>
+        </div>
 
         <!-- Email Security Section -->
         <div class="card mb-4">
@@ -588,7 +618,7 @@
                     
                     <p>{{ scan.system.os_updates.message }}</p>
                     
-                    <div class="alert alert-info mt-3">
+                    <div class="alert alert-info mt-3
                         <i class="bi bi-info-circle-fill me-2"></i>
                         <strong>Importance:</strong> Keeping your operating system updated is critical for security, as updates often include patches for known vulnerabilities.
                     </div>
@@ -603,6 +633,7 @@
                         <span>Firewall Configuration</span>
                         <span class="severity {{ scan.system.firewall.severity|lower }}">{{ scan.system.firewall.severity }}</span>
                     </div>
+                    
                     <p>{{ scan.system.firewall.status }}</p>
                     
                     <div class="alert alert-info mt-3">
@@ -787,74 +818,6 @@
             </div>
         </div>
         {% endif %}
-
-        <!-- Email form modal -->
-        <div class="modal fade" id="emailReportModal" tabindex="-1" aria-labelledby="emailReportModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="emailReportModalLabel">Email Security Report</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="emailReportForm">
-                            <div class="mb-3">
-                                <label for="emailAddress" class="form-label">Email Address</label>
-                                <input type="email" class="form-control" id="emailAddress" 
-                                       value="{{ scan.email|default(scan.client_info.email|default('')) }}" required>
-                            </div>
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="consentCheck" required>
-                                <label class="form-check-label" for="consentCheck">
-                                    I consent to receive this security report via email
-                                </label>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Send Report</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Service inquiry modal -->
-        <div class="modal fade" id="serviceInquiryModal" tabindex="-1" aria-labelledby="serviceInquiryModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="serviceInquiryModalLabel">Service Inquiry</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="serviceInquiryForm">
-                            <input type="hidden" id="inquiryService" name="service">
-                            <input type="hidden" id="inquiryFindings" name="findings">
-                            <input type="hidden" id="inquiryScanId" name="scan_id" value="{{ scan.scan_id|default('') }}">
-                            
-                            <div class="mb-3">
-                                <label for="inquiryName" class="form-label">Name</label>
-                                <input type="text" class="form-control" id="inquiryName" name="name" 
-                                       value="{{ scan.client_info.name|default('') }}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="inquiryEmail" class="form-label">Email Address</label>
-                                <input type="email" class="form-control" id="inquiryEmail" name="email" 
-                                       value="{{ scan.email|default(scan.client_info.email|default('')) }}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="inquiryPhone" class="form-label">Phone Number</label>
-                                <input type="tel" class="form-control" id="inquiryPhone" name="phone" 
-                                       value="{{ scan.client_info.phone|default('') }}">
-                            </div>
-                            <div class="mb-3">
-                                <label for="inquiryMessage" class="form-label">Additional Information</label>
-                                <textarea class="form-control" id="inquiryMessage" name="message" rows="3"></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Submit Inquiry</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <button class="print-button" id="printBtn" title="Print Report">
@@ -869,6 +832,77 @@
                 </div>
                 <div class="col-md-6 text-center text-md-end">
                     <p class="mb-0">470-481-0400 | sales@cengatech.com</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- IMPORTANT: Place modals at the end of the document, right before closing body tag -->
+    <!-- This prevents modal z-index and stacking context issues -->
+    
+    <!-- Email form modal -->
+    <div class="modal fade" id="emailReportModal" tabindex="-1" aria-labelledby="emailReportModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="emailReportModalLabel">Email Security Report</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="emailReportForm">
+                        <div class="mb-3">
+                            <label for="emailAddress" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="emailAddress" 
+                                  value="{{ scan.email|default(scan.client_info.email|default('')) }}" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="consentCheck" required>
+                            <label class="form-check-label" for="consentCheck">
+                                I consent to receive this security report via email
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Report</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service inquiry modal -->
+    <div class="modal fade" id="serviceInquiryModal" tabindex="-1" aria-labelledby="serviceInquiryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="serviceInquiryModalLabel">Service Inquiry</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="serviceInquiryForm">
+                        <input type="hidden" id="inquiryService" name="service">
+                        <input type="hidden" id="inquiryFindings" name="findings">
+                        <input type="hidden" id="inquiryScanId" name="scan_id" value="{{ scan.scan_id|default('') }}">
+                        
+                        <div class="mb-3">
+                            <label for="inquiryName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="inquiryName" name="name" 
+                                  value="{{ scan.client_info.name|default('') }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="inquiryEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="inquiryEmail" name="email" 
+                                  value="{{ scan.email|default(scan.client_info.email|default('')) }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="inquiryPhone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="inquiryPhone" name="phone" 
+                                  value="{{ scan.client_info.phone|default('') }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="inquiryMessage" class="form-label">Additional Information</label>
+                            <textarea class="form-control" id="inquiryMessage" name="message" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit Inquiry</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -918,108 +952,88 @@
                 window.print();
             });
             
-            // ===== FIXED EMAIL MODAL CODE =====
-            // Create a single modal instance that we'll reuse
-            let emailModal = null;
+            // Pre-initialize the modals to avoid flashing
+            const emailModalElement = document.getElementById('emailReportModal');
+            const serviceModalElement = document.getElementById('serviceInquiryModal');
             
-            // Remove any existing click handlers from the email button
-            const emailReportBtn = document.getElementById('emailReportBtn');
-            if (emailReportBtn) {
-                // Create a completely new button to replace the old one
-                const newEmailBtn = emailReportBtn.cloneNode(true);
-                emailReportBtn.parentNode.replaceChild(newEmailBtn, emailReportBtn);
-                
-                // Set up the click handler on the new button
-                document.getElementById('emailReportBtn').addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation(); // Stop event propagation
-                    
-                    // Initialize the modal if it doesn't exist
-                    if (!emailModal) {
-                        const modalElement = document.getElementById('emailReportModal');
-                        emailModal = new bootstrap.Modal(modalElement, {
-                            backdrop: 'static',  // Prevent closing when clicking outside
-                            keyboard: false      // Prevent closing with keyboard
-                        });
-                    }
-                    
-                    // Show the modal
-                    emailModal.show();
-                });
-            }
-            
-            // Set up the form submission handler
-            const emailReportForm = document.getElementById('emailReportForm');
-            if (emailReportForm) {
-                // Create a new form to replace the old one
-                const newForm = emailReportForm.cloneNode(true);
-                emailReportForm.parentNode.replaceChild(newForm, emailReportForm);
-                
-                // Set up the submit handler on the new form
-                document.getElementById('emailReportForm').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation(); // Stop event propagation
-                    
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    const originalText = submitBtn.innerHTML;
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
-                    
-                    const scanId = document.getElementById('scan-id').value;
-                    const email = document.getElementById('emailAddress').value;
-                    
-                    if (!scanId || !email) {
-                        alert('Missing required information. Please try again.');
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalText;
-                        return;
-                    }
-                    
-                    fetch('/api/email_report', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `scan_id=${scanId}&email=${encodeURIComponent(email)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalText;
-                        
-                        if (data.status === 'success') {
-                            alert('The report has been sent to your email.');
-                        } else {
-                            alert('There was an error sending the report: ' + (data.message || 'Unknown error'));
-                        }
-                        
-                        // Hide the modal
-                        if (emailModal) {
-                            emailModal.hide();
-                        }
-                    })
-                    .catch(error => {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalText;
-                        alert('Error: ' + error.message);
-                    });
-                });
-            }
-            
-            // Service inquiry buttons - using similar pattern to fix potential issues
-            let serviceInquiryModal = null;
-            
-            document.querySelectorAll('.service-inquiry-btn').forEach(function(button) {
-                // Create new buttons to replace old ones
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
+            // Create modal instances once
+            const emailModal = new bootstrap.Modal(emailModalElement, {
+                backdrop: true,
+                keyboard: false,
+                focus: true
             });
             
-            // Re-select all the new buttons and attach handlers
+            const serviceModal = new bootstrap.Modal(serviceModalElement, {
+                backdrop: true, 
+                keyboard: false,
+                focus: true
+            });
+            
+            // Prevent potential issues with event duplication
+            emailModalElement.removeAttribute('data-bs-toggle');
+            emailModalElement.removeAttribute('data-bs-target');
+            serviceModalElement.removeAttribute('data-bs-toggle');
+            serviceModalElement.removeAttribute('data-bs-target');
+            
+            // Add click handler for email button
+            document.getElementById('emailReportBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation(); // Stop event propagation
+                emailModal.show();
+            });
+            
+            // Handle email form submission
+            document.getElementById('emailReportForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation(); // Stop event propagation
+                
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+                
+                const scanId = document.getElementById('scan-id').value;
+                const email = document.getElementById('emailAddress').value;
+                
+                if (!scanId || !email) {
+                    alert('Missing required information. Please try again.');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                    return;
+                }
+                
+                fetch('/api/email_report', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `scan_id=${scanId}&email=${encodeURIComponent(email)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                    
+                    if (data.status === 'success') {
+                        alert('The report has been sent to your email.');
+                    } else {
+                        alert('There was an error sending the report: ' + (data.message || 'Unknown error'));
+                    }
+                    
+                    emailModal.hide();
+                })
+                .catch(error => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                    alert('Error: ' + error.message);
+                });
+            });
+            
+            // Service inquiry buttons
             document.querySelectorAll('.service-inquiry-btn').forEach(function(button) {
                 button.addEventListener('click', function(e) {
                     e.preventDefault();
-                    e.stopPropagation();
+                    e.stopPropagation(); // Stop event propagation
                     
                     // Get service and findings from data attributes
                     const service = this.getAttribute('data-service');
@@ -1032,66 +1046,46 @@
                     // Update modal title
                     document.getElementById('serviceInquiryModalLabel').textContent = 'Inquiry: ' + service;
                     
-                    // Initialize the modal if it doesn't exist
-                    if (!serviceInquiryModal) {
-                        const modalElement = document.getElementById('serviceInquiryModal');
-                        serviceInquiryModal = new bootstrap.Modal(modalElement, {
-                            backdrop: 'static',
-                            keyboard: false
-                        });
-                    }
-                    
                     // Show modal
-                    serviceInquiryModal.show();
+                    serviceModal.show();
                 });
             });
             
             // Service inquiry form submission
-            const serviceInquiryForm = document.getElementById('serviceInquiryForm');
-            if (serviceInquiryForm) {
-                // Create a new form to replace the old one
-                const newForm = serviceInquiryForm.cloneNode(true);
-                serviceInquiryForm.parentNode.replaceChild(newForm, serviceInquiryForm);
+            document.getElementById('serviceInquiryForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation(); // Stop event propagation
                 
-                // Set up the submit handler on the new form
-                document.getElementById('serviceInquiryForm').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+                
+                const formData = new FormData(this);
+                
+                fetch('/api/service_inquiry', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
                     
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    const originalText = submitBtn.innerHTML;
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+                    if (data.status === 'success') {
+                        alert('Your inquiry has been submitted. Our team will contact you soon.');
+                    } else {
+                        alert('There was an error submitting your inquiry: ' + (data.message || 'Unknown error'));
+                    }
                     
-                    const formData = new FormData(this);
-                    
-                    fetch('/api/service_inquiry', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalText;
-                        
-                        if (data.status === 'success') {
-                            alert('Your inquiry has been submitted. Our team will contact you soon.');
-                        } else {
-                            alert('There was an error submitting your inquiry: ' + (data.message || 'Unknown error'));
-                        }
-                        
-                        // Close modal properly
-                        if (serviceInquiryModal) {
-                            serviceInquiryModal.hide();
-                        }
-                    })
-                    .catch(error => {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalText;
-                        alert('Error: ' + error.message);
-                    });
+                    serviceModal.hide();
+                })
+                .catch(error => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                    alert('Error: ' + error.message);
                 });
-            }
+            });
             
             // Initialize tooltips
             if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tooltip !== 'undefined') {
