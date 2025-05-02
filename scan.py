@@ -18,6 +18,9 @@ import dns.resolver
 logging.basicConfig(level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Compatibility alias for the original function name
+calculate_industry_percentile = calculate_improved_industry_percentile
+
 # Constants for severity levels and warnings
 SEVERITY = {
     "Critical": 10,
