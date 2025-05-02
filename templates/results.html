@@ -376,6 +376,7 @@
                 {% endif %}
 
                 <!-- Security Headers -->
+                <!-- Security Headers with enhanced display -->
                 {% if scan.security_headers and 'error' not in scan.security_headers %}
                 <h3 class="section-title"><i class="bi bi-shield-lock me-2"></i>Security Headers</h3>
                 <div class="finding">
@@ -383,9 +384,22 @@
                         <span>HTTP Security Headers</span>
                         <span class="severity {{ scan.security_headers.severity|lower }}">{{ scan.security_headers.severity }}</span>
                     </div>
-                    
+    
                     <p>Security headers help protect against common web vulnerabilities like XSS, clickjacking, and more.</p>
-                    
+    
+                    <!-- SSL Certificate verification status -->
+                    {% if scan.security_headers.cert_verified %}
+                    <div class="alert alert-success mt-3">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <strong>Certificate Verification:</strong> SSL certificate was successfully verified.
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger mt-3">
+                        <i class="bi bi-x-circle-fill me-2"></i>
+                        <strong>Certificate Verification Failed:</strong> The SSL certificate could not be verified. This might indicate an invalid, self-signed, or expired certificate.
+                    </div>
+                    {% endif %}
+    
                     <div class="d-flex justify-content-center my-4">
                         <div style="width: 200px; height: 40px;" class="position-relative bg-light rounded">
                             <div style="width: {{ scan.security_headers.score }}%; height: 100%; background-color: {% if scan.security_headers.score > 75 %}var(--low-color){% elif scan.security_headers.score > 50 %}var(--medium-color){% else %}var(--high-color){% endif %};" class="rounded"></div>
@@ -394,25 +408,80 @@
                             </div>
                         </div>
                     </div>
-                    
-                    {% if scan.security_headers.headers %}
+    
+                    <!-- Missing critical headers warning -->
+                    {% if scan.security_headers.missing_critical %}
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Missing Critical Headers:</strong> The following important security headers are missing:
+                        <ul class="mb-0 mt-2">
+                            {% for header in scan.security_headers.missing_critical %}
+                            <li><strong>{{ header }}</strong> - {{ scan.security_headers.headers[header].description }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+    
+                    <!-- Poor implementation warning -->
+                    {% if scan.security_headers.poor_implementation %}
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Improvement Opportunities:</strong> The following headers could be strengthened:
+                        <ul class="mb-0 mt-2">
+                            {% for header in scan.security_headers.poor_implementation %}
+                            <li><strong>{{ header }}</strong> - {{ scan.security_headers.headers[header].recommendation }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+    
+                    <!-- Header details table -->
                     <div class="table-responsive mt-3">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
                                     <th>Header</th>
                                     <th>Status</th>
+                                    <th>Value</th>
+                                    <th>Quality</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for header, found in scan.security_headers.headers.items() %}
+                                {% for header, details in scan.security_headers.headers.items() %}
                                 <tr>
-                                    <td>{{ header }}</td>
                                     <td>
-                                        {% if found %}
+                                        <span data-bs-toggle="tooltip" title="{{ details.description }}">
+                                            {{ header }}
+                                            <i class="bi bi-info-circle-fill text-muted small ms-1"></i>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if details.found %}
                                         <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i> Present</span>
                                         {% else %}
                                         <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i> Missing</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if details.value %}
+                                        <code class="small">{{ details.value|truncate(50) }}</code>
+                                        {% else %}
+                                        <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if details.found %}
+                                            {% if details.quality == 'Excellent' %}
+                                            <span class="badge bg-success">Excellent</span>
+                                            {% elif details.quality == 'Good' %}
+                                            <span class="badge bg-info">Good</span>
+                                            {% elif details.quality == 'Fair' %}
+                                            <span class="badge bg-warning text-dark">Fair</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Poor</span>
+                                            {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">—</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -420,44 +489,19 @@
                             </tbody>
                         </table>
                     </div>
-                    {% endif %}
+    
+                    <!-- Add tooltips initialization -->
+                    <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Initialize tooltips
+                        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+                        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                            return new bootstrap.Tooltip(tooltipTriggerEl)
+                        });
+                    });
+                    </script>
                 </div>
                 {% endif %}
-                
-                <!-- CMS Detection -->
-                {% if scan.cms and scan.cms.cms_detected %}
-                <h3 class="section-title"><i class="bi bi-window me-2"></i>Content Management System</h3>
-                <div class="finding">
-                    <div class="title">
-                        <span>CMS Detection</span>
-                        <span class="severity {{ scan.cms.severity|lower }}">{{ scan.cms.severity }}</span>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>CMS Name:</strong> {{ scan.cms.cms_name }}</p>
-                            <p><strong>Version:</strong> {{ scan.cms.version|default('Unknown') }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Risk Level:</strong> {{ scan.cms.severity }}</p>
-                        </div>
-                    </div>
-                    
-                    {% if scan.cms.potential_vulnerabilities %}
-                    <div class="alert alert-warning mt-3">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        <strong>Potential Vulnerabilities:</strong>
-                        <ul class="mb-0 mt-2">
-                            {% for vuln in scan.cms.potential_vulnerabilities %}
-                            <li>{{ vuln }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-        </div>
 
         <!-- Email Security Section -->
         <div class="card mb-4">
