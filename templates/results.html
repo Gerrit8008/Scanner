@@ -601,4 +601,319 @@
                     {% for threat in scan.threat_scenarios %}
                     <div class="col-lg-6 mb-4">
                         <div class="card h-100 border-warning">
-                            <div class="card-header
+                            <div class="card-header bg-warning bg-opacity-25">
+                                <h5 class="mb-0">{{ threat.name }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>{{ threat.description }}</p>
+                                <div class="d-flex justify-content-between">
+                                    <span class="badge bg-danger">Impact: {{ threat.impact }}</span>
+                                    <span class="badge bg-warning text-dark">Likelihood: {{ threat.likelihood }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>No specific threat scenarios identified.</strong> Continue to maintain good security practices to minimize potential risks.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Service Category Analysis -->
+        {% if scan.service_categories %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-grid-3x3-gap"></i>
+                <h2 class="mb-0">Service Category Analysis</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for category_id, category in scan.service_categories.items() %}
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header {% if category.risk_level == 'Low' %}bg-low{% elif category.risk_level == 'Medium' %}bg-medium{% elif category.risk_level == 'High' %}bg-high{% else %}bg-critical{% endif %} bg-opacity-25">
+                                <h4 class="mb-0">{{ category.name }}</h4>
+                            </div>
+                            <div class="card-body">
+                                <p>{{ category.description }}</p>
+                                
+                                <div class="progress mb-3">
+                                    <div class="progress-bar {% if category.risk_level == 'Low' %}bg-success{% elif category.risk_level == 'Medium' %}bg-warning{% elif category.risk_level == 'High' %}bg-danger{% else %}bg-dark{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ category.score / category.max_score * 100 if category.max_score > 0 else 0 }}%" 
+                                         aria-valuenow="{{ category.score }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="{{ category.max_score }}">
+                                    </div>
+                                </div>
+                                
+                                <p class="mb-4">
+                                    <span class="badge {% if category.risk_level == 'Low' %}bg-success{% elif category.risk_level == 'Medium' %}bg-warning{% elif category.risk_level == 'High' %}bg-danger{% else %}bg-dark{% endif %}">
+                                        {{ category.risk_level }} Risk
+                                    </span>
+                                </p>
+                                
+                                {% if category.findings %}
+                                <h5>Findings</h5>
+                                <ul class="list-group">
+                                    {% for finding in category.findings %}
+                                    <li class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong>{{ finding.name }}</strong>
+                                            <span class="badge {% if finding.severity == 'Low' %}bg-success{% elif finding.severity == 'Medium' %}bg-warning{% elif finding.severity == 'High' %}bg-danger{% else %}bg-dark{% endif %}">
+                                                {{ finding.severity }}
+                                            </span>
+                                        </div>
+                                        <p class="mb-1">{{ finding.description }}</p>
+                                        {% if finding.service_solution %}
+                                        <div class="mt-2">
+                                            <span class="badge bg-primary">Recommended Service:</span>
+                                            <span>{{ finding.service_solution }}</span>
+                                            <button class="btn btn-sm btn-outline-primary service-inquiry-btn" 
+                                                    data-service="{{ finding.service_solution }}"
+                                                    data-findings="{{ finding.name }}: {{ finding.description }}">
+                                                Inquire
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                {% else %}
+                                <p>No specific findings in this category.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Email form modal -->
+        <div class="modal fade" id="emailReportModal" tabindex="-1" aria-labelledby="emailReportModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="emailReportModalLabel">Email Security Report</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="emailReportForm">
+                            <div class="mb-3">
+                                <label for="emailAddress" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="emailAddress" 
+                                       value="{{ scan.email|default(scan.client_info.email|default('')) }}" required>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="consentCheck" required>
+                                <label class="form-check-label" for="consentCheck">
+                                    I consent to receive this security report via email
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Send Report</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service inquiry modal -->
+        <div class="modal fade" id="serviceInquiryModal" tabindex="-1" aria-labelledby="serviceInquiryModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="serviceInquiryModalLabel">Service Inquiry</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="serviceInquiryForm">
+                            <input type="hidden" id="inquiryService" name="service">
+                            <input type="hidden" id="inquiryFindings" name="findings">
+                            <input type="hidden" id="inquiryScanId" name="scan_id" value="{{ scan.scan_id|default('') }}">
+                            
+                            <div class="mb-3">
+                                <label for="inquiryName" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="inquiryName" name="name" 
+                                       value="{{ scan.client_info.name|default('') }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="inquiryEmail" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="inquiryEmail" name="email" 
+                                       value="{{ scan.email|default(scan.client_info.email|default('')) }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="inquiryPhone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="inquiryPhone" name="phone" 
+                                       value="{{ scan.client_info.phone|default('') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="inquiryMessage" class="form-label">Additional Information</label>
+                                <textarea class="form-control" id="inquiryMessage" name="message" rows="3"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit Inquiry</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="print-button" id="printBtn" title="Print Report">
+        <i class="bi bi-printer"></i>
+    </button>
+
+    <div class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                    <p class="mb-0">&copy; 2025 Central Georgia Technology. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <p class="mb-0">470-481-0400 | sales@cengatech.com</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Count critical and high issues
+            let criticalCount = 0;
+            let secureCount = 0;
+            
+            // Count findings by severity
+            document.querySelectorAll('.severity.critical, .severity.high, .badge.bg-danger').forEach(function(el) {
+                if (el.textContent.includes('Critical') || el.textContent.includes('High')) {
+                    criticalCount++;
+                }
+            });
+            
+            // Count secure elements
+            document.querySelectorAll('.severity.low, .badge.bg-success').forEach(function(el) {
+                if (el.textContent.includes('Low')) {
+                    secureCount++;
+                }
+            });
+            
+            // Update counters
+            document.getElementById('critical-issues-count').textContent = criticalCount;
+            document.getElementById('secure-elements-count').textContent = secureCount;
+            
+            // Toggle explanations
+            document.getElementById('toggleExplanations').addEventListener('change', function() {
+                const explanations = document.querySelectorAll('.explanation-card');
+                explanations.forEach(function(explanation) {
+                    explanation.style.display = this.checked ? 'block' : 'none';
+                }, this);
+            });
+            
+            // Print functionality
+            document.getElementById('printBtn').addEventListener('click', function() {
+                window.print();
+            });
+            
+            // Print button in header
+            document.getElementById('printReportBtn').addEventListener('click', function() {
+                window.print();
+            });
+            
+            // Email report
+            document.getElementById('emailReportBtn').addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('emailReportModal'));
+                modal.show();
+            });
+            
+            document.getElementById('emailReportForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const scanId = document.getElementById('scan-id').value;
+                const email = document.getElementById('emailAddress').value;
+                
+                if (!scanId || !email) {
+                    alert('Missing required information. Please try again.');
+                    return;
+                }
+                
+                fetch('/api/email_report', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `scan_id=${scanId}&email=${encodeURIComponent(email)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('The report has been sent to your email.');
+                    } else {
+                        alert('There was an error sending the report: ' + (data.message || 'Unknown error'));
+                    }
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('emailReportModal'));
+                    modal.hide();
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            });
+            
+            // Service inquiry buttons
+            document.querySelectorAll('.service-inquiry-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    // Get service and findings from data attributes
+                    const service = this.getAttribute('data-service');
+                    const findings = this.getAttribute('data-findings');
+                    
+                    // Set values in the modal
+                    document.getElementById('inquiryService').value = service;
+                    document.getElementById('inquiryFindings').value = findings;
+                    
+                    // Update modal title
+                    document.getElementById('serviceInquiryModalLabel').textContent = 'Inquiry: ' + service;
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('serviceInquiryModal'));
+                    modal.show();
+                });
+            });
+            
+            // Service inquiry form submission
+            document.getElementById('serviceInquiryForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                fetch('/api/service_inquiry', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Your inquiry has been submitted. Our team will contact you soon.');
+                    } else {
+                        alert('There was an error submitting your inquiry: ' + (data.message || 'Unknown error'));
+                    }
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('serviceInquiryModal'));
+                    modal.hide();
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
