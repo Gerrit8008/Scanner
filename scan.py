@@ -582,40 +582,53 @@ def get_client_and_gateway_ip(request):
         client_ip = request.remote_addr or "0.0.0.0"  # Default to 0.0.0.0 if remote_addr is None
         if request.headers.get('X-Forwarded-For'):
             forwarded_ips = request.headers.get('X-Forwarded-For').split(',')
-            if forwarded_ips and forwarded_ips[0].strip():
+            if forwarded_ips and len(forwarded_ips) > 0 and forwarded_ips[0].strip():
                 client_ip = forwarded_ips[0].strip()
             else:
                 logging.warning("X-Forwarded-For header is empty or invalid.")
         
         # Validate client IP
-        ip_obj = ipaddress.ip_address(client_ip)
         gateway_guesses = []
         network_type = "Unknown"
-
-        if ip_obj.is_private:
-            network_type = "Private Network"
-            if client_ip.startswith('192.168.'):
-                first_two_octets = '.'.join(client_ip.split('.')[:2])
-                gateway_guesses = [f"{first_two_octets}.1", f"{first_two_octets}.254"]
-            elif client_ip.startswith('10.'):
-                first_octet = client_ip.split('.')[0]
-                gateway_guesses = [f"{first_octet}.0.0.1", f"{first_octet}.255.255.254"]
-            elif client_ip.startswith('172.'):
-                second_octet = int(client_ip.split('.')[1])
-                if 16 <= second_octet <= 31:
-                    first_two_octets = '.'.join(client_ip.split('.')[:2])
-                    gateway_guesses = [f"{first_two_octets}.1", f"{first_two_octets}.254"]
-        else:
-            network_type = "Public Network"
-            gateway_guesses = ["Gateway detection not possible for public IPs"]
-
+        
+        try:
+            ip_obj = ipaddress.ip_address(client_ip)
+            
+            if ip_obj.is_private:
+                network_type = "Private Network"
+                if client_ip.startswith('192.168.'):
+                    parts = client_ip.split('.')
+                    if len(parts) >= 2:
+                        first_two_octets = '.'.join(parts[:2])
+                        gateway_guesses = [f"{first_two_octets}.1", f"{first_two_octets}.254"]
+                elif client_ip.startswith('10.'):
+                    parts = client_ip.split('.')
+                    if len(parts) >= 1:
+                        first_octet = parts[0]
+                        gateway_guesses = [f"{first_octet}.0.0.1", f"{first_octet}.255.255.254"]
+                elif client_ip.startswith('172.'):
+                    parts = client_ip.split('.')
+                    if len(parts) >= 2:
+                        second_octet = int(parts[1]) if parts[1].isdigit() else 0
+                        if 16 <= second_octet <= 31:
+                            first_two_octets = '.'.join(parts[:2])
+                            gateway_guesses = [f"{first_two_octets}.1", f"{first_two_octets}.254"]
+            else:
+                network_type = "Public Network"
+                gateway_guesses = ["Gateway detection not possible for public IPs"]
+        except ValueError:
+            # Invalid IP address
+            logging.warning(f"Invalid IP address format: {client_ip}")
+            gateway_guesses = ["Invalid IP format"]
+        
+        # If we have no gateway guesses by this point, add a default
+        if not gateway_guesses:
+            gateway_guesses = ["Unable to determine gateway"]
+            
         return client_ip, gateway_guesses, network_type
-    except ValueError as e:
-        logging.error(f"Invalid client IP: {e}")
-        return "Invalid IP", ["No valid gateway guesses"], "Unknown"
-    except IndexError as e:
-        logging.error(f"Error during gateway checks: {e}")
-        return "Invalid IP", ["No valid gateway guesses"], "Unknown"
+    except Exception as e:
+        logging.error(f"Error during gateway checks: {str(e)}")
+        return "Unknown", ["Error detecting gateway"], "Unknown"
 
 def get_default_gateway_ip(request):
     """Enhanced gateway IP detection for web environment"""
