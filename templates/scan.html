@@ -743,42 +743,70 @@
             setupDomainManagement();
             
             // Form submission and scan progress
-            setupFormSubmission();
-        });
+            function setupFormSubmission() {
+                const scanForm = document.getElementById('scanForm');
+                const scanProgress = document.getElementById('scanProgress');
+                const scanComplete = document.getElementById('scanComplete');
+    
+                scanForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
         
-        // Initialize fade-in effects
-        function initFadeEffects() {
-            const fadeElements = document.querySelectorAll('.fade-in');
-            fadeElements.forEach((element, index) => {
-                setTimeout(() => {
-                    element.style.opacity = '1';
-                    element.style.transform = 'translateY(0)';
-                }, 100 * index);
-            });
+                    // Check terms consent
+                    if (!document.getElementById('terms-consent').checked) {
+                        alert('Please accept the terms to proceed with the scan.');
+                        return;
+                    }
+        
+                    // Hide form, show progress
+                    this.style.display = 'none';
+                    scanProgress.style.display = 'block';
+        
+                    // Scroll to top of progress
+                    scanProgress.scrollIntoView({ behavior: 'smooth' });
+        
+                    // Simulate scan progress
+                    simulateScanProgress();
+        
+                    // For a real application, you should submit the form data via fetch API
+                    // and get a real scan ID back from the server
+                    setTimeout(() => {
+                        // Collect form data
+                        const formData = new FormData(this);
             
-            // Check for error messages in URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const errorMessage = urlParams.get('error');
-            if (errorMessage) {
-                // Create error alert
-                const errorAlert = document.createElement('div');
-                errorAlert.className = 'alert alert-danger mb-4';
-                errorAlert.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>${errorMessage}`;
-        
-                // Insert at the top of the card body
-                const cardBody = document.querySelector('.card-body');
-                cardBody.insertBefore(errorAlert, cardBody.firstChild);
-        
-                // Auto-dismiss after 8 seconds
-                setTimeout(() => {
-                    errorAlert.style.opacity = '0';
-                    setTimeout(() => errorAlert.remove(), 500);
-                }, 8000);
-        
-                // Clear the error from URL
-                window.history.replaceState({}, document.title, window.location.pathname);
+                        // Submit form data to server
+                        fetch('/scan', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => {
+                            if (response.redirected) {
+                                // If the server redirects, follow that redirect
+                                window.location.href = response.url;
+                            } else {
+                                // Otherwise, expect a JSON response
+                                return response.json();
+                            }
+                        })
+                        .then(data => {
+                            if (data && data.scan_id) {
+                                // Success! Redirect to results page with the real scan ID
+                                window.location.href = `/results?scan_id=${data.scan_id}`;
+                            } else {
+                                // Handle error
+                                alert('Error during scan. Please try again.');
+                                scanProgress.style.display = 'none';
+                                scanForm.style.display = 'block';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred. Please try again.');
+                            scanProgress.style.display = 'none';
+                            scanForm.style.display = 'block';
+                        });    
+                    }, 14000); // This matches the total time of all progress animations
+                });
             }
-        }
         
         // Setup form steps navigation
         function setupFormSteps() {
