@@ -293,7 +293,7 @@ def get_industry_benchmarks():
         }
     }
 
-def calculate_improved_industry_percentile(score, industry_type='default'):
+def calculate_industry_percentile(score, industry_type='default'):
     """
     Calculate percentile with improved user-friendly outputs
     
@@ -2164,6 +2164,7 @@ __all__ = [
     'scan_gateway_ports',
     'check_ssl_certificate',
     'check_security_headers',
+    'calculate_industry_percentile',
     'detect_cms',
     'analyze_cookies',
     'detect_web_framework',
