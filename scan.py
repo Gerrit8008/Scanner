@@ -753,52 +753,222 @@ def check_ssl_certificate(domain):
         }
 
 def check_security_headers(url):
-    """Check security headers of a website"""
+    """
+    Check security headers of a website with enhanced analysis of header values
+    and support for modern security headers
+    """
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
+        
+        # Use certificate verification by default
+        response = requests.get(url, headers=headers, timeout=10, verify=True)
+        cert_verified = True
+    except requests.exceptions.SSLError:
+        # Fall back to no verification if certificate issues exist
         response = requests.get(url, headers=headers, timeout=10, verify=False)
-        
-        # Headers to check
-        security_headers = {
-            'Strict-Transport-Security': {'weight': 20, 'found': False},
-            'Content-Security-Policy': {'weight': 20, 'found': False},
-            'X-Frame-Options': {'weight': 15, 'found': False},
-            'X-Content-Type-Options': {'weight': 10, 'found': False},
-            'Referrer-Policy': {'weight': 10, 'found': False},
-            'Permissions-Policy': {'weight': 10, 'found': False},
-            'X-XSS-Protection': {'weight': 15, 'found': False}
-        }
-        
-        # Check presence of each header
-        resp_headers = response.headers
-        for header, details in security_headers.items():
-            if header.lower() in [h.lower() for h in resp_headers]:
-                security_headers[header]['found'] = True
-        
-        # Calculate score
-        score = sum(details['weight'] for header, details in security_headers.items() if details['found'])
-        
-        # Determine severity
-        if score >= 80:
-            severity = "Low"
-        elif score >= 50:
-            severity = "Medium"
-        else:
-            severity = "High"
-        
-        return {
-            'score': score,
-            'headers': {header: details['found'] for header, details in security_headers.items()},
-            'severity': severity
-        }
+        cert_verified = False
     except Exception as e:
         return {
             'error': str(e),
             'score': 0,
-            'severity': 'High'
+            'severity': 'High',
+            'cert_verified': False
         }
+        
+    # Modern security headers configuration with weights
+    security_headers = {
+        # Essential headers - highest priority
+        'Strict-Transport-Security': {
+            'weight': 20, 
+            'found': False,
+            'value': None,
+            'quality': 'Poor',
+            'description': 'Forces browsers to use HTTPS, preventing downgrade attacks',
+            'recommendation': 'Add "max-age=31536000; includeSubDomains; preload"'
+        },
+        'Content-Security-Policy': {
+            'weight': 20, 
+            'found': False,
+            'value': None,
+            'quality': 'Poor',
+            'description': 'Controls which resources can be loaded, reducing XSS risks',
+            'recommendation': 'Implement a comprehensive policy based on your site needs'
+        },
+        
+        # Important headers
+        'X-Frame-Options': {
+            'weight': 10, 
+            'found': False,
+            'value': None,
+            'quality': 'Poor',
+            'description': 'Prevents clickjacking attacks by controlling frame embedding',
+            'recommendation': 'Add "X-Frame-Options: DENY" or "SAMEORIGIN"'
+        },
+        'X-Content-Type-Options': {
+            'weight': 10, 
+            'found': False,
+            'value': None,
+            'quality': 'Poor',
+            'description': 'Prevents MIME type sniffing attacks',
+            'recommendation': 'Add "X-Content-Type-Options: nosniff"'
+        },
+        'Referrer-Policy': {
+            'weight': 10, 
+            'found': False,
+            'value': None,
+            'quality': 'Poor',
+            'description': 'Controls referrer information sent with requests',
+            'recommendation': 'Add "Referrer-Policy: strict-origin-when-cross-origin"'
+        },
+        'Permissions-Policy': {
+            'weight': 10, 
+            'found': False,
+            'value': None,
+            'quality': 'Poor',
+            'description': 'Restricts which browser features can be used',
+            'recommendation': 'Add policies for features like geolocation, camera, etc.'
+        },
+        
+        # Modern security headers
+        'Cross-Origin-Resource-Policy': {
+            'weight': 8, 
+            'found': False,
+            'value': None,
+            'quality': 'Poor',
+            'description': 'Prevents other domains from loading your resources',
+            'recommendation': 'Add "Cross-Origin-Resource-Policy: same-origin"'
+        },
+        'Cross-Origin-Opener-Policy': {
+            'weight': 8, 
+            'found': False,
+            'value': None,
+            'quality': 'Poor',
+            'description': 'Controls window/popup interaction with cross-origin pages',
+            'recommendation': 'Add "Cross-Origin-Opener-Policy: same-origin"'
+        },
+        'Cross-Origin-Embedder-Policy': {
+            'weight': 8, 
+            'found': False,
+            'value': None,
+            'quality': 'Poor',
+            'description': 'Requires all resources to be cross-origin isolated',
+            'recommendation': 'Add "Cross-Origin-Embedder-Policy: require-corp"'
+        },
+        
+        # Deprecated but still useful as defense-in-depth
+        'X-XSS-Protection': {
+            'weight': 6, 
+            'found': False,
+            'value': None,
+            'quality': 'Poor',
+            'description': 'Legacy browser XSS protection (gradually being phased out)',
+            'recommendation': 'Add "X-XSS-Protection: 1; mode=block"'
+        }
+    }
+    
+    # Check presence of each header and analyze values
+    resp_headers = response.headers
+    for header, details in security_headers.items():
+        header_key = next((h for h in resp_headers if h.lower() == header.lower()), None)
+        
+        if header_key:
+            details['found'] = True
+            details['value'] = resp_headers[header_key]
+            
+            # Analyze quality of header values
+            if header == 'Strict-Transport-Security':
+                if 'max-age=31536000' in details['value'] and 'includeSubDomains' in details['value']:
+                    details['quality'] = 'Excellent'
+                elif 'max-age=' in details['value']:
+                    age_value = re.search(r'max-age=(\d+)', details['value'])
+                    if age_value and int(age_value.group(1)) >= 15768000:  # 6 months
+                        details['quality'] = 'Good'
+                    else:
+                        details['quality'] = 'Fair'
+            
+            elif header == 'Content-Security-Policy':
+                if "default-src 'none'" in details['value'] or "script-src 'self'" in details['value']:
+                    details['quality'] = 'Good'
+                elif "default-src 'self'" in details['value']:
+                    details['quality'] = 'Fair'
+                elif "unsafe-inline" in details['value'] or "unsafe-eval" in details['value']:
+                    details['quality'] = 'Poor'
+                else:
+                    details['quality'] = 'Fair'
+            
+            elif header == 'X-Frame-Options':
+                if details['value'].upper() == 'DENY':
+                    details['quality'] = 'Excellent'
+                elif details['value'].upper() == 'SAMEORIGIN':
+                    details['quality'] = 'Good'
+                else:
+                    details['quality'] = 'Fair'
+            
+            elif header == 'X-Content-Type-Options':
+                if details['value'].lower() == 'nosniff':
+                    details['quality'] = 'Excellent'
+                else:
+                    details['quality'] = 'Fair'
+            
+            elif header == 'Referrer-Policy':
+                secure_values = ['no-referrer', 'strict-origin', 'strict-origin-when-cross-origin']
+                if any(val in details['value'].lower() for val in secure_values):
+                    details['quality'] = 'Excellent'
+                elif 'origin' in details['value'].lower():
+                    details['quality'] = 'Good'
+                else:
+                    details['quality'] = 'Fair'
+            
+            elif header == 'X-XSS-Protection':
+                if '1; mode=block' in details['value']:
+                    details['quality'] = 'Good'
+                elif '1' in details['value']:
+                    details['quality'] = 'Fair'
+    
+    # Calculate score with quality adjustments
+    base_score = 0
+    max_score = sum(details['weight'] for _, details in security_headers.items())
+    
+    for header, details in security_headers.items():
+        if details['found']:
+            if details['quality'] == 'Excellent':
+                base_score += details['weight']
+            elif details['quality'] == 'Good':
+                base_score += int(details['weight'] * 0.8)
+            elif details['quality'] == 'Fair':
+                base_score += int(details['weight'] * 0.6)
+            elif details['quality'] == 'Poor':
+                base_score += int(details['weight'] * 0.4)
+    
+    # Convert to 0-100 scale
+    score = int((base_score / max_score) * 100) if max_score > 0 else 0
+    
+    # Determine severity
+    if score >= 80:
+        severity = "Low"
+    elif score >= 50:
+        severity = "Medium"
+    else:
+        severity = "High"
+    
+    # Get missing headers
+    missing_headers = [header for header, details in security_headers.items() 
+                       if not details['found'] and details['weight'] >= 10]
+    
+    # Get headers with poor implementation
+    poor_headers = [header for header, details in security_headers.items() 
+                    if details['found'] and details['quality'] in ['Poor', 'Fair']]
+    
+    return {
+        'score': score,
+        'headers': security_headers,
+        'severity': severity,
+        'cert_verified': cert_verified,
+        'missing_critical': missing_headers,
+        'poor_implementation': poor_headers
+    }
 
 def detect_cms(url):
     """Detect Content Management System (CMS) used by a website"""
