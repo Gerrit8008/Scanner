@@ -6,7 +6,6 @@
     <title>Comprehensive Security Scan Results</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/static/css/styles.css">
     <style>
         /* Root variables */
         :root {
@@ -23,61 +22,50 @@
             --critical-color: #721c24;
         }
 
-        /* Additional styles for enhanced visuals */
-        .animated-progress-fill {
-            animation: progressAnimation 1.5s ease-out forwards;
+        /* Core styles for page appearance */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
         }
-        
-        @keyframes progressAnimation {
-            0% { width: 0%; }
-            100% { width: var(--progress-width); }
-        }
-        
-        .scale-in {
-            animation: scaleIn 0.5s ease-out forwards;
-            transform: scale(0.8);
-            opacity: 0;
-        }
-        
-        @keyframes scaleIn {
-            to { transform: scale(1); opacity: 1; }
-        }
-        
-        .score-badge {
-            border-radius: 50%;
-            width: 170px;
-            height: 170px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+
+        .container {
+            max-width: 1200px;
             margin: 0 auto;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            border: 5px solid white;
+            padding: 0 1rem;
         }
-        
-        .finding {
-            transition: transform 0.2s ease;
-            background-color: #f8f9fa;
+
+        .card {
+            border: none;
             border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        
-        .finding:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
         }
-        
-        /* Enhanced card header */
+
         .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.25rem 1.5rem;
             display: flex;
             align-items: center;
         }
-        
+
         .card-header i {
             margin-right: 10px;
             font-size: 1.4rem;
+            color: var(--primary-color);
+        }
+
+        .card-body {
+            padding: 2rem;
+            background-color: #fff;
         }
         
         .header {
@@ -95,7 +83,7 @@
             margin-top: 3rem;
         }
         
-        /* Improved severity badges */
+        /* Severity badges */
         .severity {
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
             padding: 5px 10px;
@@ -125,12 +113,20 @@
             color: white;
         }
         
-        /* Smooth hover transitions */
-        .btn, .card, .summary-card {
-            transition: all 0.3s ease;
+        /* Finding styles */
+        .finding {
+            transition: transform 0.2s ease;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
         
-        /* Finding styles */
+        .finding:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+        }
+        
         .finding .title {
             display: flex;
             justify-content: space-between;
@@ -142,71 +138,21 @@
             font-size: 1.1rem;
             font-weight: 600;
         }
-        
-        /* Core styles for page appearance */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
-            line-height: 1.6;
-        }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-        }
-
-        .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            margin-bottom: 2rem;
-        }
-
-        .card-header {
-            background-color: #fff;
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.25rem 1.5rem;
-        }
-
-        .card-body {
-            padding: 2rem;
-            background-color: #fff;
-        }
-        
-        /* Icon styling */
-        .icon-circle {
-            width: 80px;
-            height: 80px;
+        /* Score badge */
+        .score-badge {
             border-radius: 50%;
-            background-color: #f8f9fa;
+            width: 170px;
+            height: 170px;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
-            margin: 0 auto 15px auto;
-            border: 1px solid #e9ecef;
+            align-items: center;
+            margin: 0 auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border: 5px solid white;
         }
         
-        .icon-circle i {
-            font-size: 2.5rem;
-            color: var(--primary-color);
-        }
-        
-        /* Status indicators */
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-        
-        .status-critical {
-            background-color: var(--critical-color);
-        }
-        
-        /* Score values */
         .score-value {
             font-size: 3rem;
             font-weight: bold;
@@ -237,48 +183,41 @@
         .bg-low {
             background-color: var(--low-color);
         }
-        
-        /* Text colors */
-        .text-high {
-            color: var(--high-color);
-            font-weight: bold;
-            font-size: 2rem;
-        }
-        
-        .text-medium {
-            color: var(--medium-color);
-            font-weight: bold;
-            font-size: 2rem;
-        }
-        
-        .text-low {
-            color: var(--low-color);
-            font-weight: bold;
-            font-size: 2rem;
-        }
-        
-        /* Progress bar styles */
-        .progress-bar {
-            height: 10px;
-            background-color: #e9ecef;
+
+        /* Explanation cards styling */
+        .explanation-card {
+            background-color: #e8f4fc;
+            border-left: 4px solid #0d6efd;
+            padding: 15px;
+            margin-bottom: 20px;
             border-radius: 5px;
-            overflow: hidden;
-            margin-top: 10px;
         }
-        
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            border-radius: 5px;
-            transition: width 1.5s ease-out;
+
+        .explanation-card h5 {
+            color: #0d6efd;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
         }
-        
-        .summary-value {
-            font-size: 2rem;
-            font-weight: bold;
-            margin: 10px 0;
+
+        .explanation-card h5 i {
+            margin-right: 8px;
         }
-        
+
+        .explanation-card p {
+            margin-bottom: 0;
+        }
+
+        /* Section titles */
+        .section-title {
+            color: var(--primary-color);
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
         /* Print button styling */
         .print-button {
             position: fixed;
@@ -305,24 +244,11 @@
             background-color: #e05e00;
         }
 
-        /* Debug section style */
-        .debug-info {
-            font-family: monospace;
-            font-size: 0.85rem;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 20px;
-            max-height: 300px;
-            overflow-y: auto;
+        @media print {
+            .explanation-card {
+                break-inside: avoid;
+            }
         }
-
-        .json-key { color: #0066cc; }
-        .json-string { color: #008800; }
-        .json-number { color: #880000; }
-        .json-boolean { color: #0000cc; }
-        .json-null { color: #606060; }
     </style>
 </head>
 <body>
@@ -332,11 +258,8 @@
                 <input class="form-check-input" type="checkbox" id="toggleExplanations" checked>
                 <label class="form-check-label text-white" for="toggleExplanations">Show Explanations</label>
             </div>
-            <img src="/static/images/logo.png" alt="Company Logo" class="logo" onerror="this.style.display='none';">
             <h1>Comprehensive Security Scan Results</h1>
-            <p class="mb-0">Scan date: {{ scan.timestamp|default('April 30, 2025') }}</p>
-            <!-- Hidden scan_id field for email functionality -->
-            <input type="hidden" id="scan-id" value="{{ scan.scan_id|default('') }}">
+            <p class="mb-0">Scan date: April 30, 2025</p>
             
             <!-- Report Action Buttons -->
             <div class="mt-3">
@@ -351,137 +274,98 @@
     </div>
 
     <div class="container">
-        <!-- Overall Risk Score -->
-        <div class="card risk-score my-4">
-            {% if scan.risk_assessment and scan.risk_assessment.overall_score is defined %}
-            <div class="card-body text-center py-4">
-                <div class="score-badge {% if scan.risk_assessment.risk_level == 'Low' %}bg-low{% elif scan.risk_assessment.risk_level == 'Medium' %}bg-medium{% elif scan.risk_assessment.risk_level == 'High' %}bg-high{% else %}bg-critical{% endif %}">
-                    <div class="score-value">{{ scan.risk_assessment.overall_score }}</div>
-                    <div class="score-label">{{ scan.risk_assessment.risk_level }} RISK</div>
-                </div>
-                
-                <!-- Industry Benchmark Information -->
-                {% if scan.industry and scan.industry.benchmarks %}
-                <div class="mt-4">
-                    <h4>Industry Comparison: {{ scan.industry.name }}</h4>
-                    <p>Your security score is <strong>{{ scan.industry.benchmarks.difference }} points {{ scan.industry.benchmarks.comparison }}</strong> 
-                       the industry average of {{ scan.industry.benchmarks.avg_score }}.</p>
-                    <p>You are in the <strong>{{ scan.industry.benchmarks.percentile }}th percentile</strong> 
-                       for your industry.</p>
-                </div>
-                {% endif %}
+        <!-- SECTION 1: EXECUTIVE SUMMARY -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-speedometer2"></i>
+                <h2 class="mb-0">1. Executive Summary</h2>
             </div>
-            {% else %}
-            <div class="card-body text-center py-4">
-                <div class="score-badge bg-medium">
-                    <div class="score-value">N/A</div>
-                    <div class="score-label">UNKNOWN</div>
+            <div class="card-body">
+                <div class="explanation-card" id="explanation-executive-summary">
+                    <h5><i class="bi bi-info-circle"></i>What is this section?</h5>
+                    <p>The Executive Summary provides a high-level overview of your security posture. It includes your overall security score, a risk level assessment, and a comparison to industry benchmarks. This section helps you quickly understand your security standing relative to similar organizations and identifies the most critical areas requiring attention.</p>
                 </div>
-            </div>
-            {% endif %}
-        </div>
 
-        <!-- Client Information -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-person-badge"></i>
-                <h2 class="mb-0">Client Information</h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Name:</strong> {{ scan.client_info.name|default('N/A') }}</p>
-                        <p><strong>Email:</strong> {{ scan.email|default(scan.client_info.email|default('N/A')) }}</p>
-                        <p><strong>Company:</strong> {{ scan.client_info.company|default('N/A') }}</p>
+                <!-- Overall Risk Score -->
+                <div class="text-center py-4">
+                    <div class="score-badge bg-medium">
+                        <div class="score-value">75</div>
+                        <div class="score-label">MEDIUM RISK</div>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Operating System:</strong> {{ scan.client_info.os|default('N/A') }}</p>
-                        <p><strong>Browser:</strong> {{ scan.client_info.browser|default('N/A') }}</p>
-                        <p><strong>Target Domain:</strong> {{ scan.target|default('N/A') }}</p>
+                    
+                    <!-- Industry Benchmark Information -->
+                    <div class="mt-4">
+                        <h4>Industry Comparison: Financial Services</h4>
+                        <p>Your security score is <strong>3 points below</strong> 
+                           the industry average of 78.</p>
+                        <p>You are in the <strong>45th percentile</strong> 
+                           for your industry.</p>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Executive Summary -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-clipboard-data"></i>
-                <h2 class="mb-0">Executive Summary</h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
+
+                <div class="row mt-4">
                     <div class="col-md-4 mb-4 text-center">
-                        <div class="icon-circle">
-                            <i class="bi bi-shield-exclamation"></i>
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <i class="bi bi-shield-exclamation display-1 text-warning mb-3"></i>
+                                <h3>Security Score</h3>
+                                <div class="fs-1 fw-bold text-warning">75/100</div>
+                                <p>Your overall security rating</p>
+                            </div>
                         </div>
-                        <h3>Security Score</h3>
-                        {% if scan.risk_assessment and scan.risk_assessment.overall_score is defined %}
-                            <div class="summary-value {% if scan.risk_assessment.overall_score > 75 %}text-low{% elif scan.risk_assessment.overall_score > 50 %}text-medium{% else %}text-high{% endif %}">
-                                {{ scan.risk_assessment.overall_score }}/100
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ scan.risk_assessment.overall_score }}%; background-color: {% if scan.risk_assessment.overall_score > 75 %}var(--low-color){% elif scan.risk_assessment.overall_score > 50 %}var(--medium-color){% else %}var(--high-color){% endif %}"></div>
-                            </div>
-                        {% else %}
-                            <div class="summary-value text-medium">
-                                75/100
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 75%; background-color: var(--medium-color)"></div>
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Count Critical and High Issues -->
-                    <div class="col-md-4 mb-4 text-center">
-                        <div class="icon-circle">
-                            <i class="bi bi-exclamation-triangle"></i>
-                        </div>
-                        <h3>Critical Issues</h3>
-                        <div class="summary-value text-high" id="critical-issues-count">
-                            0
-                        </div>
-                        <p>Issues requiring immediate attention</p>
                     </div>
                     
                     <div class="col-md-4 mb-4 text-center">
-                        <div class="icon-circle">
-                            <i class="bi bi-check-circle"></i>
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <i class="bi bi-exclamation-triangle display-1 text-danger mb-3"></i>
+                                <h3>Critical Issues</h3>
+                                <div class="fs-1 fw-bold text-danger">3</div>
+                                <p>Issues requiring immediate attention</p>
+                            </div>
                         </div>
-                        <h3>Secure Elements</h3>
-                        <div class="summary-value text-low" id="secure-elements-count">
-                            0
+                    </div>
+                    
+                    <div class="col-md-4 mb-4 text-center">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <i class="bi bi-check-circle display-1 text-success mb-3"></i>
+                                <h3>Secure Elements</h3>
+                                <div class="fs-1 fw-bold text-success">8</div>
+                                <p>Areas with good security practices</p>
+                            </div>
                         </div>
-                        <p>Areas with good security practices</p>
                     </div>
                 </div>
                 
                 <div class="alert alert-primary">
                     <strong><i class="bi bi-info-circle-fill me-2"></i> Assessment Overview:</strong>
-                    <p class="mb-0">This report provides a comprehensive analysis of your security posture across network, application, and system layers. We've identified key vulnerabilities and provided recommendations to improve your security.</p>
+                    <p class="mb-0">This report provides a comprehensive analysis of your security posture across network, web application, and email layers. We've identified several key vulnerabilities that require attention, particularly in your SSL configuration and email security. Your organization is performing slightly below average for the financial services industry, but implementing the recommendations in this report will improve your security posture significantly.</p>
                 </div>
             </div>
         </div>
 
-        <!-- Network Security Section -->
+        <!-- SECTION 2: NETWORK SECURITY -->
         <div class="card mb-4">
             <div class="card-header">
                 <i class="bi bi-hdd-network"></i>
-                <h2 class="mb-0">Network Security</h2>
+                <h2 class="mb-0">2. Network Security</h2>
             </div>
             <div class="card-body">
+                <div class="explanation-card" id="explanation-network">
+                    <h5><i class="bi bi-info-circle"></i>What is Network Security?</h5>
+                    <p>Network security focuses on protecting the infrastructure and connections that allow systems to communicate. This includes analyzing open ports (potential entry points for attackers), gateway configurations, and firewall settings. Proper network security prevents unauthorized access to your systems, protects against data breaches, and helps maintain operational continuity. Attackers often use automated tools to scan networks for vulnerable entry points, making this an essential security layer.</p>
+                </div>
+
                 <!-- Open Ports -->
-                {% if scan.network and scan.network.open_ports %}
                 <h3 class="section-title"><i class="bi bi-door-open me-2"></i>Open Ports</h3>
                 <div class="finding">
                     <div class="title">
                         <span>Port Scan Results</span>
-                        <span class="severity {{ scan.network.open_ports.severity|lower }}">{{ scan.network.open_ports.severity }}</span>
+                        <span class="severity high">High</span>
                     </div>
-                    <p>Found {{ scan.network.open_ports.count }} open ports that could potentially be access points for attackers.</p>
+                    <p>Found 10 open ports that could potentially be access points for attackers.</p>
                     
-                    {% if scan.network.open_ports.list %}
                     <div class="table-responsive mt-3">
                         <table class="table table-striped">
                             <thead>
@@ -492,42 +376,54 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for port in scan.network.open_ports.list %}
                                 <tr>
-                                    <td>{{ port }}</td>
+                                    <td>21</td>
+                                    <td>FTP (File Transfer Protocol)</td>
                                     <td>
-                                        {% if port == 21 %}FTP (File Transfer Protocol)
-                                        {% elif port == 22 %}SSH (Secure Shell)
-                                        {% elif port == 23 %}Telnet
-                                        {% elif port == 25 %}SMTP (Email)
-                                        {% elif port == 80 %}HTTP (Web)
-                                        {% elif port == 443 %}HTTPS (Secure Web)
-                                        {% elif port == 3389 %}RDP (Remote Desktop)
-                                        {% elif port == 5900 %}VNC
-                                        {% elif port == 8080 %}HTTP Alternative
-                                        {% else %}Unknown
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if port in [21, 23, 3389, 5900] %}
                                         <span class="badge bg-danger">High Risk</span>
-                                        {% elif port in [25, 80, 8080, 110, 143] %}
-                                        <span class="badge bg-warning text-dark">Medium Risk</span>
-                                        {% else %}
-                                        <span class="badge bg-success">Low Risk</span>
-                                        {% endif %}
                                     </td>
                                 </tr>
-                                {% endfor %}
+                                <tr>
+                                    <td>22</td>
+                                    <td>SSH (Secure Shell)</td>
+                                    <td>
+                                        <span class="badge bg-success">Low Risk</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>25</td>
+                                    <td>SMTP (Email)</td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark">Medium Risk</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>80</td>
+                                    <td>HTTP (Web)</td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark">Medium Risk</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>443</td>
+                                    <td>HTTPS (Secure Web)</td>
+                                    <td>
+                                        <span class="badge bg-success">Low Risk</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>3389</td>
+                                    <td>RDP (Remote Desktop)</td>
+                                    <td>
+                                        <span class="badge bg-danger">High Risk</span>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
-                    {% endif %}
                 </div>
-                {% endif %}
 
                 <!-- Gateway Analysis -->
-                {% if scan.network and scan.network.gateway and scan.network.gateway.results %}
                 <h3 class="section-title"><i class="bi bi-router me-2"></i>Gateway Security</h3>
                 <div class="finding">
                     <div class="title">
@@ -535,9 +431,7 @@
                         <span class="severity medium">Medium</span>
                     </div>
                     
-                    {% if scan.network.gateway.info %}
-                    <p><strong>Gateway Info:</strong> {{ scan.network.gateway.info }}</p>
-                    {% endif %}
+                    <p><strong>Gateway Info:</strong> Client IP: 192.168.1.105 | Network Type: Class C Private Network | Likely gateways: 192.168.1.1, 192.168.1.254</p>
                     
                     <div class="table-responsive mt-3">
                         <table class="table table-striped">
@@ -548,96 +442,105 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for result in scan.network.gateway.results %}
                                 <tr>
-                                    <td>{{ result[0] }}</td>
+                                    <td>Port 3389 (Remote Desktop) is open on 192.168.1.1</td>
                                     <td>
-                                        <span class="badge {% if result[1] == 'Critical' %}bg-danger{% elif result[1] == 'High' %}bg-danger{% elif result[1] == 'Medium' %}bg-warning text-dark{% elif result[1] == 'Low' %}bg-success{% else %}bg-info{% endif %}">
-                                            {{ result[1] }}
-                                        </span>
+                                        <span class="badge bg-danger">Critical</span>
                                     </td>
                                 </tr>
-                                {% endfor %}
+                                <tr>
+                                    <td>Port 80 (HTTP) is open on 192.168.1.1</td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark">Medium</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Port 443 (HTTPS) is open on 192.168.1.1</td>
+                                    <td>
+                                        <span class="badge bg-success">Low</span>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-                {% endif %}
+
+                <!-- Firewall Status -->
+                <h3 class="section-title"><i class="bi bi-bricks me-2"></i>Firewall Status</h3>
+                <div class="finding">
+                    <div class="title">
+                        <span>Firewall Configuration</span>
+                        <span class="severity medium">Medium</span>
+                    </div>
+                    
+                    <p>Firewall enabled but needs configuration review</p>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Importance:</strong> A properly configured firewall is your first line of defense against unauthorized network access and potential attacks.
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Web Security Section -->
+        <!-- SECTION 3: WEB SECURITY -->
         <div class="card mb-4">
             <div class="card-header">
                 <i class="bi bi-globe"></i>
-                <h2 class="mb-0">Web Security</h2>
+                <h2 class="mb-0">3. Web Security</h2>
             </div>
             <div class="card-body">
+                <div class="explanation-card" id="explanation-web">
+                    <h5><i class="bi bi-info-circle"></i>What is Web Security?</h5>
+                    <p>Web security focuses on protecting your websites, web applications, and the data they handle. This includes analyzing your SSL/TLS certificates (which encrypt communications), HTTP security headers (which protect against common web attacks), and content management systems for vulnerabilities. Web attacks are among the most common security threats organizations face, as websites are publicly accessible and often connected to valuable internal resources or customer data. Strong web security is particularly critical for organizations that process sensitive information or transactions online.</p>
+                </div>
+
                 <!-- SSL Certificate -->
-                {% if scan.ssl_certificate and 'error' not in scan.ssl_certificate %}
                 <h3 class="section-title"><i class="bi bi-lock me-2"></i>SSL/TLS Certificate</h3>
                 <div class="finding">
                     <div class="title">
                         <span>Certificate Status</span>
-                        <span class="severity {{ scan.ssl_certificate.severity|lower }}">{{ scan.ssl_certificate.severity }}</span>
+                        <span class="severity high">High</span>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <p><strong>Status:</strong> {{ scan.ssl_certificate.status }}</p>
-                            <p><strong>Issuer:</strong> {{ scan.ssl_certificate.issuer|default('Unknown') }}</p>
-                            <p><strong>Valid Until:</strong> {{ scan.ssl_certificate.valid_until|default('Unknown') }}</p>
+                            <p><strong>Status:</strong> Expiring Soon (14 days)</p>
+                            <p><strong>Issuer:</strong> Let's Encrypt Authority X3</p>
+                            <p><strong>Valid Until:</strong> May 14, 2025</p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>Days Remaining:</strong> {{ scan.ssl_certificate.days_remaining|default('Unknown') }}</p>
-                            <p><strong>Protocol Version:</strong> {{ scan.ssl_certificate.protocol_version|default('Unknown') }}</p>
-                            <p><strong>Weak Protocol:</strong> {{ 'Yes' if scan.ssl_certificate.weak_protocol else 'No' }}</p>
+                            <p><strong>Days Remaining:</strong> 14</p>
+                            <p><strong>Protocol Version:</strong> TLSv1.2</p>
+                            <p><strong>Weak Protocol:</strong> No</p>
                         </div>
                     </div>
                     
-                    {% if scan.ssl_certificate.is_expired %}
-                    <div class="alert alert-danger mt-3">
-                        <i class="bi bi-exclamation-circle-fill me-2"></i>
-                        <strong>Critical Issue:</strong> SSL Certificate is expired and needs to be renewed immediately.
-                    </div>
-                    {% elif scan.ssl_certificate.expiring_soon %}
                     <div class="alert alert-warning mt-3">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        <strong>Warning:</strong> SSL Certificate will expire in {{ scan.ssl_certificate.days_remaining }} days.
+                        <strong>Warning:</strong> SSL Certificate will expire in 14 days.
                     </div>
-                    {% endif %}
-                    
-                    {% if scan.ssl_certificate.weak_protocol %}
-                    <div class="alert alert-warning mt-3">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        <strong>Security Concern:</strong> Using weak SSL/TLS protocol {{ scan.ssl_certificate.protocol_version }}. Upgrade to TLS 1.2 or higher.
-                    </div>
-                    {% endif %}
                 </div>
-                {% endif %}
 
                 <!-- Security Headers -->
-                {% if scan.security_headers and 'error' not in scan.security_headers %}
                 <h3 class="section-title"><i class="bi bi-shield-lock me-2"></i>Security Headers</h3>
                 <div class="finding">
                     <div class="title">
                         <span>HTTP Security Headers</span>
-                        <span class="severity {{ scan.security_headers.severity|lower }}">{{ scan.security_headers.severity }}</span>
+                        <span class="severity high">High</span>
                     </div>
                     
                     <p>Security headers help protect against common web vulnerabilities like XSS, clickjacking, and more.</p>
                     
                     <div class="d-flex justify-content-center my-4">
-                        <div style="width: 200px; height: 200px;" class="position-relative">
-                            <div class="position-absolute top-50 start-50 translate-middle text-center">
-                                <h3 class="mb-0">{{ scan.security_headers.score }}</h3>
-                                <p class="mb-0">out of 100</p>
+                        <div style="width: 200px; height: 40px;" class="position-relative bg-light rounded">
+                            <div style="width: 40%; height: 100%; background-color: #dc3545;" class="rounded"></div>
+                            <div class="position-absolute top-50 start-50 translate-middle">
+                                <strong>40/100</strong>
                             </div>
-                            <canvas id="securityHeadersChart" width="200" height="200"></canvas>
                         </div>
                     </div>
                     
-                    {% if scan.security_headers.headers %}
                     <div class="table-responsive mt-3">
                         <table class="table table-striped">
                             <thead>
@@ -647,178 +550,95 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for header, found in scan.security_headers.headers.items() %}
                                 <tr>
-                                    <td>{{ header }}</td>
+                                    <td>Strict-Transport-Security</td>
                                     <td>
-                                        {% if found %}
-                                        <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i> Present</span>
-                                        {% else %}
                                         <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i> Missing</span>
-                                        {% endif %}
                                     </td>
                                 </tr>
-                                {% endfor %}
+                                <tr>
+                                    <td>Content-Security-Policy</td>
+                                    <td>
+                                        <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i> Missing</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>X-Frame-Options</td>
+                                    <td>
+                                        <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i> Present</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>X-Content-Type-Options</td>
+                                    <td>
+                                        <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i> Present</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Referrer-Policy</td>
+                                    <td>
+                                        <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i> Missing</span>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
-                    {% endif %}
                 </div>
-                {% endif %}
                 
                 <!-- CMS Detection -->
-                {% if scan.cms and scan.cms.cms_detected %}
                 <h3 class="section-title"><i class="bi bi-window me-2"></i>Content Management System</h3>
                 <div class="finding">
                     <div class="title">
                         <span>CMS Detection</span>
-                        <span class="severity {{ scan.cms.severity|lower }}">{{ scan.cms.severity }}</span>
+                        <span class="severity high">High</span>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <p><strong>CMS Name:</strong> {{ scan.cms.cms_name }}</p>
-                            <p><strong>Version:</strong> {{ scan.cms.version|default('Unknown') }}</p>
+                            <p><strong>CMS Name:</strong> WordPress</p>
+                            <p><strong>Version:</strong> 5.8.3</p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>Risk Level:</strong> {{ scan.cms.severity }}</p>
+                            <p><strong>Risk Level:</strong> High</p>
                         </div>
                     </div>
                     
-                    {% if scan.cms.potential_vulnerabilities %}
                     <div class="alert alert-warning mt-3">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
                         <strong>Potential Vulnerabilities:</strong>
                         <ul class="mb-0 mt-2">
-                            {% for vuln in scan.cms.potential_vulnerabilities %}
-                            <li>{{ vuln }}</li>
-                            {% endfor %}
+                            <li>WordPress 5.8.3 is outdated and may contain security vulnerabilities.</li>
+                            <li>Multiple outdated plugins detected that have known security issues.</li>
                         </ul>
                     </div>
-                    {% endif %}
                 </div>
-                {% endif %}
-                
-                <!-- Cookies Analysis -->
-                {% if scan.cookies and 'error' not in scan.cookies %}
-                <h3 class="section-title"><i class="bi bi-cookie me-2"></i>Cookies Security</h3>
-                <div class="finding">
-                    <div class="title">
-                        <span>Cookie Security Analysis</span>
-                        <span class="severity {{ scan.cookies.severity|lower }}">{{ scan.cookies.severity }}</span>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Total Cookies:</strong> {{ scan.cookies.total_cookies }}</p>
-                            <p><strong>Secure Cookies:</strong> {{ scan.cookies.secure_cookies }}/{{ scan.cookies.total_cookies }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>HttpOnly Cookies:</strong> {{ scan.cookies.httponly_cookies }}/{{ scan.cookies.total_cookies }}</p>
-                            <p><strong>SameSite Cookies:</strong> {{ scan.cookies.samesite_cookies }}/{{ scan.cookies.total_cookies }}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="progress mt-3">
-                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ scan.cookies.score }}%" 
-                             aria-valuenow="{{ scan.cookies.score }}" aria-valuemin="0" aria-valuemax="100">
-                            {{ scan.cookies.score }}%
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- Web Framework Detection -->
-                {% if scan.frameworks and scan.frameworks.frameworks %}
-                <h3 class="section-title"><i class="bi bi-code-square me-2"></i>Web Frameworks</h3>
-                <div class="finding">
-                    <div class="title">
-                        <span>Framework Detection</span>
-                        <span class="severity low">Low</span>
-                    </div>
-                    
-                    <p>Detected {{ scan.frameworks.count }} web frameworks being used on this site:</p>
-                    
-                    <ul class="mt-3">
-                        {% for framework in scan.frameworks.frameworks %}
-                        <li><strong>{{ framework }}</strong></li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
-                
-                <!-- Sensitive Content -->
-                {% if scan.sensitive_content and 'error' not in scan.sensitive_content %}
-                <h3 class="section-title"><i class="bi bi-eye-slash me-2"></i>Sensitive Content Exposure</h3>
-                <div class="finding">
-                    <div class="title">
-                        <span>Sensitive Path Detection</span>
-                        <span class="severity {{ scan.sensitive_content.severity|lower }}">{{ scan.sensitive_content.severity }}</span>
-                    </div>
-                    
-                    <p>Found {{ scan.sensitive_content.sensitive_paths_found }} potentially sensitive paths that could expose configuration, administration, or internal data.</p>
-                    
-                    {% if scan.sensitive_content.paths %}
-                    <div class="table-responsive mt-3">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Path</th>
-                                    <th>Risk Level</th>
-                                    <th>Recommendation</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for path in scan.sensitive_content.paths %}
-                                <tr>
-                                    <td>{{ path }}</td>
-                                    <td>
-                                        {% if path in ['/admin', '/wp-admin', '/administrator', '/phpmyadmin', '/.git', '/.env', '/config.php', '/wp-config.php'] %}
-                                        <span class="badge bg-danger">High</span>
-                                        {% else %}
-                                        <span class="badge bg-warning text-dark">Medium</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if path in ['/admin', '/wp-admin', '/administrator', '/phpmyadmin'] %}
-                                        Secure with strong authentication and IP restrictions
-                                        {% elif path in ['/.git', '/.env', '/config.php', '/wp-config.php'] %}
-                                        Block access via web server configuration
-                                        {% else %}
-                                        Review and restrict access as needed
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% endif %}
-                </div>
-                {% endif %}
             </div>
         </div>
 
-        <!-- Email Security Section -->
+        <!-- SECTION 4: EMAIL SECURITY -->
         <div class="card mb-4">
             <div class="card-header">
                 <i class="bi bi-envelope"></i>
-                <h2 class="mb-0">Email Security</h2>
+                <h2 class="mb-0">4. Email Security</h2>
             </div>
             <div class="card-body">
-                {% if scan.email_security and 'error' not in scan.email_security %}
+                <div class="explanation-card" id="explanation-email">
+                    <h5><i class="bi bi-info-circle"></i>What is Email Security?</h5>
+                    <p>Email security focuses on protecting your email communications from spoofing, phishing, and other attacks. This includes analyzing SPF, DKIM, and DMARC records, which are DNS records that verify email senders and prevent impersonation. Email is one of the most common attack vectors, with phishing attacks accounting for a significant percentage of security breaches. Proper email authentication helps protect your brand reputation by preventing attackers from sending emails that appear to come from your domain, while also improving email deliverability by establishing your domain as a legitimate sender.</p>
+                </div>
+
                 <!-- Display domain -->
-                <p><strong>Domain Analyzed:</strong> {{ scan.email_security.domain }}</p>
+                <p><strong>Domain Analyzed:</strong> example.com</p>
                 
                 <!-- SPF Record -->
                 <h3 class="section-title"><i class="bi bi-patch-check me-2"></i>Sender Policy Framework (SPF)</h3>
                 <div class="finding">
                     <div class="title">
                         <span>SPF Record Status</span>
-                        <span class="severity {{ scan.email_security.spf.severity|lower }}">{{ scan.email_security.spf.severity }}</span>
+                        <span class="severity high">High</span>
                     </div>
                     
-                    <p>{{ scan.email_security.spf.status }}</p>
+                    <p>SPF record found: v=spf1 include:_spf.google.com ~all (Soft fail)</p>
                     
                     <div class="alert alert-info mt-3">
                         <i class="bi bi-info-circle-fill me-2"></i>
@@ -831,10 +651,10 @@
                 <div class="finding">
                     <div class="title">
                         <span>DMARC Record Status</span>
-                        <span class="severity {{ scan.email_security.dmarc.severity|lower }}">{{ scan.email_security.dmarc.severity }}</span>
+                        <span class="severity critical">Critical</span>
                     </div>
                     
-                    <p>{{ scan.email_security.dmarc.status }}</p>
+                    <p>No DMARC record found</p>
                     
                     <div class="alert alert-info mt-3">
                         <i class="bi bi-info-circle-fill me-2"></i>
@@ -847,265 +667,35 @@
                 <div class="finding">
                     <div class="title">
                         <span>DKIM Record Status</span>
-                        <span class="severity {{ scan.email_security.dkim.severity|lower }}">{{ scan.email_security.dkim.severity }}</span>
+                        <span class="severity high">High</span>
                     </div>
                     
-                    <p>{{ scan.email_security.dkim.status }}</p>
+                    <p>No DKIM records found for common selectors</p>
                     
                     <div class="alert alert-info mt-3">
                         <i class="bi bi-info-circle-fill me-2"></i>
                         <strong>About DKIM:</strong> DKIM allows receiving mail servers to verify that an email was sent by an authorized sender by cryptographically signing messages.
                     </div>
                 </div>
-                {% else %}
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <strong>Email Security Scan Not Available:</strong> Either no email domain was provided or there was an error during the scan.
-                </div>
-                {% endif %}
             </div>
         </div>
 
-        <!-- System Security Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-pc-display"></i>
-                <h2 class="mb-0">System Security</h2>
-            </div>
-            <div class="card-body">
-                {% if scan.system %}
-                <!-- OS Updates -->
-                {% if scan.system.os_updates %}
-                <h3 class="section-title"><i class="bi bi-arrow-repeat me-2"></i>Operating System Updates</h3>
-                <div class="finding">
-                    <div class="title">
-                        <span>OS Update Status</span>
-                        <span class="severity {{ scan.system.os_updates.severity|lower }}">{{ scan.system.os_updates.severity }}</span>
-                    </div>
-                    
-                    <p>{{ scan.system.os_updates.message }}</p>
-                    
-                    <div class="alert alert-info mt-3">
-                        <i class="bi bi-info-circle-fill me-2"></i>
-                        <strong>Importance:</strong> Keeping your operating system updated is critical for security, as updates often include patches for known vulnerabilities.
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- Firewall Status -->
-                {% if scan.system.firewall %}
-                <h3 class="section-title"><i class="bi bi-bricks me-2"></i>Firewall Status</h3>
-                <div class="finding">
-                    <div class="title">
-                        <span>Firewall Configuration</span>
-                        <span class="severity {{ scan.system.firewall.severity|lower }}">{{ scan.system.firewall.severity }}</span>
-                    </div>
-                    
-                    <p>{{ scan.system.firewall.status }}</p>
-                    
-                    <div class="alert alert-info mt-3">
-                        <i class="bi bi-info-circle-fill me-2"></i>
-                        <strong>Importance:</strong> A properly configured firewall is your first line of defense against unauthorized network access and potential attacks.
-                    </div>
-                </div>
-                {% endif %}
-                {% else %}
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <strong>System Security Scan Not Available:</strong> System security checks could not be performed on this scan.
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Service Categories Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-diagram-3"></i>
-                <h2 class="mb-0">Service Categories</h2>
-            </div>
-            <div class="card-body">
-                {% if scan.service_categories %}
-                <p>Based on the security scan results, we've categorized the findings into MSP service areas that would help address the detected issues:</p>
-                
-                <div class="row mt-4">
-                    {% for category_key, category in scan.service_categories.items() %}
-                    <div class="col-lg-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header {% if category.risk_level == 'Critical' %}bg-danger{% elif category.risk_level == 'High' %}bg-warning{% elif category.risk_level == 'Medium' %}bg-info{% else %}bg-success{% endif %} text-white">
-                                <h5 class="mb-0">{{ category.name }}</h5>
-                            </div>
-                            <div class="card-body">
-                                <p>{{ category.description }}</p>
-                                
-                                <p><strong>Risk Level:</strong> 
-                                    <span class="badge {% if category.risk_level == 'Critical' %}bg-danger{% elif category.risk_level == 'High' %}bg-warning{% elif category.risk_level == 'Medium' %}bg-info{% else %}bg-success{% endif %}">
-                                        {{ category.risk_level }}
-                                    </span>
-                                </p>
-                                
-                                {% if category.findings %}
-                                <h6 class="mt-3">Key Findings:</h6>
-                                <ul>
-                                    {% for finding in category.findings %}
-                                    <li>
-                                        <strong>{{ finding.name }}:</strong> {{ finding.description }} 
-                                        <span class="badge {% if finding.severity == 'Critical' %}bg-danger{% elif finding.severity == 'High' %}bg-warning{% elif finding.severity == 'Medium' %}bg-info{% else %}bg-success{% endif %} ms-1">
-                                            {{ finding.severity }}
-                                        </span>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                                {% endif %}
-                                
-                                {% if category.service_solution %}
-                                <div class="mt-3">
-                                    <button class="btn btn-primary service-inquiry-btn" 
-                                            data-service="{{ category.name }}" 
-                                            data-findings="{{ category.findings|map(attribute='name')|join(', ') }}">
-                                        <i class="bi bi-shield-check me-2"></i>Get {{ category.name }} Service
-                                    </button>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle-fill me-2"></i>
-                    <strong>Service Categorization Not Available:</strong> We could not categorize the findings into service areas for this scan.
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Recommendations Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-lightbulb"></i>
-                <h2 class="mb-0">Security Recommendations</h2>
-            </div>
-            <div class="card-body">
-                {% if scan.recommendations %}
-                <div class="alert alert-primary mb-4">
-                    <i class="bi bi-info-circle-fill me-2"></i>
-                    <strong>Next Steps:</strong> Based on our scan results, we recommend the following actions to improve your security posture.
-                </div>
-                
-                <div class="recommendations">
-                    <ul class="list-group">
-                        {% for recommendation in scan.recommendations %}
-                        <li class="list-group-item">
-                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
-                            {{ recommendation }}
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% else %}
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <strong>Recommendations Not Available:</strong> We could not generate specific recommendations for this scan.
-                </div>
-                
-                <div class="recommendations">
-                    <ul class="list-group">
-                        <li class="list-group-item">
-                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
-                            Keep all software and systems updated with the latest security patches.
-                        </li>
-                        <li class="list-group-item">
-                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
-                            Use strong, unique passwords and implement multi-factor authentication where possible.
-                        </li>
-                        <li class="list-group-item">
-                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
-                            Regularly back up your data and test the restoration process.
-                        </li>
-                    </ul>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Threat Scenarios Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-exclamation-triangle"></i>
-                <h2 class="mb-0">Potential Threat Scenarios</h2>
-            </div>
-            <div class="card-body">
-                {% if scan.threat_scenarios %}
-                <p>Based on the security vulnerabilities detected, these are potential threat scenarios that could affect your systems:</p>
-                
-                <div class="row mt-4">
-                    {% for threat in scan.threat_scenarios %}
-                    <div class="col-lg-6 mb-4">
-                        <div class="card h-100 border-warning">
-                            <div class="card-header bg-warning text-dark">
-                                <h5 class="mb-0">{{ threat.name }}</h5>
-                            </div>
-                            <div class="card-body">
-                                <p>{{ threat.description }}</p>
-                                
-                                <div class="d-flex justify-content-between mt-3">
-                                    <span>
-                                        <strong>Impact:</strong> 
-                                        <span class="badge {% if threat.impact == 'Critical' or threat.impact == 'High' %}bg-danger{% elif threat.impact == 'Medium' %}bg-warning text-dark{% else %}bg-info{% endif %}">
-                                            {{ threat.impact }}
-                                        </span>
-                                    </span>
-                                    <span>
-                                        <strong>Likelihood:</strong> 
-                                        <span class="badge {% if threat.likelihood == 'High' %}bg-danger{% elif threat.likelihood == 'Medium' %}bg-warning text-dark{% else %}bg-info{% endif %}">
-                                            {{ threat.likelihood }}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle-fill me-2"></i>
-                    <strong>Threat Scenarios Not Available:</strong> We could not generate specific threat scenarios for this scan.
-                </div>
-                
-                <div class="card border-warning mb-4">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0">General Cyber Attack Risk</h5>
-                    </div>
-                    <div class="card-body">
-                        <p>Even with no critical vulnerabilities detected, organizations remain targets for common attacks like phishing, social engineering, or exploitation of newly discovered vulnerabilities.</p>
-                        
-                        <div class="d-flex justify-content-between mt-3">
-                            <span>
-                                <strong>Impact:</strong> 
-                                <span class="badge bg-warning text-dark">Medium</span>
-                            </span>
-                            <span>
-                                <strong>Likelihood:</strong> 
-                                <span class="badge bg-info">Low</span>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Action Plan Section -->
+        <!-- SECTION 5: RECOMMENDATIONS & ACTION PLAN -->
         <div class="card mb-4">
             <div class="card-header">
                 <i class="bi bi-list-check"></i>
-                <h2 class="mb-0">Security Action Plan</h2>
+                <h2 class="mb-0">5. Security Recommendations & Action Plan</h2>
             </div>
             <div class="card-body">
-                <p>Based on the security findings, we recommend the following action plan to address the issues found in priority order:</p>
+                <div class="explanation-card" id="explanation-recommendations">
+                    <h5><i class="bi bi-info-circle"></i>Why Are Recommendations Important?</h5>
+                    <p>Recommendations provide actionable steps to address the security issues identified in your scan. These are prioritized by risk level, allowing you to focus on the most critical vulnerabilities first. Following these recommendations will significantly improve your security posture and reduce your organization's risk of a breach. The timeline recommendations help you develop a structured remediation plan suitable for your resources and risk tolerance.</p>
+                </div>
+
+                <div class="alert alert-primary mb-4">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>Next Steps:</strong> Based on our scan results, we recommend the following actions to improve your security posture, ordered by priority:
+                </div>
                 
                 <div class="table-responsive mt-4">
                     <table class="table table-striped">
@@ -1118,15 +708,78 @@
                                 <th>Timeframe</th>
                             </tr>
                         </thead>
-                        <tbody id="action-plan-body">
-                            <!-- This will be populated by JavaScript -->
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>Missing DMARC record</td>
+                                <td><span class="badge bg-danger">Critical</span></td>
+                                <td>Implement DMARC with a 'quarantine' or 'reject' policy</td>
+                                <td>Immediate</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>Port 3389 (RDP) exposed</td>
+                                <td><span class="badge bg-danger">Critical</span></td>
+                                <td>Close RDP port or implement VPN for remote access</td>
+                                <td>Immediate</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>WordPress outdated (version 5.8.3)</td>
+                                <td><span class="badge bg-warning text-dark">High</span></td>
+                                <td>Update WordPress to the latest version (6.5)</td>
+                                <td>Within 1 week</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>SSL Certificate expiring soon</td>
+                                <td><span class="badge bg-warning text-dark">High</span></td>
+                                <td>Renew SSL certificate before expiration</td>
+                                <td>Within 1 week</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>Missing security headers</td>
+                                <td><span class="badge bg-warning text-dark">High</span></td>
+                                <td>Implement recommended security headers (CSP, HSTS)</td>
+                                <td>Within 2 weeks</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-                
-                <div class="alert alert-info mt-4">
-                    <i class="bi bi-info-circle-fill me-2"></i>
-                    <strong>Need Help?</strong> Our security team can assist with implementing these recommendations and provide ongoing security management services.
+
+                <div class="recommendations mt-4">
+                    <h4 class="mb-3">Detailed Recommendations</h4>
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                            <strong>Implement DMARC:</strong> Set up a DMARC record with at least a "quarantine" policy to protect against email spoofing. This should be connected to monitoring to track potential abuse of your domain.
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                            <strong>Secure Remote Access:</strong> Close port 3389 (RDP) or implement a VPN solution for secure remote access. RDP exposed directly to the internet is a common attack vector.
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                            <strong>Update WordPress:</strong> Update your WordPress installation to the latest version and implement automatic updates for security patches. Remove any unused plugins and themes.
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                            <strong>Renew SSL Certificate:</strong> Schedule the renewal of your SSL certificate before its expiration date. Consider implementing auto-renewal to avoid future expirations.
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                            <strong>Implement Security Headers:</strong> Configure your web server to include critical security headers such as Content-Security-Policy, Strict-Transport-Security, and Referrer-Policy.
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                            <strong>Implement DKIM Signing:</strong> Set up DKIM for your domain to add cryptographic authentication for your outgoing emails.
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                            <strong>Review Firewall Rules:</strong> Audit your firewall configuration to ensure it follows the principle of least privilege, allowing only necessary traffic.
+                        </li>
+                    </ul>
                 </div>
                 
                 <div class="text-center mt-4">
@@ -1137,73 +790,403 @@
             </div>
         </div>
 
-        <!-- Industry Compliance Section -->
-        {% if scan.industry %}
+        <!-- SECTION 6: THREAT SCENARIOS -->
         <div class="card mb-4">
             <div class="card-header">
-                <i class="bi bi-clipboard-check"></i>
-                <h2 class="mb-0">Industry Compliance: {{ scan.industry.name }}</h2>
+                <i class="bi bi-exclamation-triangle"></i>
+                <h2 class="mb-0">6. Potential Threat Scenarios</h2>
             </div>
             <div class="card-body">
-                {% if scan.industry.compliance %}
-                <h4>Relevant Compliance Standards</h4>
-                <div class="d-flex flex-wrap mt-3 mb-4">
-                    {% for compliance in scan.industry.compliance %}
-                    <span class="badge bg-info text-dark m-1 p-2">{{ compliance }}</span>
-                    {% endfor %}
+                <div class="explanation-card" id="explanation-threats">
+                    <h5><i class="bi bi-info-circle"></i>Understanding Threat Scenarios</h5>
+                    <p>Threat scenarios illustrate how the vulnerabilities identified in your scan could be exploited by attackers in real-world situations. These scenarios help translate technical findings into business risks, making it easier to understand the potential impact on your organization. By understanding these scenarios, you can better prioritize security investments and communicate risks to stakeholders who may not have technical backgrounds. Each scenario includes an impact and likelihood assessment to help with risk management decisions.</p>
                 </div>
-                {% endif %}
+
+                <p>Based on the security vulnerabilities detected, these are potential threat scenarios that could affect your systems:</p>
                 
-                {% if scan.industry.critical_controls %}
-                <h4>Critical Security Controls</h4>
-                <div class="row mt-3">
-                    {% for control in scan.industry.critical_controls %}
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
+                <div class="row mt-4">
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100 border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0">Email Spoofing Attack</h5>
+                            </div>
                             <div class="card-body">
-                                <i class="bi bi-shield-lock me-2 text-primary"></i>{{ control }}
+                                <p>Without proper DMARC configuration, attackers could send emails that appear to come from your domain. This could be used for targeted phishing attacks against your customers, partners, or employees, damaging your reputation and potentially leading to account compromise or fraud.</p>
+                                
+                                <div class="d-flex justify-content-between mt-3">
+                                    <span>
+                                        <strong>Impact:</strong> 
+                                        <span class="badge bg-danger">High</span>
+                                    </span>
+                                    <span>
+                                        <strong>Likelihood:</strong> 
+                                        <span class="badge bg-danger">High</span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
+                    
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100 border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0">Remote Desktop Brute Force Attack</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>With Remote Desktop Protocol (RDP) exposed on port 3389, attackers could attempt brute force password attacks to gain unauthorized access to your systems. Once access is gained, attackers could move laterally through your network, exfiltrate data, or deploy ransomware.</p>
+                                
+                                <div class="d-flex justify-content-between mt-3">
+                                    <span>
+                                        <strong>Impact:</strong> 
+                                        <span class="badge bg-danger">Critical</span>
+                                    </span>
+                                    <span>
+                                        <strong>Likelihood:</strong> 
+                                        <span class="badge bg-warning text-dark">Medium</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100 border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0">WordPress Vulnerability Exploitation</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Your outdated WordPress installation contains known security vulnerabilities that attackers can exploit to gain unauthorized access or inject malicious code. This could lead to website defacement, malware distribution to visitors, or creation of a backdoor for persistent access.</p>
+                                
+                                <div class="d-flex justify-content-between mt-3">
+                                    <span>
+                                        <strong>Impact:</strong> 
+                                        <span class="badge bg-warning text-dark">Medium</span>
+                                    </span>
+                                    <span>
+                                        <strong>Likelihood:</strong> 
+                                        <span class="badge bg-danger">High</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100 border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0">Cross-Site Scripting (XSS) Attack</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>The lack of proper security headers (particularly Content-Security-Policy) leaves your web application vulnerable to cross-site scripting attacks. Attackers could inject malicious scripts that execute in users' browsers, potentially stealing session cookies, capturing sensitive data, or performing unauthorized actions.</p>
+                                
+                                <div class="d-flex justify-content-between mt-3">
+                                    <span>
+                                        <strong>Impact:</strong> 
+                                        <span class="badge bg-warning text-dark">Medium</span>
+                                    </span>
+                                    <span>
+                                        <strong>Likelihood:</strong> 
+                                        <span class="badge bg-warning text-dark">Medium</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                {% endif %}
+            </div>
+        </div>
+
+        <!-- Industry Compliance Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-clipboard-check"></i>
+                <h2 class="mb-0">7. Industry Compliance: Financial Services</h2>
+            </div>
+            <div class="card-body">
+                <div class="explanation-card" id="explanation-compliance">
+                    <h5><i class="bi bi-info-circle"></i>Why Industry Compliance Matters</h5>
+                    <p>Industry compliance provides a framework of security requirements specific to your sector. For financial services, compliance with standards like PCI DSS, SOX, and GLBA is often mandatory and helps protect sensitive financial data. This section maps your security findings to relevant compliance requirements, helping you identify gaps that might put you at regulatory risk. Beyond avoiding penalties, compliance with these standards establishes a security baseline that protects both your organization and your customers.</p>
+                </div>
+
+                <h4>Relevant Compliance Standards</h4>
+                <div class="d-flex flex-wrap mt-3 mb-4">
+                    <span class="badge bg-info text-dark m-1 p-2">PCI DSS</span>
+                    <span class="badge bg-info text-dark m-1 p-2">SOX</span>
+                    <span class="badge bg-info text-dark m-1 p-2">GLBA</span>
+                </div>
                 
-                {% if scan.industry.benchmarks %}
+                <h4>Critical Security Controls</h4>
+                <div class="row mt-3">
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <i class="bi bi-shield-lock me-2 text-primary"></i>Multi-factor Authentication
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <i class="bi bi-shield-lock me-2 text-primary"></i>Encryption of Financial Data
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <i class="bi bi-shield-lock me-2 text-primary"></i>Fraud Detection
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <i class="bi bi-shield-lock me-2 text-primary"></i>Continuous Monitoring
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <i class="bi bi-shield-lock me-2 text-primary"></i>Disaster Recovery
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="mt-4">
                     <h4>Industry Benchmark Comparison</h4>
                     <div class="alert alert-primary">
-                        <p>Your security score of <strong>{{ scan.risk_assessment.overall_score }}</strong> is 
-                           <strong>{{ scan.industry.benchmarks.difference }} points {{ scan.industry.benchmarks.comparison }}</strong> 
-                           the {{ scan.industry.name }} industry average of {{ scan.industry.benchmarks.avg_score }}.</p>
-                        <p>You are in the <strong>{{ scan.industry.benchmarks.percentile }}th percentile</strong> 
+                        <p>Your security score of <strong>75</strong> is 
+                           <strong>3 points below</strong> 
+                           the Financial Services industry average of 78.</p>
+                        <p>You are in the <strong>45th percentile</strong> 
                            for your industry.</p>
                     </div>
                 </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-        
-        <!-- Technical Details Toggle -->
-        <div class="accordion mb-4" id="technicalDetails">
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="technicalDetailsHeading">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
-                            data-bs-target="#technicalDetailsCollapse" aria-expanded="false" 
-                            aria-controls="technicalDetailsCollapse">
-                        <i class="bi bi-terminal me-2"></i>Technical Details (Advanced)
-                    </button>
-                </h2>
-                <div id="technicalDetailsCollapse" class="accordion-collapse collapse" 
-                     aria-labelledby="technicalDetailsHeading" data-bs-parent="#technicalDetails">
-                    <div class="accordion-body">
-                        <div class="debug-info">
-                            <pre id="technical-json">
-                                <!-- Will be filled by JavaScript -->
-                            </pre>
+                
+                <div class="row mt-4">
+                    <div class="col-lg-12">
+                        <h4>Compliance Gap Analysis</h4>
+                        <div class="table-responsive mt-3">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Compliance Requirement</th>
+                                        <th>Current Status</th>
+                                        <th>Gap</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Secure Email Authentication (SOX, GLBA)</td>
+                                        <td><span class="badge bg-danger">Not Compliant</span></td>
+                                        <td>Missing DMARC and DKIM records</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Secure Remote Access Controls (PCI DSS Req. 8)</td>
+                                        <td><span class="badge bg-danger">Not Compliant</span></td>
+                                        <td>RDP port 3389 exposed without adequate protection</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Regular Security Updates (PCI DSS Req. 6.2)</td>
+                                        <td><span class="badge bg-warning text-dark">Partially Compliant</span></td>
+                                        <td>WordPress installation out of date</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Transport Layer Security (PCI DSS Req. 4.1)</td>
+                                        <td><span class="badge bg-warning text-dark">Partially Compliant</span></td>
+                                        <td>SSL certificate expiring soon</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Web Application Security (PCI DSS Req. 6.6)</td>
+                                        <td><span class="badge bg-warning text-dark">Partially Compliant</span></td>
+                                        <td>Missing security headers</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Recommendations Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-tools"></i>
+                <h2 class="mb-0">8. Service Recommendations</h2>
+            </div>
+            <div class="card-body">
+                <div class="explanation-card" id="explanation-services">
+                    <h5><i class="bi bi-info-circle"></i>About Service Recommendations</h5>
+                    <p>This section categorizes security issues into service areas that can help address the detected vulnerabilities. Rather than trying to fix everything at once, this modular approach allows you to prioritize specific security areas based on your risk profile and resources. Each service area includes specific findings that relate to that category, enabling a more targeted remediation approach. These services represent common security functions that organizations either develop internally or source from security providers.</p>
+                </div>
+
+                <p>Based on the security scan results, we've categorized the findings into service areas that would help address the detected issues:</p>
+                
+                <div class="row mt-4">
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0">Network Security</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Protection for your network infrastructure and internet connectivity</p>
+                                
+                                <p><strong>Risk Level:</strong> 
+                                    <span class="badge bg-warning text-dark">Medium</span>
+                                </p>
+                                
+                                <h6 class="mt-3">Key Findings:</h6>
+                                <ul>
+                                    <li>
+                                        <strong>Open Ports:</strong> Found 10 open ports that could be access points for attackers 
+                                        <span class="badge bg-warning text-dark ms-1">Medium</span>
+                                    </li>
+                                    <li>
+                                        <strong>Gateway Security:</strong> RDP port 3389 exposed on gateway
+                                        <span class="badge bg-danger ms-1">Critical</span>
+                                    </li>
+                                    <li>
+                                        <strong>Firewall Configuration:</strong> Needs review and hardening
+                                        <span class="badge bg-warning text-dark ms-1">Medium</span>
+                                    </li>
+                                </ul>
+                                
+                                <div class="mt-3">
+                                    <button class="btn btn-primary service-inquiry-btn" 
+                                            data-service="Network Security" 
+                                            data-findings="Open Ports, RDP Exposure, Firewall Configuration">
+                                        <i class="bi bi-shield-check me-2"></i>Get Network Security Service
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0">Web Application Security</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Protection for your websites and web applications</p>
+                                
+                                <p><strong>Risk Level:</strong> 
+                                    <span class="badge bg-warning text-dark">High</span>
+                                </p>
+                                
+                                <h6 class="mt-3">Key Findings:</h6>
+                                <ul>
+                                    <li>
+                                        <strong>SSL Certificate:</strong> Expiring in 14 days
+                                        <span class="badge bg-warning text-dark ms-1">High</span>
+                                    </li>
+                                    <li>
+                                        <strong>Security Headers:</strong> Missing critical security headers
+                                        <span class="badge bg-warning text-dark ms-1">High</span>
+                                    </li>
+                                    <li>
+                                        <strong>CMS Security:</strong> WordPress 5.8.3 is outdated
+                                        <span class="badge bg-warning text-dark ms-1">High</span>
+                                    </li>
+                                </ul>
+                                
+                                <div class="mt-3">
+                                    <button class="btn btn-primary service-inquiry-btn" 
+                                            data-service="Web Application Security" 
+                                            data-findings="SSL Certificate, Security Headers, CMS Vulnerabilities">
+                                        <i class="bi bi-shield-check me-2"></i>Get Web Security Service
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-danger text-white">
+                                <h5 class="mb-0">Email Security</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Protection against email spoofing, phishing, and fraud</p>
+                                
+                                <p><strong>Risk Level:</strong> 
+                                    <span class="badge bg-danger">Critical</span>
+                                </p>
+                                
+                                <h6 class="mt-3">Key Findings:</h6>
+                                <ul>
+                                    <li>
+                                        <strong>SPF Record:</strong> Using soft fail (~all)
+                                        <span class="badge bg-warning text-dark ms-1">High</span>
+                                    </li>
+                                    <li>
+                                        <strong>DMARC Record:</strong> Missing completely
+                                        <span class="badge bg-danger ms-1">Critical</span>
+                                    </li>
+                                    <li>
+                                        <strong>DKIM Record:</strong> Not configured
+                                        <span class="badge bg-warning text-dark ms-1">High</span>
+                                    </li>
+                                </ul>
+                                
+                                <div class="mt-3">
+                                    <button class="btn btn-primary service-inquiry-btn" 
+                                            data-service="Email Security" 
+                                            data-findings="SPF, DMARC, DKIM">
+                                        <i class="bi bi-shield-check me-2"></i>Get Email Security Service
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-dark">
+                                <h5 class="mb-0">Compliance & Governance</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Ensuring adherence to regulatory requirements</p>
+                                
+                                <p><strong>Risk Level:</strong> 
+                                    <span class="badge bg-info text-dark">Medium</span>
+                                </p>
+                                
+                                <h6 class="mt-3">Key Findings:</h6>
+                                <ul>
+                                    <li>
+                                        <strong>PCI DSS Gaps:</strong> Multiple non-compliant areas
+                                        <span class="badge bg-warning text-dark ms-1">Medium</span>
+                                    </li>
+                                    <li>
+                                        <strong>SOX Compliance:</strong> Email security issues
+                                        <span class="badge bg-warning text-dark ms-1">Medium</span>
+                                    </li>
+                                    <li>
+                                        <strong>GLBA Requirements:</strong> Several areas need improvement
+                                        <span class="badge bg-info text-dark ms-1">Medium</span>
+                                    </li>
+                                </ul>
+                                
+                                <div class="mt-3">
+                                    <button class="btn btn-primary service-inquiry-btn" 
+                                            data-service="Compliance & Governance" 
+                                            data-findings="PCI DSS, SOX, GLBA">
+                                        <i class="bi bi-shield-check me-2"></i>Get Compliance Service
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button class="btn btn-success btn-lg" id="comprehensive-service-btn">
+                        <i class="bi bi-shield-fill-check me-2"></i>Get Comprehensive Security Solution
+                    </button>
                 </div>
             </div>
         </div>
@@ -1232,7 +1215,7 @@
                 </div>
                 <div class="modal-body">
                     <form id="emailReportForm">
-                        <input type="hidden" id="modalScanId" name="scan_id" value="{{ scan.scan_id|default('') }}">
+                        <input type="hidden" id="modalScanId" name="scan_id" value="">
                         <div class="mb-3">
                             <label for="emailAddress" class="form-label">Email Address</label>
                             <input type="email" class="form-control" id="emailAddress" name="email" placeholder="your@email.com" required>
@@ -1255,401 +1238,50 @@
         </div>
     </div>
     
-    <!-- Service Inquiry Modal -->
-    <div class="modal fade" id="serviceInquiryModal" tabindex="-1" aria-labelledby="serviceInquiryModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="serviceInquiryModalLabel">Service Inquiry</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="serviceInquiryForm">
-                        <input type="hidden" id="inquiryScanId" name="scan_id" value="{{ scan.scan_id|default('') }}">
-                        <input type="hidden" id="inquiryService" name="service" value="">
-                        <input type="hidden" id="inquiryFindings" name="findings" value="">
-                        
-                        <div class="mb-3">
-                            <label for="inquiryName" class="form-label">Your Name</label>
-                            <input type="text" class="form-control" id="inquiryName" name="name" value="{{ scan.client_info.name|default('') }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="inquiryEmail" class="form-label">Email Address</label>
-                            <input type="email" class="form-control" id="inquiryEmail" name="email" value="{{ scan.email|default(scan.client_info.email|default('')) }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="inquiryPhone" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="inquiryPhone" name="phone" value="{{ scan.client_info.phone|default('') }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="inquiryMessage" class="form-label">Message</label>
-                            <textarea class="form-control" id="inquiryMessage" name="message" rows="3" placeholder="Please provide more details about my security needs..."></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="sendInquiryBtn">Submit Inquiry</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <button class="print-button" id="floatingPrintBtn" title="Print Report">
         <i class="bi bi-printer"></i>
     </button>
 
     <!-- Simple JavaScript for essential functionality -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
     <script>
-        // Log page load
-        console.log('Results page loaded at ' + new Date().toLocaleTimeString());
-
-        // Safe function to get element
-        function getElement(id) {
-            return document.getElementById(id);
-        }
-        
-        // Initialize variables to track issue counts
-        let criticalIssuesCount = 0;
-        let secureElementsCount = 0;
-        
-        // Simple event handling
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize action plan
-            generateActionPlan();
-            
-            // Count critical issues and secure elements
-            countIssuesAndElements();
-            
-            // Initialize charts
-            initializeCharts();
-            
-            // Format technical JSON
-            formatTechnicalJson();
-            
-            // Print button
-            var printBtn = getElement('printReportBtn');
-            if (printBtn) {
-                printBtn.addEventListener('click', function() {
-                    window.print();
-                });
-            }
-            
-            // Floating print button
-            var floatingPrintBtn = getElement('floatingPrintBtn');
-            if (floatingPrintBtn) {
-                floatingPrintBtn.addEventListener('click', function() {
-                    window.print();
-                });
-            }
-            
             // Toggle explanations
-            var toggleExplanations = getElement('toggleExplanations');
+            var toggleExplanations = document.getElementById('toggleExplanations');
             if (toggleExplanations) {
                 toggleExplanations.addEventListener('change', function() {
-                    var explanations = document.querySelectorAll('.explanation');
+                    var explanations = document.querySelectorAll('.explanation-card');
                     explanations.forEach(function(el) {
                         el.style.display = this.checked ? 'block' : 'none';
                     }.bind(this));
                 });
             }
             
+            // Print functionality
+            var printBtn = document.getElementById('printReportBtn');
+            var floatingPrintBtn = document.getElementById('floatingPrintBtn');
+            
+            if (printBtn) {
+                printBtn.addEventListener('click', function() {
+                    window.print();
+                });
+            }
+            
+            if (floatingPrintBtn) {
+                floatingPrintBtn.addEventListener('click', function() {
+                    window.print();
+                });
+            }
+            
             // Email report button
-            var emailReportBtn = getElement('emailReportBtn');
+            var emailReportBtn = document.getElementById('emailReportBtn');
             if (emailReportBtn) {
                 emailReportBtn.addEventListener('click', function() {
                     var emailModal = new bootstrap.Modal(document.getElementById('emailReportModal'));
                     emailModal.show();
                 });
             }
-            
-            // Send email button
-            var sendEmailBtn = getElement('sendEmailBtn');
-            if (sendEmailBtn) {
-                sendEmailBtn.addEventListener('click', function() {
-                    var form = getElement('emailReportForm');
-                    if (form.checkValidity()) {
-                        var scanId = getElement('modalScanId').value;
-                        var email = getElement('emailAddress').value;
-                        
-                        // Make API call to send email
-                        fetch('/api/email_report', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: 'scan_id=' + encodeURIComponent(scanId) + '&email=' + encodeURIComponent(email)
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                alert('Report sent successfully to ' + email);
-                                bootstrap.Modal.getInstance(document.getElementById('emailReportModal')).hide();
-                            } else {
-                                alert('Error sending report: ' + (data.message || 'Unknown error'));
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Error sending report: ' + error);
-                        });
-                    } else {
-                        form.reportValidity();
-                    }
-                });
-            }
-            
-            // Handle service inquiry buttons
-            document.querySelectorAll('.service-inquiry-btn').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    var service = this.getAttribute('data-service');
-                    var findings = this.getAttribute('data-findings');
-                    
-                    getElement('inquiryService').value = service;
-                    getElement('inquiryFindings').value = findings;
-                    
-                    var inquiryModal = new bootstrap.Modal(document.getElementById('serviceInquiryModal'));
-                    inquiryModal.show();
-                });
-            });
-            
-            // Send inquiry button
-            var sendInquiryBtn = getElement('sendInquiryBtn');
-            if (sendInquiryBtn) {
-                sendInquiryBtn.addEventListener('click', function() {
-                    var form = getElement('serviceInquiryForm');
-                    if (form.checkValidity()) {
-                        var formData = new FormData(form);
-                        
-                        // Make API call to send inquiry
-                        fetch('/api/service_inquiry', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                alert('Inquiry submitted successfully! Our team will contact you shortly.');
-                                bootstrap.Modal.getInstance(document.getElementById('serviceInquiryModal')).hide();
-                            } else {
-                                alert('Error submitting inquiry: ' + (data.message || 'Unknown error'));
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Error submitting inquiry: ' + error);
-                        });
-                    } else {
-                        form.reportValidity();
-                    }
-                });
-            }
-            
-            // Remediation help button
-            var remediationHelpBtn = getElement('request-remediation-btn');
-            if (remediationHelpBtn) {
-                remediationHelpBtn.addEventListener('click', function() {
-                    var inquiryModal = new bootstrap.Modal(document.getElementById('serviceInquiryModal'));
-                    getElement('inquiryService').value = 'Complete Remediation';
-                    getElement('inquiryFindings').value = 'Multiple security issues';
-                    inquiryModal.show();
-                });
-            }
-            
-            // Animate progress fills after page loads
-            var progressFills = document.querySelectorAll('.progress-fill');
-            progressFills.forEach(function(el) {
-                setTimeout(function() {
-                    el.style.width = el.style.width || '75%';
-                }, 100);
-            });
         });
-        
-        // Count critical issues and secure elements
-        function countIssuesAndElements() {
-            // Count findings with critical or high severity
-            const severityElements = document.querySelectorAll('.severity.critical, .severity.high');
-            criticalIssuesCount = severityElements.length;
-            
-            // Count findings with low severity
-            const lowSeverityElements = document.querySelectorAll('.severity.low');
-            secureElementsCount = lowSeverityElements.length;
-            
-            // Update counters
-            const criticalCounter = getElement('critical-issues-count');
-            const secureCounter = getElement('secure-elements-count');
-            
-            if (criticalCounter) criticalCounter.textContent = criticalIssuesCount;
-            if (secureCounter) secureCounter.textContent = secureElementsCount;
-        }
-        
-        // Initialize charts
-        function initializeCharts() {
-            // Security Headers Chart
-            const securityHeadersElement = getElement('securityHeadersChart');
-            if (securityHeadersElement) {
-                // Get the score from the context
-                const score = parseInt(document.querySelector('.progress-bar[aria-valuenow]')?.getAttribute('aria-valuenow') || 75);
-                
-                // Determine color based on score
-                let color = '#28a745'; // Default green
-                if (score < 50) {
-                    color = '#dc3545'; // Red
-                } else if (score < 75) {
-                    color = '#ffc107'; // Yellow
-                }
-                
-                const ctx = securityHeadersElement.getContext('2d');
-                new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        datasets: [{
-                            data: [score, 100 - score],
-                            backgroundColor: [color, '#e9ecef'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        cutout: '75%',
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                enabled: false
-                            }
-                        }
-                    }
-                });
-            }
-        }
-        
-        // Format technical JSON
-        function formatTechnicalJson() {
-            const technicalJsonEl = getElement('technical-json');
-            if (technicalJsonEl) {
-                // Create a simplified version of the scan object
-                const scanData = {
-                    scan_id: "{{ scan.scan_id|default('N/A') }}",
-                    timestamp: "{{ scan.timestamp|default('N/A') }}",
-                    target: "{{ scan.target|default('N/A') }}",
-                    email: "{{ scan.email|default('N/A') }}",
-                    overall_score: "{{ scan.risk_assessment.overall_score|default('N/A') }}",
-                    risk_level: "{{ scan.risk_assessment.risk_level|default('N/A') }}"
-                };
-                
-                // Pretty print the JSON with syntax highlighting
-                const jsonString = JSON.stringify(scanData, null, 2);
-                
-                // Apply syntax highlighting
-                const highlighted = jsonString.replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
-                    .replace(/"([^"]+)"/g, '<span class="json-string">"$1"</span>')
-                    .replace(/\b(\d+)\b/g, '<span class="json-number">$1</span>')
-                    .replace(/\b(true|false)\b/g, '<span class="json-boolean">$1</span>')
-                    .replace(/\bnull\b/g, '<span class="json-null">null</span>');
-                
-                technicalJsonEl.innerHTML = highlighted;
-            }
-        }
-        
-        // Generate action plan from detected issues
-        function generateActionPlan() {
-            const actionPlanBody = getElement('action-plan-body');
-            if (!actionPlanBody) return;
-            
-            // Clear existing rows
-            actionPlanBody.innerHTML = '';
-            
-            // Sample action plan items (in a real environment, this would be generated from scan results)
-            const actionItems = [
-                {
-                    priority: 1,
-                    issue: "Missing or weak SSL/TLS configuration",
-                    severity: "Critical",
-                    action: "Upgrade to TLSv1.2 or TLSv1.3 and disable older protocols",
-                    timeframe: "Immediate"
-                },
-                {
-                    priority: 2,
-                    issue: "Missing security headers",
-                    severity: "High",
-                    action: "Implement Content-Security-Policy and other security headers",
-                    timeframe: "Within 1 week"
-                },
-                {
-                    priority: 3,
-                    issue: "Exposed sensitive directories",
-                    severity: "High",
-                    action: "Block access to admin and configuration paths",
-                    timeframe: "Within 1 week"
-                },
-                {
-                    priority: 4,
-                    issue: "Insecure cookie configuration",
-                    severity: "Medium",
-                    action: "Set secure and httpOnly flags on all cookies",
-                    timeframe: "Within 2 weeks"
-                },
-                {
-                    priority: 5,
-                    issue: "Missing or incomplete SPF/DKIM/DMARC",
-                    severity: "Medium",
-                    action: "Configure email authentication protocols",
-                    timeframe: "Within 2 weeks"
-                }
-            ];
-            
-            // Find and append actual high severity items from the scan
-            const severityElements = document.querySelectorAll('.finding .title');
-            let highPriorityIssues = [];
-            
-            severityElements.forEach(function(el) {
-                const titleSpan = el.querySelector('span:first-child');
-                const severitySpan = el.querySelector('span.severity');
-                
-                if (titleSpan && severitySpan) {
-                    const title = titleSpan.textContent;
-                    const severity = severitySpan.textContent;
-                    
-                    // Only add critical and high items to the action plan
-                    if (severity === 'Critical' || severity === 'High') {
-                        highPriorityIssues.push({
-                            title: title,
-                            severity: severity
-                        });
-                    }
-                }
-            });
-            
-            // Replace generic items with actual findings if available
-            if (highPriorityIssues.length > 0) {
-                highPriorityIssues.forEach(function(issue, index) {
-                    if (index < actionItems.length) {
-                        actionItems[index].issue = issue.title;
-                        actionItems[index].severity = issue.severity;
-                    }
-                });
-            }
-            
-            // Add rows to the action plan table
-            actionItems.forEach(function(item) {
-                const row = document.createElement('tr');
-                
-                row.innerHTML = `
-                    <td>${item.priority}</td>
-                    <td>${item.issue}</td>
-                    <td><span class="badge ${item.severity === 'Critical' ? 'bg-danger' : item.severity === 'High' ? 'bg-warning text-dark' : 'bg-info'}">${item.severity}</span></td>
-                    <td>${item.action}</td>
-                    <td>${item.timeframe}</td>
-                `;
-                
-                actionPlanBody.appendChild(row);
-            });
-        }
     </script>
 </body>
 </html>
