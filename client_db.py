@@ -9,14 +9,38 @@ import uuid
 import hashlib
 import secrets
 from datetime import datetime, timedelta
-from migrations import run_migrations
-run_migrations()
+from functools import wraps
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("scanner_platform.log"),
+        logging.StreamHandler()
+    ]
+)
 
 # Define database path
 CLIENT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'client_scanner.db')
 
+# Create the schema string for initialization
+SCHEMA_SQL = """
+-- Users table for authentication and access control
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    role TEXT DEFAULT 'client',
+    created_at TEXT,
+    last_login TEXT,
+    active BOOLEAN DEFAULT 1
+);
+
 -- Clients table to store basic client information
-CREATE TABLE clients (
+CREATE TABLE IF NOT EXISTS clients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     business_name TEXT NOT NULL,
     business_domain TEXT NOT NULL,
@@ -38,7 +62,7 @@ CREATE TABLE clients (
 );
 
 -- Customizations table for branding and visual options
-CREATE TABLE customizations (
+CREATE TABLE IF NOT EXISTS customizations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER NOT NULL,
     primary_color TEXT,
@@ -58,7 +82,7 @@ CREATE TABLE customizations (
 );
 
 -- Deployed scanners table to track scanner instances
-CREATE TABLE deployed_scanners (
+CREATE TABLE IF NOT EXISTS deployed_scanners (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER NOT NULL,
     subdomain TEXT UNIQUE,
@@ -71,9 +95,96 @@ CREATE TABLE deployed_scanners (
     FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 );
 
+-- Scan history table to track scanning activity
+CREATE TABLE IF NOT EXISTS scan_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER NOT NULL,
+    scan_id TEXT UNIQUE NOT NULL,
+    timestamp TEXT,
+    target TEXT,
+    scan_type TEXT,
+    status TEXT,
+    report_path TEXT,
+    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
+-- Sessions table for user login sessions
+CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    session_token TEXT UNIQUE NOT NULL,
+    created_at TEXT,
+    expires_at TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Audit log table for tracking changes
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    action TEXT NOT NULL,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER NOT NULL,
+    changes TEXT,
+    timestamp TEXT NOT NULL,
+    ip_address TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Password reset tokens table
+CREATE TABLE IF NOT EXISTS password_resets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    reset_token TEXT UNIQUE NOT NULL,
+    created_at TEXT,
+    expires_at TEXT,
+    used BOOLEAN DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Client billing table for subscriptions
+CREATE TABLE IF NOT EXISTS client_billing (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER NOT NULL,
+    plan_id TEXT,
+    billing_cycle TEXT,
+    amount REAL,
+    currency TEXT DEFAULT 'USD',
+    start_date TEXT,
+    next_billing_date TEXT,
+    payment_method TEXT,
+    status TEXT,
+    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
+-- Billing transactions table for payment history
+CREATE TABLE IF NOT EXISTS billing_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER NOT NULL,
+    transaction_id TEXT UNIQUE,
+    amount REAL,
+    currency TEXT DEFAULT 'USD',
+    payment_method TEXT,
+    status TEXT,
+    timestamp TEXT,
+    notes TEXT,
+    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
+-- Create indices for better performance
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_clients_business_name ON clients(business_name);
+CREATE INDEX IF NOT EXISTS idx_clients_api_key ON clients(api_key);
+CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(session_token);
+"""
+
 # Helper function for database transactions
 def with_transaction(func):
     """Decorator for database transactions with proper error handling"""
+    @wraps(func)
     def wrapper(*args, **kwargs):
         conn = None
         try:
@@ -98,136 +209,8 @@ def with_transaction(func):
 def init_client_db(conn, cursor):
     """Initialize the database with required tables and indexes"""
     
-    # Create users table with proper indices
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        salt TEXT NOT NULL,
-        role TEXT DEFAULT 'client',
-        created_at TEXT,
-        last_login TEXT,
-        active BOOLEAN DEFAULT 1
-    )
-    ''')
-    
-    # Create an index for user lookups
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
-    
-    # Create clients table with foreign key constraints
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS clients (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        business_name TEXT NOT NULL,
-        business_domain TEXT NOT NULL,
-        contact_email TEXT NOT NULL,
-        contact_phone TEXT,
-        scanner_name TEXT,
-        subscription_level TEXT DEFAULT 'basic',
-        subscription_status TEXT DEFAULT 'active',
-        subscription_start TEXT,
-        subscription_end TEXT,
-        api_key TEXT UNIQUE,
-        created_at TEXT,
-        created_by INTEGER,
-        updated_at TEXT,
-        updated_by INTEGER,
-        active BOOLEAN DEFAULT 1,
-        FOREIGN KEY (created_by) REFERENCES users(id),
-        FOREIGN KEY (updated_by) REFERENCES users(id)
-    )
-    ''')
-    
-    # Create indices for client lookups
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_clients_business_name ON clients(business_name)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_clients_api_key ON clients(api_key)')
-    
-    # Create customizations table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS customizations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        client_id INTEGER NOT NULL,
-        primary_color TEXT,
-        secondary_color TEXT,
-        logo_path TEXT,
-        favicon_path TEXT,
-        email_subject TEXT,
-        email_intro TEXT,
-        email_footer TEXT,
-        default_scans TEXT,
-        css_override TEXT,
-        html_override TEXT,
-        last_updated TEXT,
-        updated_by INTEGER,
-        FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
-        FOREIGN KEY (updated_by) REFERENCES users(id)
-    )
-    ''')
-    
-    # Create deployed_scanners table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS deployed_scanners (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        client_id INTEGER NOT NULL,
-        subdomain TEXT UNIQUE,
-        domain TEXT,
-        deploy_status TEXT,
-        deploy_date TEXT,
-        last_updated TEXT,
-        config_path TEXT,
-        template_version TEXT,
-        FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
-    )
-    ''')
-    
-    # Create scan_history table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS scan_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        client_id INTEGER NOT NULL,
-        scan_id TEXT UNIQUE NOT NULL,
-        timestamp TEXT,
-        target TEXT,
-        scan_type TEXT,
-        status TEXT,
-        report_path TEXT,
-        FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
-    )
-    ''')
-    
-    # Create sessions table with proper indices
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS sessions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        session_token TEXT UNIQUE NOT NULL,
-        created_at TEXT,
-        expires_at TEXT,
-        ip_address TEXT,
-        user_agent TEXT,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )
-    ''')
-    
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(session_token)')
-    
-    # Create audit_log table for tracking changes
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS audit_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        action TEXT NOT NULL,
-        entity_type TEXT NOT NULL,
-        entity_id INTEGER NOT NULL,
-        changes TEXT,
-        timestamp TEXT NOT NULL,
-        ip_address TEXT,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-    )
-    ''')
+    # Execute the schema SQL to create tables and indices
+    cursor.executescript(SCHEMA_SQL)
     
     # Create admin user if it doesn't exist
     cursor.execute("SELECT id FROM users WHERE username = 'admin'")
@@ -249,6 +232,18 @@ def init_client_db(conn, cursor):
     
     logging.info(f"Client database initialized at {CLIENT_DB_PATH}")
     return {"status": "success"}
+
+# Run database initialization
+def init_db():
+    try:
+        result = init_client_db()
+        if result["status"] == "success":
+            logging.info("Database initialized successfully")
+        else:
+            logging.error(f"Database initialization failed: {result.get('message', 'Unknown error')}")
+    except Exception as e:
+        logging.error(f"Error initializing database: {e}")
+        logging.debug(traceback.format_exc())
 
 # Enhanced user management functions
 @with_transaction
@@ -351,6 +346,41 @@ def authenticate_user(conn, cursor, username_or_email, password, ip_address=None
         "session_token": session_token
     }
 
+@with_transaction
+def verify_session(conn, cursor, session_token):
+    """Verify a session token and return user information"""
+    # Check if session exists and is valid
+    cursor.execute('''
+    SELECT s.*, u.username, u.email, u.role
+    FROM sessions s
+    JOIN users u ON s.user_id = u.id
+    WHERE s.session_token = ? AND s.expires_at > ? AND u.active = 1
+    ''', (session_token, datetime.now().isoformat()))
+    
+    session = cursor.fetchone()
+    
+    if not session:
+        return {"status": "error", "message": "Invalid or expired session"}
+    
+    # Return user info
+    return {
+        "status": "success",
+        "user": {
+            "user_id": session['user_id'],
+            "username": session['username'],
+            "email": session['email'],
+            "role": session['role']
+        }
+    }
+
+@with_transaction
+def logout_user(conn, cursor, session_token):
+    """Logout a user by invalidating their session"""
+    # Delete the session
+    cursor.execute('DELETE FROM sessions WHERE session_token = ?', (session_token,))
+    
+    return {"status": "success"}
+
 # Enhanced client management functions
 @with_transaction
 def create_client(conn, cursor, client_data, user_id):
@@ -451,6 +481,7 @@ def create_client(conn, cursor, client_data, user_id):
     }
 
 # Enhanced function to log actions for audit trail
+@with_transaction
 def log_action(conn, cursor, user_id, action, entity_type, entity_id, changes=None, ip_address=None):
     """Log an action for the audit trail"""
     changes_json = json.dumps(changes) if changes else None
@@ -469,8 +500,6 @@ def log_action(conn, cursor, user_id, action, entity_type, entity_id, changes=No
     ))
     
     return cursor.lastrowid
-
-# Add these functions to client_db.py
 
 @with_transaction
 def create_password_reset_token(conn, cursor, email):
@@ -718,8 +747,7 @@ def get_dashboard_summary(conn, cursor):
     
     return summary
 
-# Client CRUD functions for client_db.py
-
+@with_transaction
 def get_client_by_id(conn, cursor, client_id):
     """Get client details by ID"""
     cursor.execute('''
@@ -747,6 +775,7 @@ def get_client_by_id(conn, cursor, client_id):
     
     return client
 
+@with_transaction
 def get_client_by_api_key(conn, cursor, api_key):
     """Get client details by API key"""
     cursor.execute('''
@@ -774,6 +803,7 @@ def get_client_by_api_key(conn, cursor, api_key):
     
     return client
 
+@with_transaction
 def get_client_by_subdomain(conn, cursor, subdomain):
     """Get client details by subdomain"""
     cursor.execute('''
@@ -801,212 +831,23 @@ def get_client_by_subdomain(conn, cursor, subdomain):
     
     return client
 
-def update_client(conn, cursor, client_id, client_data, user_id):
-    """Update client information"""
-    if not client_id:
-        return {"status": "error", "message": "Client ID is required"}
-    
-    # Verify client exists
-    cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
-    if not cursor.fetchone():
-        return {"status": "error", "message": "Client not found"}
-    
-    # Start with clients table updates
-    client_fields = []
-    client_values = []
-    
-    # Map fields to database columns for clients table
-    field_mapping = {
-        'business_name': 'business_name',
-        'business_domain': 'business_domain',
-        'contact_email': 'contact_email',
-        'contact_phone': 'contact_phone',
-        'scanner_name': 'scanner_name',
-        'subscription_level': 'subscription_level',
-        'subscription_status': 'subscription_status',
-        'active': 'active'
-    }
-    
-    for key, db_field in field_mapping.items():
-        if key in client_data:
-            client_fields.append(f"{db_field} = ?")
-            client_values.append(client_data[key])
-    
-    # Always update the updated_at and updated_by fields
-    client_fields.append("updated_at = ?")
-    client_values.append(datetime.now().isoformat())
-    client_fields.append("updated_by = ?")
-    client_values.append(user_id)
-    
-    # Update clients table
-    if client_fields:
-        query = f'''
-        UPDATE clients 
-        SET {', '.join(client_fields)}
-        WHERE id = ?
-        '''
-        client_values.append(client_id)
-        cursor.execute(query, client_values)
-    
-    # Now handle customizations table
-    custom_fields = []
-    custom_values = []
-    
-    # Map fields to database columns for customizations table
-    custom_mapping = {
-        'primary_color': 'primary_color',
-        'secondary_color': 'secondary_color',
-        'logo_path': 'logo_path',
-        'favicon_path': 'favicon_path',
-        'email_subject': 'email_subject',
-        'email_intro': 'email_intro',
-        'email_footer': 'email_footer',
-        'css_override': 'css_override',
-        'html_override': 'html_override'
-    }
-    
-    for key, db_field in custom_mapping.items():
-        if key in client_data:
-            custom_fields.append(f"{db_field} = ?")
-            custom_values.append(client_data[key])
-    
-    # Handle default_scans separately as it needs to be JSON
-    if 'default_scans' in client_data:
-        custom_fields.append("default_scans = ?")
-        custom_values.append(json.dumps(client_data['default_scans']))
-    
-    # Always update last_updated and updated_by
-    custom_fields.append("last_updated = ?")
-    custom_values.append(datetime.now().isoformat())
-    custom_fields.append("updated_by = ?")
-    custom_values.append(user_id)
-    
-    # Check if customization record exists
-    cursor.execute('SELECT id FROM customizations WHERE client_id = ?', (client_id,))
-    customization = cursor.fetchone()
-    
-    if customization and custom_fields:
-        # Update existing record
-        query = f'''
-        UPDATE customizations 
-        SET {', '.join(custom_fields)}
-        WHERE client_id = ?
-        '''
-        custom_values.append(client_id)
-        cursor.execute(query, custom_values)
-    elif custom_fields:
-        # Insert new record
-        fields = [f for f, v in zip(custom_mapping.values(), custom_values) if f in custom_mapping.values()]
-        fields.extend(['client_id', 'last_updated', 'updated_by'])
-        
-        values = custom_values
-        values.append(client_id)
-        values.append(datetime.now().isoformat())
-        values.append(user_id)
-        
-        query = f'''
-        INSERT INTO customizations 
-        ({', '.join(fields)})
-        VALUES ({', '.join(['?'] * len(fields))})
-        '''
-        cursor.execute(query, values)
-    
-    # Log the update
-    log_action(conn, cursor, user_id, 'update', 'client', client_id, client_data)
-    
-    return {"status": "success", "client_id": client_id}
-
-def delete_client(conn, cursor, client_id):
-    """Delete a client and all associated data"""
-    if not client_id:
-        return {"status": "error", "message": "Client ID is required"}
-    
-    # Verify client exists
-    cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
-    if not cursor.fetchone():
-        return {"status": "error", "message": "Client not found"}
-    
-    # Get scanner information to clean up files
-    cursor.execute('''
-    SELECT cu.logo_path, cu.favicon_path, ds.config_path
-    FROM clients c
-    LEFT JOIN customizations cu ON c.id = cu.client_id
-    LEFT JOIN deployed_scanners ds ON c.id = ds.client_id
-    WHERE c.id = ?
-    ''', (client_id,))
-    
-    files = cursor.fetchone()
-    
-    # Delete client and related records (cascading deletes will handle the rest)
-    cursor.execute('DELETE FROM clients WHERE id = ?', (client_id,))
-    
-    # Clean up files if they exist
-    if files:
-        for file_path in [files['logo_path'], files['favicon_path'], files['config_path']]:
-            if file_path and os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except:
-                    pass
-    
-    return {"status": "success"}
-
-def list_clients(conn, cursor, page=1, per_page=10, filters=None):
-    """List clients with pagination and filtering"""
+@with_transaction
+def list_users(conn, cursor, page=1, per_page=10):
+    """List users with pagination"""
     offset = (page - 1) * per_page
     
-    # Base query
-    query = '''
-    SELECT c.*, cu.primary_color, cu.logo_path, ds.subdomain, ds.deploy_status,
-           (SELECT COUNT(*) FROM scan_history WHERE client_id = c.id) as scan_count
-    FROM clients c
-    LEFT JOIN customizations cu ON c.id = cu.client_id
-    LEFT JOIN deployed_scanners ds ON c.id = ds.client_id
-    '''
+    # Get users with pagination
+    cursor.execute('''
+    SELECT id, username, email, role, created_at, last_login, active
+    FROM users
+    ORDER BY id DESC
+    LIMIT ? OFFSET ?
+    ''', (per_page, offset))
     
-    # Apply filters
-    params = []
-    where_clauses = []
-    
-    if filters:
-        if 'subscription' in filters and filters['subscription']:
-            where_clauses.append('c.subscription_level = ?')
-            params.append(filters['subscription'])
-        
-        if 'status' in filters and filters['status']:
-            if filters['status'] == 'active':
-                where_clauses.append('c.active = 1')
-            elif filters['status'] == 'inactive':
-                where_clauses.append('c.active = 0')
-            elif filters['status'] == 'pending':
-                where_clauses.append('ds.deploy_status = "pending"')
-        
-        if 'search' in filters and filters['search']:
-            search_term = f"%{filters['search']}%"
-            where_clauses.append('(c.business_name LIKE ? OR c.contact_email LIKE ? OR c.business_domain LIKE ?)')
-            params.extend([search_term, search_term, search_term])
-    
-    # Add WHERE clause if we have filters
-    if where_clauses:
-        query += f" WHERE {' AND '.join(where_clauses)}"
-    
-    # Add ORDER BY and LIMIT
-    query += " ORDER BY c.id DESC LIMIT ? OFFSET ?"
-    params.extend([per_page, offset])
-    
-    # Execute query
-    cursor.execute(query, params)
-    clients = [dict(row) for row in cursor.fetchall()]
+    users = [dict(row) for row in cursor.fetchall()]
     
     # Get total count for pagination
-    count_query = '''
-    SELECT COUNT(*) FROM clients c
-    '''
-    
-    if where_clauses:
-        count_query += f" WHERE {' AND '.join(where_clauses)}"
-    
-    cursor.execute(count_query, params[:-2] if params else [])
+    cursor.execute('SELECT COUNT(*) FROM users')
     total_count = cursor.fetchone()[0]
     
     # Calculate pagination info
@@ -1014,7 +855,7 @@ def list_clients(conn, cursor, page=1, per_page=10, filters=None):
     
     return {
         "status": "success",
-        "clients": clients,
+        "users": users,
         "pagination": {
             "page": page,
             "per_page": per_page,
@@ -1023,56 +864,179 @@ def list_clients(conn, cursor, page=1, per_page=10, filters=None):
         }
     }
 
-def regenerate_api_key(conn, cursor, client_id):
-    """Regenerate the API key for a client"""
+@with_transaction
+def get_user_by_id(conn, cursor, user_id):
+    """Get user by ID"""
+    cursor.execute('''
+    SELECT id, username, email, role, created_at, last_login, active
+    FROM users
+    WHERE id = ?
+    ''', (user_id,))
+    
+    row = cursor.fetchone()
+    
+    if not row:
+        return None
+    
+    return dict(row)
+
+@with_transaction
+def get_scan_history(conn, cursor, client_id, page=1, per_page=10):
+    """Get scan history for a client"""
+    offset = (page - 1) * per_page
+    
+    # Get scans with pagination
+    cursor.execute('''
+    SELECT id, scan_id, timestamp, target, scan_type, status, report_path
+    FROM scan_history
+    WHERE client_id = ?
+    ORDER BY timestamp DESC
+    LIMIT ? OFFSET ?
+    ''', (client_id, per_page, offset))
+    
+    scans = [dict(row) for row in cursor.fetchall()]
+    
+    # Get total count for pagination
+    cursor.execute('SELECT COUNT(*) FROM scan_history WHERE client_id = ?', (client_id,))
+    total_count = cursor.fetchone()[0]
+    
+    # Calculate pagination info
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    return {
+        "status": "success",
+        "scans": scans,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "total_count": total_count
+        }
+    }
+
+@with_transaction
+def get_scan_by_id(conn, cursor, scan_id):
+    """Get scan details by ID"""
+    cursor.execute('''
+    SELECT sh.*, c.business_name, c.business_domain
+    FROM scan_history sh
+    JOIN clients c ON sh.client_id = c.id
+    WHERE sh.scan_id = ?
+    ''', (scan_id,))
+    
+    row = cursor.fetchone()
+    
+    if not row:
+        return None
+    
+    return dict(row)
+
+@with_transaction
+def update_scan_status(conn, cursor, scan_id, status, report_path=None):
+    """Update the status of a scan"""
+    if not scan_id:
+        return {"status": "error", "message": "Scan ID is required"}
+    
+    # Create update query
+    query = "UPDATE scan_history SET status = ?"
+    params = [status]
+    
+    if report_path:
+        query += ", report_path = ?"
+        params.append(report_path)
+    
+    query += " WHERE scan_id = ?"
+    params.append(scan_id)
+    
+    # Execute update
+    cursor.execute(query, params)
+    
+    if cursor.rowcount == 0:
+        return {"status": "error", "message": "Scan not found"}
+    
+    return {"status": "success"}
+
+@with_transaction
+def create_billing_record(conn, cursor, client_id, plan_data):
+    """Create a billing record for a client"""
     if not client_id:
         return {"status": "error", "message": "Client ID is required"}
     
-    # Verify client exists
+    # Validate required fields
+    required_fields = ['plan_id', 'billing_cycle', 'amount']
+    for field in required_fields:
+        if not field in plan_data:
+            return {"status": "error", "message": f"Missing required field: {field}"}
+    
+    # Check if client exists
     cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
     if not cursor.fetchone():
         return {"status": "error", "message": "Client not found"}
     
-    # Generate new API key
-    new_api_key = str(uuid.uuid4())
+    # Calculate next billing date based on billing cycle
+    start_date = datetime.now().isoformat()
+    if plan_data['billing_cycle'] == 'monthly':
+        next_billing_date = (datetime.now() + timedelta(days=30)).isoformat()
+    elif plan_data['billing_cycle'] == 'quarterly':
+        next_billing_date = (datetime.now() + timedelta(days=90)).isoformat()
+    elif plan_data['billing_cycle'] == 'yearly':
+        next_billing_date = (datetime.now() + timedelta(days=365)).isoformat()
+    else:
+        return {"status": "error", "message": "Invalid billing cycle"}
     
-    # Update client record
+    # Insert billing record
     cursor.execute('''
-    UPDATE clients 
-    SET api_key = ?
-    WHERE id = ?
-    ''', (new_api_key, client_id))
+    INSERT INTO client_billing 
+    (client_id, plan_id, billing_cycle, amount, currency, start_date, next_billing_date, payment_method, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        client_id,
+        plan_data['plan_id'],
+        plan_data['billing_cycle'],
+        plan_data['amount'],
+        plan_data.get('currency', 'USD'),
+        start_date,
+        next_billing_date,
+        plan_data.get('payment_method', 'credit_card'),
+        plan_data.get('status', 'active')
+    ))
     
-    return {"status": "success", "api_key": new_api_key}
-
-def log_scan(conn, cursor, client_id, scan_id, target, scan_type="standard"):
-    """Log a scan for a client"""
-    if not client_id or not scan_id:
-        return {"status": "error", "message": "Client ID and Scan ID are required"}
+    billing_id = cursor.lastrowid
     
-    # Insert scan record
+    # Create initial transaction record
+    transaction_id = str(uuid.uuid4())
     cursor.execute('''
-    INSERT INTO scan_history (client_id, scan_id, timestamp, target, scan_type, status)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ''', (client_id, scan_id, datetime.now().isoformat(), target, scan_type, "completed"))
+    INSERT INTO billing_transactions
+    (client_id, transaction_id, amount, currency, payment_method, status, timestamp, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        client_id,
+        transaction_id,
+        plan_data['amount'],
+        plan_data.get('currency', 'USD'),
+        plan_data.get('payment_method', 'credit_card'),
+        'completed',
+        datetime.now().isoformat(),
+        'Initial subscription payment'
+    ))
     
-    return {"status": "success"}
+    # Update client subscription level if provided
+    if 'subscription_level' in plan_data:
+        cursor.execute('''
+        UPDATE clients
+        SET subscription_level = ?, subscription_status = 'active', subscription_start = ?
+        WHERE id = ?
+        ''', (plan_data['subscription_level'], start_date, client_id))
+    
+    return {
+        "status": "success",
+        "billing_id": billing_id,
+        "transaction_id": transaction_id,
+        "next_billing_date": next_billing_date
+    }
 
-def update_deployment_status(conn, cursor, client_id, status, config_path=None):
-    """Update the deployment status for a client scanner"""
-    if not client_id:
-        return {"status": "error", "message": "Client ID is required"}
-    
-    # Check if deployment record exists
-    cursor.execute('SELECT id FROM deployed_scanners WHERE client_id = ?', (client_id,))
-    deployment = cursor.fetchone()
-    
-    now = datetime.now().isoformat()
-    
-    if deployment:
-        # Update existing record
-        query = '''
-        UPDATE deployed_scanners 
+# Initialize the database when this module is imported
+init_db()
         SET deploy_status = ?, last_updated = ?
         '''
         params = [status, now]
@@ -1121,6 +1085,3 @@ def update_deployment_status(conn, cursor, client_id, status, config_path=None):
         ))
     
     return {"status": "success"}
-    
-# Add more enhanced client management functions here
-# ...
