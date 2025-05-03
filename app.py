@@ -24,6 +24,11 @@ from flask import Blueprint
 from api import api_bp  # Import the new API blueprint
 from client_db import init_client_db
 from scanner_router import scanner_bp
+from auth import auth_bp
+from admin import admin_bp
+from api import api_bp
+from scanner_router import scanner_bp
+from client_db import init_client_db
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -59,8 +64,45 @@ from scan import (
 # Import database functionality
 from db import init_db, save_scan_results, get_scan_results, save_lead_data, DB_PATH
 
+# Register blueprints after initializing the app
+def create_app():
+    """Create and configure the Flask application"""
+    app = Flask(__name__)
+    config = get_config()
+    config.init_app(app)
+    
+    # Use a strong secret key 
+    app.secret_key = app.config.get('SECRET_KEY', 'your_strong_secret_key_here')
+    app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions in files
+    app.config['SESSION_PERMANENT'] = True  # Make sessions permanent
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # Sessions last 1 hour
+    
+    # Configure CORS
+    CORS(app, supports_credentials=True)
+    
+    # Initialize limiter
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=[f"{app.config.get('RATE_LIMIT_PER_DAY', 200)} per day", 
+                       f"{app.config.get('RATE_LIMIT_PER_HOUR', 50)} per hour"],
+        storage_uri="memory://"
+    )
+    logging.warning("Using in-memory storage for rate limiting. Not recommended for production.")
+    
+    # Initialize database
+    init_db()
+    init_client_db()  # Initialize client database
+    
+    return app, limiter
 
-# Register the blueprint
+# Initialize app
+app, limiter = create_app()
+
+# Register blueprints
+app.register_blueprint(auth_bp)
+app.register_blueprint(admin_bp)
+app.register_blueprint(api_bp)
 app.register_blueprint(scanner_bp)
 
 # Load environment variables
