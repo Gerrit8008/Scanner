@@ -2036,6 +2036,16 @@ def debug_session():
         "all_keys": list(session.keys())
     })
 
+@app.route('/admin')
+def admin_redirect():
+    """Redirect to admin dashboard"""
+    return redirect(url_for('admin.dashboard'))
+
+@app.route('/admin/')
+def admin_root_redirect():
+    """Redirect to admin dashboard"""
+    return redirect(url_for('admin.dashboard'))
+    
 @app.route('/test_scan')
 def test_scan():
     """Test scan execution directly"""
