@@ -11,6 +11,106 @@ if not logging.getLogger().handlers:
     logging.basicConfig(level=logging.DEBUG,
                        format='%(asctime)s - %(levelname)s - %(message)s')
 
+def send_branded_email_report(lead_data, scan_results, html_report, company_name, logo_path, 
+                            brand_color, email_subject, email_intro):
+    """Send a branded email report to the client"""
+    try:
+        # Use environment variables for credentials
+        smtp_user = os.environ.get('SMTP_USER')
+        smtp_password = os.environ.get('SMTP_PASSWORD')
+        
+        # Check if credentials are available
+        if not smtp_user or not smtp_password:
+            logging.error("SMTP credentials not found in environment variables")
+            return False
+            
+        logging.debug(f"Attempting to send branded email with SMTP user: {smtp_user}")
+        
+        # Create a multipart message for HTML and text
+        msg = MIMEMultipart('alternative')
+        msg["Subject"] = email_subject
+        msg["From"] = smtp_user
+        
+        # Send to the user's email address
+        user_email = lead_data.get("email", "")
+        msg["To"] = user_email
+        
+        logging.debug(f"Email recipient: {user_email}")
+        
+        # Create a simple text version as a fallback
+        text_body = create_comprehensive_text_summary(scan_results)
+        
+        # Create the branded HTML wrapper
+        branded_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; }}
+                .header {{ background-color: {brand_color}; color: white; padding: 20px; text-align: center; }}
+                .logo {{ max-width: 200px; }}
+                .content {{ padding: 20px; }}
+                .footer {{ background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                {f'<img src="cid:logo" class="logo" alt="{company_name}">' if logo_path else ''}
+                <h1>{company_name} Security Scan Report</h1>
+            </div>
+            <div class="content">
+                <p>{email_intro}</p>
+                <hr>
+                {html_report}
+            </div>
+            <div class="footer">
+                <p>This report was generated on {datetime.now().strftime("%Y-%m-%d")} at the request of {lead_data.get('name', 'Unknown')}.</p>
+                <p>&copy; {datetime.now().year} {company_name}. All rights reserved.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Create text part (fallback for email clients that don't support HTML)
+        part1 = MIMEText(text_body, 'plain')
+        
+        # Create HTML part - use the HTML report
+        part2 = MIMEText(branded_html, 'html')
+        
+        # Add parts to message
+        msg.attach(part1)
+        msg.attach(part2)
+        
+        # Add logo as embedded image if provided
+        if logo_path and os.path.exists(logo_path):
+            with open(logo_path, 'rb') as logo_file:
+                logo_part = MIMEImage(logo_file.read())
+                logo_part.add_header('Content-ID', '<logo>')
+                logo_part.add_header('Content-Disposition', 'inline', filename='logo.png')
+                msg.attach(logo_part)
+        
+        # Configure SMTP
+        smtp_server = os.environ.get('SMTP_SERVER', 'mail.privateemail.com')
+        smtp_port = int(os.environ.get('SMTP_PORT', 587))
+        
+        logging.debug(f"Connecting to SMTP server: {smtp_server}:{smtp_port}")
+        
+        # Send the email
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
+            logging.debug("SMTP connection established")
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+            logging.debug("Branded email sent successfully!")
+            return True
+            
+    except Exception as e:
+        logging.error(f"Error sending branded email: {e}")
+        return False
+        
 def create_comprehensive_text_summary(scan_results):
     """Create a comprehensive text summary of ALL scan results.
     
