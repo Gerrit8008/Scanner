@@ -2098,6 +2098,16 @@ def debug_submit():
 def admin_redirect():
     """Redirect to admin dashboard"""
     return redirect(url_for('admin_dashboard'))  # Use endpoint name
+
+@app.errorhandler(500)
+def handle_500(e):
+    app.logger.error(f'500 error: {str(e)}')
+    return render_template('error.html', error=str(e)), 500
+
+@app.errorhandler(404)
+def handle_404(e):
+    app.logger.error(f'404 error: {str(e)}')
+    return render_template('error.html', error="Page not found"), 404
     
 @app.route('/api/service_inquiry', methods=['POST'])
 def api_service_inquiry():
