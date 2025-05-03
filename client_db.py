@@ -1256,3 +1256,28 @@ def log_scan(conn, cursor, client_id, scan_id, target, scan_type):
               {'scan_id': scan_id, 'target': target, 'scan_type': scan_type})
     
     return {"status": "success", "scan_history_id": scan_history_id}
+
+@with_transaction
+def regenerate_api_key(conn, cursor, client_id):
+    """Regenerate a client's API key"""
+    if not client_id:
+        return {"status": "error", "message": "Client ID is required"}
+    
+    # Check if client exists
+    cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+    if not cursor.fetchone():
+        return {"status": "error", "message": "Client not found"}
+    
+    # Generate a new API key
+    new_api_key = str(uuid.uuid4())
+    
+    # Update the client's API key
+    cursor.execute('UPDATE clients SET api_key = ? WHERE id = ?', (new_api_key, client_id))
+    
+    if cursor.rowcount == 0:
+        return {"status": "error", "message": "Failed to update API key"}
+    
+    # Log the regeneration
+    log_action(conn, cursor, client_id, 'regenerate_api_key', 'client', client_id, None)
+    
+    return {"status": "success", "api_key": new_api_key}
