@@ -1228,3 +1228,31 @@ def delete_client(conn, cursor, client_id):
     cursor.execute('DELETE FROM clients WHERE id = ?', (client_id,))
     
     return {"status": "success", "message": "Client deleted successfully"}
+
+@with_transaction
+def log_scan(conn, cursor, client_id, scan_id, target, scan_type):
+    """Log a scan to the database"""
+    if not client_id or not scan_id:
+        return {"status": "error", "message": "Client ID and Scan ID are required"}
+    
+    # Insert scan record
+    cursor.execute('''
+    INSERT INTO scan_history 
+    (client_id, scan_id, timestamp, target, scan_type, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ''', (
+        client_id,
+        scan_id,
+        datetime.now().isoformat(),
+        target,
+        scan_type,
+        'pending'
+    ))
+    
+    scan_history_id = cursor.lastrowid
+    
+    # Log the scan
+    log_action(conn, cursor, client_id, 'scan', 'scan_history', scan_history_id, 
+              {'scan_id': scan_id, 'target': target, 'scan_type': scan_type})
+    
+    return {"status": "success", "scan_history_id": scan_history_id}
