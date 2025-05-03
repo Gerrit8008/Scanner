@@ -1037,8 +1037,21 @@ def create_billing_record(conn, cursor, client_id, plan_data):
 
 # Initialize the database when this module is imported
 init_db()
-        SET deploy_status = ?, last_updated = ?
-        '''
+@with_transaction
+def update_deployment_status(conn, cursor, client_id, status, config_path=None):
+    """Update the deployment status for a client scanner"""
+    if not client_id:
+        return {"status": "error", "message": "Client ID is required"}
+    
+    # Check if deployment record exists
+    cursor.execute('SELECT id FROM deployed_scanners WHERE client_id = ?', (client_id,))
+    deployment = cursor.fetchone()
+    
+    now = datetime.now().isoformat()
+    
+    if deployment:
+        # Update existing record
+        query = "UPDATE deployed_scanners SET deploy_status = ?, last_updated = ?"
         params = [status, now]
         
         if config_path:
@@ -1068,9 +1081,7 @@ init_db()
             subdomain = f"{subdomain}-{client_id}"
         
         # Insert new record
-        query = '''INSERT INTO deployed_scanners 
-                (client_id, subdomain, deploy_status, deploy_date, last_updated, config_path, template_version)
-                VALUES (?, ?, ?, ?, ?, ?, ?)'''
+        query = "INSERT INTO deployed_scanners (client_id, subdomain, deploy_status, deploy_date, last_updated, config_path, template_version) VALUES (?, ?, ?, ?, ?, ?, ?)"
         
         cursor.execute(query, (
             client_id,
