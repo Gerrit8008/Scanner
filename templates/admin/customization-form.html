@@ -66,7 +66,7 @@
                         <h2 class="mb-0">Brand Your Security Scanner</h2>
                     </div>
                     <div class="card-body">
-                        <form id="customizationForm" method="post" action="/api/create-scanner" enctype="multipart/form-data">
+                        <form id="customizationForm" method="post" action="/customize" enctype="multipart/form-data">
                             <!-- Business Information -->
                             <h3 class="section-title"><i class="bi bi-building me-2"></i>Business Information</h3>
                             
@@ -253,5 +253,37 @@
             document.getElementById('secondaryColor').value = this.value;
         });
     </script>
+    <script>
+// Form submit handling with error checking
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('customizationForm');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // For debugging, log the form submission
+            console.log('Form is being submitted');
+            
+            // Optional: Add validation here
+            
+            // Continue with normal form submission
+        });
+    } else {
+        console.error('Form element not found!');
+    }
+    
+    // Make sure all content is visible
+    document.querySelectorAll('.fade-in, .scale-in').forEach(function(element) {
+        element.style.opacity = '1';
+        element.style.transform = 'none';
+    });
+});
+
+// Catch any JavaScript errors
+window.onerror = function(message, source, lineno, colno, error) {
+    console.error('JavaScript error:', message, 'at line', lineno, 'in', source);
+    alert('Error detected: ' + message);
+    return true;
+};
+</script>
 </body>
 </html>
