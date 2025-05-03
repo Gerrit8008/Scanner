@@ -717,6 +717,410 @@ def get_dashboard_summary(conn, cursor):
         pass
     
     return summary
+
+# Client CRUD functions for client_db.py
+
+def get_client_by_id(conn, cursor, client_id):
+    """Get client details by ID"""
+    cursor.execute('''
+    SELECT c.*, cu.*, ds.subdomain, ds.deploy_status
+    FROM clients c
+    LEFT JOIN customizations cu ON c.id = cu.client_id
+    LEFT JOIN deployed_scanners ds ON c.id = ds.client_id
+    WHERE c.id = ?
+    ''', (client_id,))
+    
+    row = cursor.fetchone()
+    
+    if not row:
+        return None
+    
+    # Convert row to dict
+    client = dict(row)
+    
+    # Convert default_scans JSON to list
+    if client.get('default_scans'):
+        try:
+            client['default_scans'] = json.loads(client['default_scans'])
+        except:
+            client['default_scans'] = []
+    
+    return client
+
+def get_client_by_api_key(conn, cursor, api_key):
+    """Get client details by API key"""
+    cursor.execute('''
+    SELECT c.*, cu.*, ds.subdomain, ds.deploy_status
+    FROM clients c
+    LEFT JOIN customizations cu ON c.id = cu.client_id
+    LEFT JOIN deployed_scanners ds ON c.id = ds.client_id
+    WHERE c.api_key = ?
+    ''', (api_key,))
+    
+    row = cursor.fetchone()
+    
+    if not row:
+        return None
+    
+    # Convert row to dict
+    client = dict(row)
+    
+    # Convert default_scans JSON to list
+    if client.get('default_scans'):
+        try:
+            client['default_scans'] = json.loads(client['default_scans'])
+        except:
+            client['default_scans'] = []
+    
+    return client
+
+def get_client_by_subdomain(conn, cursor, subdomain):
+    """Get client details by subdomain"""
+    cursor.execute('''
+    SELECT c.*, cu.*, ds.subdomain, ds.deploy_status
+    FROM clients c
+    LEFT JOIN customizations cu ON c.id = cu.client_id
+    LEFT JOIN deployed_scanners ds ON c.id = ds.client_id
+    WHERE ds.subdomain = ?
+    ''', (subdomain,))
+    
+    row = cursor.fetchone()
+    
+    if not row:
+        return None
+    
+    # Convert row to dict
+    client = dict(row)
+    
+    # Convert default_scans JSON to list
+    if client.get('default_scans'):
+        try:
+            client['default_scans'] = json.loads(client['default_scans'])
+        except:
+            client['default_scans'] = []
+    
+    return client
+
+def update_client(conn, cursor, client_id, client_data, user_id):
+    """Update client information"""
+    if not client_id:
+        return {"status": "error", "message": "Client ID is required"}
+    
+    # Verify client exists
+    cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+    if not cursor.fetchone():
+        return {"status": "error", "message": "Client not found"}
+    
+    # Start with clients table updates
+    client_fields = []
+    client_values = []
+    
+    # Map fields to database columns for clients table
+    field_mapping = {
+        'business_name': 'business_name',
+        'business_domain': 'business_domain',
+        'contact_email': 'contact_email',
+        'contact_phone': 'contact_phone',
+        'scanner_name': 'scanner_name',
+        'subscription_level': 'subscription_level',
+        'subscription_status': 'subscription_status',
+        'active': 'active'
+    }
+    
+    for key, db_field in field_mapping.items():
+        if key in client_data:
+            client_fields.append(f"{db_field} = ?")
+            client_values.append(client_data[key])
+    
+    # Always update the updated_at and updated_by fields
+    client_fields.append("updated_at = ?")
+    client_values.append(datetime.now().isoformat())
+    client_fields.append("updated_by = ?")
+    client_values.append(user_id)
+    
+    # Update clients table
+    if client_fields:
+        query = f'''
+        UPDATE clients 
+        SET {', '.join(client_fields)}
+        WHERE id = ?
+        '''
+        client_values.append(client_id)
+        cursor.execute(query, client_values)
+    
+    # Now handle customizations table
+    custom_fields = []
+    custom_values = []
+    
+    # Map fields to database columns for customizations table
+    custom_mapping = {
+        'primary_color': 'primary_color',
+        'secondary_color': 'secondary_color',
+        'logo_path': 'logo_path',
+        'favicon_path': 'favicon_path',
+        'email_subject': 'email_subject',
+        'email_intro': 'email_intro',
+        'email_footer': 'email_footer',
+        'css_override': 'css_override',
+        'html_override': 'html_override'
+    }
+    
+    for key, db_field in custom_mapping.items():
+        if key in client_data:
+            custom_fields.append(f"{db_field} = ?")
+            custom_values.append(client_data[key])
+    
+    # Handle default_scans separately as it needs to be JSON
+    if 'default_scans' in client_data:
+        custom_fields.append("default_scans = ?")
+        custom_values.append(json.dumps(client_data['default_scans']))
+    
+    # Always update last_updated and updated_by
+    custom_fields.append("last_updated = ?")
+    custom_values.append(datetime.now().isoformat())
+    custom_fields.append("updated_by = ?")
+    custom_values.append(user_id)
+    
+    # Check if customization record exists
+    cursor.execute('SELECT id FROM customizations WHERE client_id = ?', (client_id,))
+    customization = cursor.fetchone()
+    
+    if customization and custom_fields:
+        # Update existing record
+        query = f'''
+        UPDATE customizations 
+        SET {', '.join(custom_fields)}
+        WHERE client_id = ?
+        '''
+        custom_values.append(client_id)
+        cursor.execute(query, custom_values)
+    elif custom_fields:
+        # Insert new record
+        fields = [f for f, v in zip(custom_mapping.values(), custom_values) if f in custom_mapping.values()]
+        fields.extend(['client_id', 'last_updated', 'updated_by'])
+        
+        values = custom_values
+        values.append(client_id)
+        values.append(datetime.now().isoformat())
+        values.append(user_id)
+        
+        query = f'''
+        INSERT INTO customizations 
+        ({', '.join(fields)})
+        VALUES ({', '.join(['?'] * len(fields))})
+        '''
+        cursor.execute(query, values)
+    
+    # Log the update
+    log_action(conn, cursor, user_id, 'update', 'client', client_id, client_data)
+    
+    return {"status": "success", "client_id": client_id}
+
+def delete_client(conn, cursor, client_id):
+    """Delete a client and all associated data"""
+    if not client_id:
+        return {"status": "error", "message": "Client ID is required"}
+    
+    # Verify client exists
+    cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+    if not cursor.fetchone():
+        return {"status": "error", "message": "Client not found"}
+    
+    # Get scanner information to clean up files
+    cursor.execute('''
+    SELECT cu.logo_path, cu.favicon_path, ds.config_path
+    FROM clients c
+    LEFT JOIN customizations cu ON c.id = cu.client_id
+    LEFT JOIN deployed_scanners ds ON c.id = ds.client_id
+    WHERE c.id = ?
+    ''', (client_id,))
+    
+    files = cursor.fetchone()
+    
+    # Delete client and related records (cascading deletes will handle the rest)
+    cursor.execute('DELETE FROM clients WHERE id = ?', (client_id,))
+    
+    # Clean up files if they exist
+    if files:
+        for file_path in [files['logo_path'], files['favicon_path'], files['config_path']]:
+            if file_path and os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
+    
+    return {"status": "success"}
+
+def list_clients(conn, cursor, page=1, per_page=10, filters=None):
+    """List clients with pagination and filtering"""
+    offset = (page - 1) * per_page
+    
+    # Base query
+    query = '''
+    SELECT c.*, cu.primary_color, cu.logo_path, ds.subdomain, ds.deploy_status,
+           (SELECT COUNT(*) FROM scan_history WHERE client_id = c.id) as scan_count
+    FROM clients c
+    LEFT JOIN customizations cu ON c.id = cu.client_id
+    LEFT JOIN deployed_scanners ds ON c.id = ds.client_id
+    '''
+    
+    # Apply filters
+    params = []
+    where_clauses = []
+    
+    if filters:
+        if 'subscription' in filters and filters['subscription']:
+            where_clauses.append('c.subscription_level = ?')
+            params.append(filters['subscription'])
+        
+        if 'status' in filters and filters['status']:
+            if filters['status'] == 'active':
+                where_clauses.append('c.active = 1')
+            elif filters['status'] == 'inactive':
+                where_clauses.append('c.active = 0')
+            elif filters['status'] == 'pending':
+                where_clauses.append('ds.deploy_status = "pending"')
+        
+        if 'search' in filters and filters['search']:
+            search_term = f"%{filters['search']}%"
+            where_clauses.append('(c.business_name LIKE ? OR c.contact_email LIKE ? OR c.business_domain LIKE ?)')
+            params.extend([search_term, search_term, search_term])
+    
+    # Add WHERE clause if we have filters
+    if where_clauses:
+        query += f" WHERE {' AND '.join(where_clauses)}"
+    
+    # Add ORDER BY and LIMIT
+    query += " ORDER BY c.id DESC LIMIT ? OFFSET ?"
+    params.extend([per_page, offset])
+    
+    # Execute query
+    cursor.execute(query, params)
+    clients = [dict(row) for row in cursor.fetchall()]
+    
+    # Get total count for pagination
+    count_query = '''
+    SELECT COUNT(*) FROM clients c
+    '''
+    
+    if where_clauses:
+        count_query += f" WHERE {' AND '.join(where_clauses)}"
+    
+    cursor.execute(count_query, params[:-2] if params else [])
+    total_count = cursor.fetchone()[0]
+    
+    # Calculate pagination info
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    return {
+        "status": "success",
+        "clients": clients,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "total_count": total_count
+        }
+    }
+
+def regenerate_api_key(conn, cursor, client_id):
+    """Regenerate the API key for a client"""
+    if not client_id:
+        return {"status": "error", "message": "Client ID is required"}
+    
+    # Verify client exists
+    cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+    if not cursor.fetchone():
+        return {"status": "error", "message": "Client not found"}
+    
+    # Generate new API key
+    new_api_key = str(uuid.uuid4())
+    
+    # Update client record
+    cursor.execute('''
+    UPDATE clients 
+    SET api_key = ?
+    WHERE id = ?
+    ''', (new_api_key, client_id))
+    
+    return {"status": "success", "api_key": new_api_key}
+
+def log_scan(conn, cursor, client_id, scan_id, target, scan_type="standard"):
+    """Log a scan for a client"""
+    if not client_id or not scan_id:
+        return {"status": "error", "message": "Client ID and Scan ID are required"}
+    
+    # Insert scan record
+    cursor.execute('''
+    INSERT INTO scan_history (client_id, scan_id, timestamp, target, scan_type, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ''', (client_id, scan_id, datetime.now().isoformat(), target, scan_type, "completed"))
+    
+    return {"status": "success"}
+
+def update_deployment_status(conn, cursor, client_id, status, config_path=None):
+    """Update the deployment status for a client scanner"""
+    if not client_id:
+        return {"status": "error", "message": "Client ID is required"}
+    
+    # Check if deployment record exists
+    cursor.execute('SELECT id FROM deployed_scanners WHERE client_id = ?', (client_id,))
+    deployment = cursor.fetchone()
+    
+    now = datetime.now().isoformat()
+    
+    if deployment:
+        # Update existing record
+        query = '''
+        UPDATE deployed_scanners 
+        SET deploy_status = ?, last_updated = ?
+        '''
+        params = [status, now]
+        
+        if config_path:
+            query += ", config_path = ?"
+            params.append(config_path)
+        
+        query += " WHERE client_id = ?"
+        params.append(client_id)
+        
+        cursor.execute(query, params)
+    else:
+        # Get client name for subdomain
+        cursor.execute('SELECT business_name FROM clients WHERE id = ?', (client_id,))
+        client = cursor.fetchone()
+        
+        if not client:
+            return {"status": "error", "message": "Client not found"}
+        
+        # Create a subdomain from business name
+        subdomain = client['business_name'].lower()
+        subdomain = ''.join(c for c in subdomain if c.isalnum() or c == '-')
+        subdomain = '-'.join(filter(None, subdomain.split('-')))
+        
+        # Handle duplicates by appending client_id if needed
+        cursor.execute('SELECT id FROM deployed_scanners WHERE subdomain = ?', (subdomain,))
+        if cursor.fetchone():
+            subdomain = f"{subdomain}-{client_id}"
+        
+        # Insert new record
+        query = '''
+        INSERT INTO deployed_scanners 
+        (client_id, subdomain, deploy_status, deploy_date, last_updated, config_path, template_version)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        '''
+        
+        cursor.execute(query, (
+            client_id,
+            subdomain,
+            status,
+            now,
+            now,
+            config_path,
+            "1.0"
+        ))
+    
+    return {"status": "success"}
     
 # Add more enhanced client management functions here
 # ...
