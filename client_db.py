@@ -9,6 +9,8 @@ import uuid
 import hashlib
 import secrets
 from datetime import datetime, timedelta
+from migrations import run_migrations
+run_migrations()
 
 # Define database path
 CLIENT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'client_scanner.db')
