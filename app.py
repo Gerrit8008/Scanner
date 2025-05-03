@@ -1084,9 +1084,23 @@ def scan_page():
             lead_id = save_lead_data(lead_data)
             logging.info(f"Lead data saved with ID: {lead_id}")
             
+            # Check for client_id in query parameters (used for client-specific scanner)
+            client_id = request.args.get('client_id')
+            
+            # If client_id is provided, get client customizations
+            client = None
+            if client_id:
+                from client_db import get_client_by_id
+                client = get_client_by_id(client_id)
+            
             # Run the full consolidated scan
             logging.info(f"Starting scan for {lead_data.get('email')} targeting {lead_data.get('target')}...")
             scan_results = run_consolidated_scan(lead_data)
+            
+            # If scan was performed through a client scanner, log it
+            if client:
+                from client_db import log_scan
+                log_scan(client['id'], scan_results['scan_id'], lead_data.get('target', ''))
             
             # Check if scan_results contains valid data
             if not scan_results or 'scan_id' not in scan_results:
@@ -1110,8 +1124,31 @@ def scan_page():
                     # Fallback to standard html_report or re-render template
                     html_report = scan_results.get('html_report', render_template('results.html', scan=scan_results))
                 
-                # Send email to user
-                email_sent = send_email_report(lead_data, scan_results, html_report)
+                # Use client email template if available
+                email_subject = "Your Security Scan Report"
+                email_intro = "Thank you for using our security scanner."
+                
+                if client:
+                    email_subject = client.get('email_subject', email_subject)
+                    email_intro = client.get('email_intro', email_intro)
+                
+                # Customize email for client
+                if client:
+                    # Add client branding to email
+                    from email_handler import send_branded_email_report
+                    email_sent = send_branded_email_report(
+                        lead_data, 
+                        scan_results, 
+                        html_report, 
+                        client['business_name'],
+                        client.get('logo_path', ''),
+                        client.get('primary_color', '#FF6900'),
+                        email_subject,
+                        email_intro
+                    )
+                else:
+                    # Use standard email
+                    email_sent = send_email_report(lead_data, scan_results, html_report)
                 
                 if email_sent:
                     logging.info("Report automatically sent to user")
@@ -1133,6 +1170,28 @@ def scan_page():
             else:
                 # For regular form submissions, render results directly
                 logging.info("Rendering results page directly...")
+                
+                # Use client's template if available
+                if client:
+                    template_path = os.path.join(
+                        os.path.dirname(os.path.abspath(__file__)), 
+                        'scanners', 
+                        f"client_{client['id']}", 
+                        'results.html'
+                    )
+                    
+                    if os.path.exists(template_path):
+                        # Render client-specific template
+                        with open(template_path, 'r') as f:
+                            template_content = f.read()
+                        
+                        from jinja2 import Template
+                        template = Template(template_content)
+                        rendered_html = template.render(scan=scan_results)
+                        
+                        return rendered_html
+                
+                # Fall back to standard template
                 return render_template('results.html', scan=scan_results)
                 
         except Exception as scan_error:
@@ -1154,6 +1213,39 @@ def scan_page():
     
     # For GET requests, show the scan form
     error = request.args.get('error')
+    
+    # Check for client_id in query parameters (used for client-specific scanner)
+    client_id = request.args.get('client_id')
+    client = None
+    
+    if client_id:
+        try:
+            from client_db import get_client_by_id
+            client = get_client_by_id(client_id)
+        except Exception as e:
+            logging.error(f"Error retrieving client {client_id}: {e}")
+    
+    # Use client's template if available
+    if client:
+        template_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), 
+            'scanners', 
+            f"client_{client['id']}", 
+            'scan.html'
+        )
+        
+        if os.path.exists(template_path):
+            # Render client-specific template
+            with open(template_path, 'r') as f:
+                template_content = f.read()
+            
+            from jinja2 import Template
+            template = Template(template_content)
+            rendered_html = template.render(error=error)
+            
+            return rendered_html
+    
+    # Fall back to standard template
     return render_template('scan.html', error=error)
 
 @app.route('/results')
