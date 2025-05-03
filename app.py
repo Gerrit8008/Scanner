@@ -226,14 +226,6 @@ log_system_info()
 @app.route('/customize', methods=['GET', 'POST'])
 def customize_scanner():
     """Render the scanner customization form"""
-    # Debug information
-    print("============ CUSTOMIZE DEBUG ============")
-    print(f"Template folder: {app.template_folder}")
-    template_path = os.path.join(app.template_folder, 'admin', 'customization-form.html')
-    print(f"Looking for template at: {template_path}")
-    print(f"Template exists: {os.path.exists(template_path)}")
-    print("=========================================")
-    
     # Check if this is a POST request
     if request.method == 'POST':
         try:
@@ -276,17 +268,8 @@ def customize_scanner():
             
             if not result or result.get('status') != 'success':
                 # Return error page
-                return f"""
-                <html>
-                    <head><title>Error</title></head>
-                    <body>
-                        <h1>Error Creating Scanner</h1>
-                        <p>{result.get('message', 'Unknown error')}</p>
-                        <a href="/customize">Try Again</a>
-                        <a href="/admin/dashboard">Back to Dashboard</a>
-                    </body>
-                </html>
-                """
+                flash(f"Error creating scanner: {result.get('message', 'Unknown error')}", 'danger')
+                return render_template('admin/customization-form.html')
             
             # Generate scanner templates
             from scanner_template import generate_scanner
@@ -294,36 +277,20 @@ def customize_scanner():
             
             if not scanner_result:
                 # Return partial success page
-                return f"""
-                <html>
-                    <head><title>Partial Success</title></head>
-                    <body>
-                        <h1>Scanner Created But Templates Failed</h1>
-                        <p>The client was created in the database but we could not generate the scanner templates.</p>
-                        <a href="/admin/dashboard">Back to Dashboard</a>
-                    </body>
-                </html>
-                """
+                flash("Scanner created but templates could not be generated", 'warning')
+                return redirect(url_for('admin.dashboard'))
             
-            # Success! Redirect to dashboard
+            # Success! Redirect to dashboard with success message
+            flash("Scanner created successfully!", 'success')
             return redirect(url_for('admin.dashboard'))
             
         except Exception as e:
             # Log the error
-            print(f"Error processing form: {str(e)}")
+            logging.error(f"Error processing form: {str(e)}")
             
             # Return error page
-            return f"""
-            <html>
-                <head><title>Error</title></head>
-                <body>
-                    <h1>Error Creating Scanner</h1>
-                    <p>{str(e)}</p>
-                    <a href="/customize">Try Again</a>
-                    <a href="/admin/dashboard">Back to Dashboard</a>
-                </body>
-            </html>
-            """
+            flash(f"Error creating scanner: {str(e)}", 'danger')
+            return render_template('admin/customization-form.html')
     
     # For GET requests, render the template
     return render_template('admin/customization-form.html')
