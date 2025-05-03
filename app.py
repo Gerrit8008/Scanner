@@ -20,6 +20,9 @@ from flask_limiter.util import get_remote_address
 from email_handler import send_email_report
 from config import get_config
 from dotenv import load_dotenv
+from flask import Blueprint
+from api import api_bp  # Import the new API blueprint
+from client_db import init_client_db
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -177,6 +180,7 @@ def create_app():
     
     # Initialize database
     init_db()
+    init_client_db()  # New client database
     
     return app, limiter
 
@@ -186,6 +190,21 @@ app, limiter = create_app()
 # Set up logging and log system info
 logger = setup_logging()
 log_system_info()
+
+# Register the new blueprint with the main Flask app
+app.register_blueprint(api_bp)
+
+# Add a route for the customization form
+@app.route('/customize', methods=['GET'])
+def customize_scanner():
+    """Render the scanner customization form"""
+    return render_template('admin/customization-form.html')
+
+# Add a route for the admin dashboard
+@app.route('/admin/dashboard', methods=['GET'])
+def admin_dashboard():
+    """Render the admin dashboard"""
+    return render_template('admin/admin-dashboard.html')
 
 # Log registered routes
 @app.before_first_request
