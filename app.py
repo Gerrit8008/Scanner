@@ -76,7 +76,9 @@ from db import init_db, save_scan_results, get_scan_results, save_lead_data, DB_
 # Register blueprints after initializing the app
 def create_app():
     """Create and configure the Flask application"""
-    app = Flask(__name__)
+    app = Flask(__name__, 
+            template_folder=['templates', 'templates_admin'],
+            static_folder='static')
     config = get_config()
     config.init_app(app)
     
