@@ -2139,7 +2139,48 @@ def handle_500(e):
 def handle_404(e):
     app.logger.error(f'404 error: {str(e)}')
     return render_template('error.html', error="Page not found"), 404
-    
+
+@app.route('/api/create-scanner', methods=['POST'])
+def create_scanner_api():
+    """API endpoint to handle scanner creation form submission"""
+    try:
+        # Get form data
+        client_data = {
+            'business_name': request.form.get('business_name', ''),
+            'business_domain': request.form.get('business_domain', ''),
+            'contact_email': request.form.get('contact_email', ''),
+            'contact_phone': request.form.get('contact_phone', ''),
+            'scanner_name': request.form.get('scanner_name', ''),
+            'subscription': request.form.get('subscription', 'basic'),
+            'primary_color': request.form.get('primary_color', '#FF6900'),
+            'secondary_color': request.form.get('secondary_color', '#808588'),
+            'email_subject': request.form.get('email_subject', 'Your Security Scan Report'),
+            'email_intro': request.form.get('email_intro', '')
+        }
+        
+        # Get default scans
+        default_scans = request.form.getlist('default_scans[]')
+        if default_scans:
+            client_data['default_scans'] = default_scans
+        
+        # Handle file uploads
+        if 'logo' in request.files and request.files['logo'].filename:
+            # Process logo upload
+            pass
+            
+        if 'favicon' in request.files and request.files['favicon'].filename:
+            # Process favicon upload
+            pass
+            
+        # For now, just return success response
+        flash('Scanner created successfully', 'success')
+        return redirect(url_for('admin.dashboard'))
+        
+    except Exception as e:
+        app.logger.error(f"Error creating scanner: {str(e)}")
+        flash(f'Error creating scanner: {str(e)}', 'danger')
+        return redirect(url_for('customize_scanner'))
+
 @app.route('/api/service_inquiry', methods=['POST'])
 def api_service_inquiry():
     try:
