@@ -62,6 +62,9 @@ from scan import (
     calculate_industry_percentile
 )
 
+# Make sure the directory exists
+os.makedirs(os.path.dirname(CLIENT_DB_PATH), exist_ok=True)
+
 # Check if this is first run (database doesn't exist)
 if not os.path.exists(CLIENT_DB_PATH):
     from setup import setup_database
