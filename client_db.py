@@ -1068,11 +1068,9 @@ init_db()
             subdomain = f"{subdomain}-{client_id}"
         
         # Insert new record
-        query = '''
-        INSERT INTO deployed_scanners 
-        (client_id, subdomain, deploy_status, deploy_date, last_updated, config_path, template_version)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        '''
+        query = '''INSERT INTO deployed_scanners 
+                (client_id, subdomain, deploy_status, deploy_date, last_updated, config_path, template_version)
+                VALUES (?, ?, ?, ?, ?, ?, ?)'''
         
         cursor.execute(query, (
             client_id,
