@@ -79,8 +79,7 @@ def create_app():
     """Create and configure the Flask application"""
     
     # Specify multiple template folders
-    app = Flask(__name__, 
-            `    template_folder='templates')
+    app = Flask(__name__, template_folder='templates')
     
     config = get_config()
     config.init_app(app)
