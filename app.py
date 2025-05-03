@@ -225,29 +225,39 @@ log_system_info()
 # Add a route for the customization form
 @app.route('/customize', methods=['GET'])
 def customize_scanner():
-    """Render the scanner customization form with better error handling"""
+    """Render the scanner customization form with debug info"""
     try:
-        # Debug information
-        app.logger.debug(f"Template folder: {app.template_folder}")
+        # Debug logging
+        print("============ CUSTOMIZE DEBUG ============")
+        print(f"Template folder: {app.template_folder}")
         template_path = os.path.join(app.template_folder, 'admin', 'customization-form.html')
-        app.logger.debug(f"Looking for template at: {template_path}")
-        app.logger.debug(f"Template exists: {os.path.exists(template_path)}")
+        print(f"Looking for template at: {template_path}")
+        print(f"Template exists: {os.path.exists(template_path)}")
+        print("=========================================")
         
+        # Attempt to render template
         return render_template('admin/customization-form.html')
     except Exception as e:
-        app.logger.error(f"Error rendering customization form: {str(e)}")
+        print(f"Error rendering template: {str(e)}")
+        print(traceback.format_exc())
+        
+        # Return error page
         return f"""
         <html>
-            <head><title>Error Loading Customization Form</title></head>
+            <head><title>Customization Error</title></head>
             <body>
                 <h1>Error Loading Customization Form</h1>
-                <p>An error occurred while loading the customization form: {str(e)}</p>
-                <p>Debug info:</p>
+                <p>Error: {str(e)}</p>
+                <h2>Debugging Information:</h2>
+                <p>Working Directory: {os.getcwd()}</p>
+                <p>Template Folder: {app.template_folder}</p>
+                <p>Template Path: {os.path.join(app.template_folder, 'admin', 'customization-form.html')}</p>
+                <p>Template Exists: {os.path.exists(os.path.join(app.template_folder, 'admin', 'customization-form.html'))}</p>
                 <pre>{traceback.format_exc()}</pre>
                 <p><a href="/admin/dashboard">Return to Dashboard</a></p>
             </body>
         </html>
-        """, 500
+        """
 
 # Add a route for the admin dashboard
 @app.route('/admin/dashboard', methods=['GET'])
