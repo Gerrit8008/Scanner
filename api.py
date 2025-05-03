@@ -35,8 +35,9 @@ def api_key_required(f):
             return jsonify({
                 'status': 'error',
                 'message': 'Invalid API key'
-            }), 401
-            @api_bp.route('/api/create-scanner', methods=['POST'])
+            }), 401        ]
+
+@api_bp.route('/api/create-scanner', methods=['POST'])
 def create_scanner():
     """API endpoint to create a new customized scanner"""
     try:
