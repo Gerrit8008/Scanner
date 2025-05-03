@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 from flask import Blueprint
 from api import api_bp  # Import the new API blueprint
 from client_db import init_client_db
+from scanner_router import scanner_bp
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -57,6 +58,10 @@ from scan import (
 
 # Import database functionality
 from db import init_db, save_scan_results, get_scan_results, save_lead_data, DB_PATH
+
+
+# Register the blueprint
+app.register_blueprint(scanner_bp)
 
 # Load environment variables
 load_dotenv()
