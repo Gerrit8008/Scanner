@@ -412,5 +412,136 @@ def log_action(conn, cursor, user_id, action, entity_type, entity_id, changes=No
     
     return cursor.lastrowid
 
+# Add these functions to client_db.py
+
+@with_transaction
+def create_password_reset_token(conn, cursor, email):
+    """Create a password reset token for the specified email"""
+    # Find the user
+    cursor.execute('SELECT id FROM users WHERE email = ? AND active = 1', (email,))
+    user = cursor.fetchone()
+    
+    if not user:
+        # Don't reveal whether the email exists or not (security)
+        return {"status": "success", "message": "If the email exists, a reset link has been sent"}
+    
+    # Generate a secure token
+    reset_token = secrets.token_urlsafe(32)
+    user_id = user['id']
+    
+    # Set expiration to 24 hours from now
+    expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
+    
+    # Clear any existing tokens for this user
+    cursor.execute('UPDATE password_resets SET used = 1 WHERE user_id = ?', (user_id,))
+    
+    # Insert the new token
+    cursor.execute('''
+    INSERT INTO password_resets (user_id, reset_token, created_at, expires_at)
+    VALUES (?, ?, ?, ?)
+    ''', (user_id, reset_token, datetime.now().isoformat(), expires_at))
+    
+    # Log the action
+    log_action(conn, cursor, user_id, 'request_password_reset', 'user', user_id, 
+              {'reset_token_id': cursor.lastrowid})
+    
+    return {"status": "success", "user_id": user_id, "reset_token": reset_token}
+
+@with_transaction
+def verify_password_reset_token(conn, cursor, token):
+    """Verify a password reset token"""
+    # Find the token
+    cursor.execute('''
+    SELECT pr.*, u.username, u.email
+    FROM password_resets pr
+    JOIN users u ON pr.user_id = u.id
+    WHERE pr.reset_token = ? AND pr.used = 0 AND pr.expires_at > ?
+    ''', (token, datetime.now().isoformat()))
+    
+    reset = cursor.fetchone()
+    
+    if not reset:
+        return {"status": "error", "message": "Invalid or expired token"}
+    
+    return {
+        "status": "success", 
+        "user_id": reset['user_id'],
+        "username": reset['username'],
+        "email": reset['email']
+    }
+
+@with_transaction
+def update_user_password(conn, cursor, user_id, new_password):
+    """Update a user's password with enhanced security"""
+    # Validate password
+    if len(new_password) < 8:
+        return {"status": "error", "message": "Password must be at least 8 characters"}
+    
+    # Check if user exists
+    cursor.execute('SELECT id FROM users WHERE id = ? AND active = 1', (user_id,))
+    user = cursor.fetchone()
+    
+    if not user:
+        return {"status": "error", "message": "User not found"}
+    
+    # Create salt and hash password (improved security)
+    salt = secrets.token_hex(16)
+    # Use stronger hashing with iterations
+    password_hash = hashlib.pbkdf2_hmac(
+        'sha256', 
+        new_password.encode(), 
+        salt.encode(), 
+        100000  # More iterations for better security
+    ).hex()
+    
+    # Update the user's password
+    cursor.execute('''
+    UPDATE users SET 
+        password_hash = ?,
+        salt = ?,
+        updated_at = ?
+    WHERE id = ?
+    ''', (password_hash, salt, datetime.now().isoformat(), user_id))
+    
+    # Mark all reset tokens for this user as used
+    cursor.execute('UPDATE password_resets SET used = 1 WHERE user_id = ?', (user_id,))
+    
+    # Log the password change
+    log_action(conn, cursor, user_id, 'password_change', 'user', user_id, None)
+    
+    return {"status": "success"}
+
+@with_transaction
+def get_user_permissions(conn, cursor, role):
+    """Get permissions for a specific role"""
+    # Default permissions for all users
+    default_permissions = ['view_profile', 'change_password']
+    
+    # Role-specific permissions
+    role_permissions = {
+        'admin': [
+            'admin_dashboard',
+            'manage_clients',
+            'manage_users',
+            'view_reports',
+            'system_settings'
+        ],
+        'manager': [
+            'admin_dashboard',
+            'manage_clients',
+            'view_reports'
+        ],
+        'client': [
+            'client_dashboard',
+            'view_own_reports'
+        ]
+    }
+    
+    # Combine default and role-specific permissions
+    permissions = default_permissions.copy()
+    if role in role_permissions:
+        permissions.extend(role_permissions[role])
+    
+    return permissions
 # Add more enhanced client management functions here
 # ...
