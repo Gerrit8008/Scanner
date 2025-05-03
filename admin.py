@@ -39,7 +39,7 @@ def admin_required(f):
     decorated_function.__doc__ = f.__doc__
     return decorated_function
 
-@admin_bp.route('/templates_admin/admin-dashboard')
+@admin_bp.route('/templates/admin/admin-dashboard')
 @admin_required
 def dashboard(user):
     """Admin dashboard with summary statistics"""
@@ -57,7 +57,7 @@ def dashboard(user):
         recent_clients=recent_clients
     )
 
-@admin_bp.route('/templates_admin/client-management')
+@admin_bp.route('/templates/admin/client-management')
 @admin_required
 def client_list(user):
     """Client management page"""
@@ -79,7 +79,7 @@ def client_list(user):
     
     # Render client list template
     return render_template(
-        'templates_admin/client-management.html',
+        'templates/admin/client-management.html',
         user=user,
         clients=result['clients'],
         pagination=result['pagination'],
