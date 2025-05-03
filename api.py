@@ -202,3 +202,280 @@ def update_client_scanner(client_id):
                 'contact_phone': request.form.get('contact_phone'),
                 'scanner_name': request.form.get('scanner_name'),
                 'primary_color': request.form.get('primary_color'),
+
+@api_bp.route('/api/v1/clients/<int:client_id>/update', methods=['PUT', 'POST'])
+def update_client_scanner(client_id):
+    """API endpoint to update an existing scanner"""
+    # Check for API key in headers
+    api_key = request.headers.get('X-API-Key')
+    
+    if not api_key:
+        return jsonify({
+            'status': 'error',
+            'message': 'Missing API key'
+        }), 401
+    
+    # Verify this is an admin API key or the client's own API key
+    client = get_client_by_api_key(api_key)
+    
+    if not client or (client['id'] != client_id and client.get('role', '') != 'admin'):
+        return jsonify({
+            'status': 'error',
+            'message': 'Unauthorized to update this client'
+        }), 403
+    
+    try:
+        # Remove None values
+        client_data = {k: v for k, v in client_data.items() if v is not None}
+        
+        # Handle file uploads
+        if 'logo' in request.files and request.files['logo'].filename:
+            logo_file = request.files['logo']
+            logo_filename = secure_filename(f"{client_id}_{logo_file.filename}")
+            logo_path = os.path.join(UPLOAD_FOLDER, logo_filename)
+            logo_file.save(logo_path)
+            client_data['logo_path'] = logo_path
+        
+        if 'favicon' in request.files and request.files['favicon'].filename:
+            favicon_file = request.files['favicon']
+            favicon_filename = secure_filename(f"{client_id}_{favicon_file.filename}")
+            favicon_path = os.path.join(UPLOAD_FOLDER, favicon_filename)
+            favicon_file.save(favicon_path)
+            client_data['favicon_path'] = favicon_path
+        
+        # Update client in database
+        result = update_client(client_id, client_data, 1)  # Admin user_id = 1
+        
+        if not result or result.get('status') == 'error':
+            return jsonify({
+                'status': 'error',
+                'message': result.get('message', 'Failed to update client data')
+            }), 500
+        
+        # Update scanner files
+        scanner_result = update_scanner(client_id, client_data)
+        
+        if not scanner_result:
+            return jsonify({
+                'status': 'error',
+                'message': 'Failed to update scanner files'
+            }), 500
+        
+        # Get updated client data
+        updated_client = get_client_by_id(client_id)
+        
+        # Return success response
+        return jsonify({
+            'status': 'success',
+            'message': 'Scanner updated successfully',
+            'client': {
+                'id': updated_client['id'],
+                'business_name': updated_client['business_name'],
+                'scanner_name': updated_client['scanner_name'],
+                'subdomain': updated_client.get('subdomain', '')
+            }
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error updating scanner: {str(e)}'
+        }), 500
+
+@api_bp.route('/api/v1/clients/<int:client_id>', methods=['GET'])
+def get_client_details(client_id):
+    """API endpoint to get client details"""
+    # Check for API key in headers
+    api_key = request.headers.get('X-API-Key')
+    
+    if not api_key:
+        return jsonify({
+            'status': 'error',
+            'message': 'Missing API key'
+        }), 401
+    
+    # Verify this is an admin API key or the client's own API key
+    client = get_client_by_api_key(api_key)
+    
+    if not client or (client['id'] != client_id and client.get('role', '') != 'admin'):
+        return jsonify({
+            'status': 'error',
+            'message': 'Unauthorized to view this client'
+        }), 403
+    
+    try:
+        # Get client details
+        client_data = get_client_by_id(client_id)
+        
+        if not client_data:
+            return jsonify({
+                'status': 'error',
+                'message': 'Client not found'
+            }), 404
+        
+        # Filter sensitive data
+        filtered_data = {
+            'id': client_data['id'],
+            'business_name': client_data['business_name'],
+            'business_domain': client_data['business_domain'],
+            'contact_email': client_data['contact_email'],
+            'scanner_name': client_data['scanner_name'],
+            'subscription_level': client_data['subscription_level'],
+            'subscription_status': client_data['subscription_status'],
+            'created_at': client_data['created_at'],
+            'active': client_data['active'] == 1,
+            'subdomain': client_data.get('subdomain', ''),
+            'primary_color': client_data.get('primary_color', ''),
+            'secondary_color': client_data.get('secondary_color', ''),
+            'default_scans': client_data.get('default_scans', [])
+        }
+        
+        # Return client data
+        return jsonify({
+            'status': 'success',
+            'client': filtered_data
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error retrieving client details: {str(e)}'
+        }), 500
+
+@api_bp.route('/api/v1/clients', methods=['GET'])
+def list_all_clients():
+    """API endpoint to list all clients (admin only)"""
+    # Check for API key in headers
+    api_key = request.headers.get('X-API-Key')
+    
+    if not api_key:
+        return jsonify({
+            'status': 'error',
+            'message': 'Missing API key'
+        }), 401
+    
+    # Verify this is an admin API key
+    client = get_client_by_api_key(api_key)
+    
+    if not client or client.get('role', '') != 'admin':
+        return jsonify({
+            'status': 'error',
+            'message': 'Unauthorized access'
+        }), 403
+    
+    try:
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        # Get filter parameters
+        filters = {}
+        if 'subscription' in request.args:
+            filters['subscription'] = request.args.get('subscription')
+        if 'status' in request.args:
+            filters['status'] = request.args.get('status')
+        if 'search' in request.args:
+            filters['search'] = request.args.get('search')
+        
+        # Get client list
+        result = list_clients(page, per_page, filters)
+        
+        # Return client list
+        return jsonify({
+            'status': 'success',
+            'clients': result['clients'],
+            'pagination': result['pagination']
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error retrieving clients: {str(e)}'
+        }), 500
+
+@api_bp.route('/api/v1/clients/<int:client_id>/regenerate-api-key', methods=['POST'])
+def regenerate_client_api_key(client_id):
+    """API endpoint to regenerate a client's API key (admin only)"""
+    # Check for API key in headers
+    api_key = request.headers.get('X-API-Key')
+    
+    if not api_key:
+        return jsonify({
+            'status': 'error',
+            'message': 'Missing API key'
+        }), 401
+    
+    # Verify this is an admin API key
+    client = get_client_by_api_key(api_key)
+    
+    if not client or client.get('role', '') != 'admin':
+        return jsonify({
+            'status': 'error',
+            'message': 'Unauthorized access'
+        }), 403
+    
+    try:
+        # Regenerate API key
+        result = regenerate_api_key(client_id)
+        
+        if not result or result.get('status') == 'error':
+            return jsonify({
+                'status': 'error',
+                'message': result.get('message', 'Failed to regenerate API key')
+            }), 500
+        
+        # Return new API key
+        return jsonify({
+            'status': 'success',
+            'message': 'API key regenerated successfully',
+            'api_key': result['api_key']
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error regenerating API key: {str(e)}'
+        }), 500
+
+@api_bp.route('/api/v1/clients/<int:client_id>/delete', methods=['DELETE'])
+def delete_client_api(client_id):
+    """API endpoint to delete a client (admin only)"""
+    # Check for API key in headers
+    api_key = request.headers.get('X-API-Key')
+    
+    if not api_key:
+        return jsonify({
+            'status': 'error',
+            'message': 'Missing API key'
+        }), 401
+    
+    # Verify this is an admin API key
+    client = get_client_by_api_key(api_key)
+    
+    if not client or client.get('role', '') != 'admin':
+        return jsonify({
+            'status': 'error',
+            'message': 'Unauthorized access'
+        }), 403
+    
+    try:
+        # Delete client
+        result = delete_client(client_id)
+        
+        if not result or result.get('status') == 'error':
+            return jsonify({
+                'status': 'error',
+                'message': result.get('message', 'Failed to delete client')
+            }), 500
+        
+        # Return success response
+        return jsonify({
+            'status': 'success',
+            'message': 'Client deleted successfully'
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error deleting client: {str(e)}'
+        }), 500                
