@@ -226,7 +226,7 @@ log_system_info()
 @app.route('/customize', methods=['GET'])
 def customize_scanner():
     """Render the scanner customization form"""
-    return render_template('admin/customization-form.html')
+    return render_template('admin/customization-form.html')  # Confirm this path
 
 # Add a route for the admin dashboard
 @app.route('/admin/dashboard', methods=['GET'])
