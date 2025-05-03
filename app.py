@@ -29,6 +29,7 @@ from admin import admin_bp
 from api import api_bp
 from scanner_router import scanner_bp
 from client_db import init_client_db
+from client_db import CLIENT_DB_PATH
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -61,6 +62,11 @@ from scan import (
     calculate_industry_percentile
 )
 
+# Check if this is first run (database doesn't exist)
+if not os.path.exists(CLIENT_DB_PATH):
+    from setup import setup_database
+    setup_database()
+    
 # Import database functionality
 from db import init_db, save_scan_results, get_scan_results, save_lead_data, DB_PATH
 
