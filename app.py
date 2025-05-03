@@ -2097,7 +2097,7 @@ def debug_submit():
 @app.route('/admin')
 def admin_redirect():
     """Redirect to admin dashboard"""
-    return redirect(url_for('admin-dashboard'))  # Use endpoint name
+    return redirect(url_for('admin_dashboard'))  # Use endpoint name
     
 @app.route('/api/service_inquiry', methods=['POST'])
 def api_service_inquiry():
