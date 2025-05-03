@@ -12,6 +12,45 @@ from datetime import datetime
 # Define database path
 CLIENT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'client_scanner.db')
 
+def get_client_by_subdomain(subdomain):
+    """Retrieve client by subdomain"""
+    try:
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Query for the client
+        cursor.execute('''
+        SELECT c.*, cu.*, ds.subdomain, ds.deploy_status
+        FROM clients c
+        JOIN customizations cu ON c.id = cu.client_id
+        JOIN deployed_scanners ds ON c.id = ds.client_id
+        WHERE ds.subdomain = ? AND c.active = 1
+        ''', (subdomain,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return None
+        
+        # Convert row to dictionary
+        client_data = dict(row)
+        
+        # Parse the default_scans JSON field
+        if 'default_scans' in client_data and client_data['default_scans']:
+            try:
+                client_data['default_scans'] = json.loads(client_data['default_scans'])
+            except json.JSONDecodeError:
+                client_data['default_scans'] = []
+        
+        conn.close()
+        return client_data
+    except Exception as e:
+        logging.error(f"Error retrieving client by subdomain: {e}")
+        logging.debug(traceback.format_exc())
+        return None
+        
 def update_deployment_status(client_id, status, config_path=None):
     """Update the deployment status for a client's scanner"""
     try:
