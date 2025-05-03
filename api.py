@@ -5,7 +5,7 @@ import uuid
 import json
 from client_db import (
     create_client, get_client_by_id, update_client, delete_client, 
-    get_client_by_api_key, log_scan, regenerate_api_key
+    get_client_by_api_key, log_scan, regenerate_api_key, list_clients
 )
 from scanner_template import generate_scanner, update_scanner
 
@@ -175,10 +175,8 @@ def update_client_scanner(client_id):
         }), 403
     
     try:
-        # Extract form data
-        client_data = {}
-        
         # Extract data from form or JSON
+        client_data = {}
         if request.is_json:
             json_data = request.get_json()
             client_data = {
@@ -202,29 +200,13 @@ def update_client_scanner(client_id):
                 'contact_phone': request.form.get('contact_phone'),
                 'scanner_name': request.form.get('scanner_name'),
                 'primary_color': request.form.get('primary_color'),
-
-@api_bp.route('/api/v1/clients/<int:client_id>/update', methods=['PUT', 'POST'])
-def update_client_scanner(client_id):
-    """API endpoint to update an existing scanner"""
-    # Check for API key in headers
-    api_key = request.headers.get('X-API-Key')
-    
-    if not api_key:
-        return jsonify({
-            'status': 'error',
-            'message': 'Missing API key'
-        }), 401
-    
-    # Verify this is an admin API key or the client's own API key
-    client = get_client_by_api_key(api_key)
-    
-    if not client or (client['id'] != client_id and client.get('role', '') != 'admin'):
-        return jsonify({
-            'status': 'error',
-            'message': 'Unauthorized to update this client'
-        }), 403
-    
-    try:
+                'secondary_color': request.form.get('secondary_color'),
+                'email_subject': request.form.get('email_subject'),
+                'email_intro': request.form.get('email_intro'),
+                'subscription_level': request.form.get('subscription_level'),
+                'default_scans': request.form.getlist('default_scans[]')
+            }
+        
         # Remove None values
         client_data = {k: v for k, v in client_data.items() if v is not None}
         
@@ -478,4 +460,4 @@ def delete_client_api(client_id):
         return jsonify({
             'status': 'error',
             'message': f'Error deleting client: {str(e)}'
-        }), 500                
+        }), 500
