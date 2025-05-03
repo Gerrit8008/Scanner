@@ -15,6 +15,62 @@ run_migrations()
 # Define database path
 CLIENT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'client_scanner.db')
 
+-- Clients table to store basic client information
+CREATE TABLE clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    business_name TEXT NOT NULL,
+    business_domain TEXT NOT NULL,
+    contact_email TEXT NOT NULL,
+    contact_phone TEXT,
+    scanner_name TEXT,
+    subscription_level TEXT DEFAULT 'basic',
+    subscription_status TEXT DEFAULT 'active',
+    subscription_start TEXT,
+    subscription_end TEXT,
+    api_key TEXT UNIQUE,
+    created_at TEXT,
+    created_by INTEGER,
+    updated_at TEXT,
+    updated_by INTEGER,
+    active BOOLEAN DEFAULT 1,
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (updated_by) REFERENCES users(id)
+);
+
+-- Customizations table for branding and visual options
+CREATE TABLE customizations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER NOT NULL,
+    primary_color TEXT,
+    secondary_color TEXT,
+    logo_path TEXT,
+    favicon_path TEXT,
+    email_subject TEXT,
+    email_intro TEXT,
+    email_footer TEXT,
+    default_scans TEXT,  -- JSON array of default scan types
+    css_override TEXT,
+    html_override TEXT,
+    last_updated TEXT,
+    updated_by INTEGER,
+    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+    FOREIGN KEY (updated_by) REFERENCES users(id)
+);
+
+-- Deployed scanners table to track scanner instances
+CREATE TABLE deployed_scanners (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER NOT NULL,
+    subdomain TEXT UNIQUE,
+    domain TEXT,
+    deploy_status TEXT,
+    deploy_date TEXT,
+    last_updated TEXT,
+    config_path TEXT,
+    template_version TEXT,
+    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
 # Helper function for database transactions
 def with_transaction(func):
     """Decorator for database transactions with proper error handling"""
