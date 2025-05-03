@@ -18,4 +18,4 @@ def configure_admin(app):
         from flask import redirect, url_for
         return redirect(url_for('auth.login'))
     
-    return apps
+    return app
