@@ -225,8 +225,29 @@ log_system_info()
 # Add a route for the customization form
 @app.route('/customize', methods=['GET'])
 def customize_scanner():
-    """Render the scanner customization form"""
-    return render_template('admin/customization-form.html')  # Confirm this path
+    """Render the scanner customization form with better error handling"""
+    try:
+        # Debug information
+        app.logger.debug(f"Template folder: {app.template_folder}")
+        template_path = os.path.join(app.template_folder, 'admin', 'customization-form.html')
+        app.logger.debug(f"Looking for template at: {template_path}")
+        app.logger.debug(f"Template exists: {os.path.exists(template_path)}")
+        
+        return render_template('admin/customization-form.html')
+    except Exception as e:
+        app.logger.error(f"Error rendering customization form: {str(e)}")
+        return f"""
+        <html>
+            <head><title>Error Loading Customization Form</title></head>
+            <body>
+                <h1>Error Loading Customization Form</h1>
+                <p>An error occurred while loading the customization form: {str(e)}</p>
+                <p>Debug info:</p>
+                <pre>{traceback.format_exc()}</pre>
+                <p><a href="/admin/dashboard">Return to Dashboard</a></p>
+            </body>
+        </html>
+        """, 500
 
 # Add a route for the admin dashboard
 @app.route('/admin/dashboard', methods=['GET'])
