@@ -4,6 +4,10 @@ services:
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn wsgi:app --log-level=debug
+    disk:
+      name: scanner-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
@@ -13,3 +17,7 @@ services:
         sync: false
       - key: SMTP_PASSWORD
         sync: false
+      - key: DB_PATH
+        value: /data/security_scan.db
+      - key: CLIENT_DB_PATH
+        value: /data/client_db.sqlite
