@@ -10,6 +10,17 @@
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
+    <script>
+  window.onerror = function(message, source, lineno, colno, error) {
+    alert('JavaScript error: ' + message + ' at line ' + lineno);
+    console.error('Error details:', error);
+    return true;  // Prevents default error handling
+  };
+  
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Document loaded successfully');
+  });
+</script>
     <div class="header fade-in">
         <div class="container">
             <h1>Scanner Customization Portal</h1>
