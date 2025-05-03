@@ -1,1 +1,777 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Management - Scanner Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .sidebar {
+            background-color: #2c3e50;
+            color: white;
+            min-height: 100vh;
+            padding-top: 2rem;
+        }
+        
+        .sidebar-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-link i {
+            margin-right: 0.75rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .client-card {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .client-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .client-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #6c757d;
+        }
+        
+        .subscription-badge {
+            padding: 0.35em 0.65em;
+            border-radius: 0.25rem;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .subscription-basic {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        
+        .subscription-pro {
+            background-color: #cff4fc;
+            color: #055160;
+        }
+        
+        .subscription-enterprise {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        
+        .filter-card {
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-mini {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        
+        .table-responsive {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background-color: #f8f9fa;
+        }
+        
+        .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .page-link {
+            color: var(--primary-color);
+        }
+        
+        .client-action {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            color: #6c757d;
+            background-color: transparent;
+            border: none;
+        }
+        
+        .client-action:hover {
+            background-color: rgba(0,0,0,0.05);
+            color: var(--primary-color);
+        }
+        
+        .scan-count {
+            width: 24px;
+            height: 24px;
+            background-color: #e9ecef;
+            color: #212529;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+        
+        .filter-tag {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background-color: #e9ecef;
+            color: #495057;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .filter-tag .close {
+            margin-left: 0.5rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 p-0 sidebar">
+                <div class="text-center mb-4">
+                    <h4>Scanner Platform</h4>
+                    <p class="mb-0 small">Admin Panel</p>
+                </div>
+                
+                <div class="px-3">
+                    <a href="/admin/dashboard" class="sidebar-link">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="#" class="sidebar-link active">
+                        <i class="bi bi-people"></i> Client Management
+                    </a>
+                    <a href="/customize" class="sidebar-link">
+                        <i class="bi bi-plus-circle"></i> Create Scanner
+                    </a>
+                    <a href="/admin/subscriptions" class="sidebar-link">
+                        <i class="bi bi-credit-card"></i> Subscriptions
+                    </a>
+                    <a href="/admin/reports" class="sidebar-link">
+                        <i class="bi bi-file-earmark-text"></i> Reports
+                    </a>
+                    <a href="/admin/settings" class="sidebar-link">
+                        <i class="bi bi-gear"></i> Settings
+                    </a>
+                    
+                    <hr class="my-4">
+                    
+                    <a href="/logout" class="sidebar-link text-danger">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Client Management</h2>
+                    <div>
+                        <a href="/customize" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i> Add New Client
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Overview Stats -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-people text-primary"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini">42</div>
+                                    <div class="text-muted">Total Clients</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-check-circle text-success"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini">38</div>
+                                    <div class="text-muted">Active Clients</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-hourglass-split text-warning"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini">4</div>
+                                    <div class="text-muted">Pending Deployment</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-calendar text-info"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini">7</div>
+                                    <div class="text-muted">New This Month</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="card filter-card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0" placeholder="Search clients...">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <select class="form-select">
+                                    <option selected>All Subscriptions</option>
+                                    <option>Basic</option>
+                                    <option>Pro</option>
+                                    <option>Enterprise</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <select class="form-select">
+                                    <option selected>All Status</option>
+                                    <option>Active</option>
+                                    <option>Pending</option>
+                                    <option>Inactive</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <button class="btn btn-primary w-100">
+                                    <i class="bi bi-funnel me-2"></i> Filter
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="filter-tag">
+                                Active <span class="close">&times;</span>
+                            </div>
+                            <div class="filter-tag">
+                                Pro <span class="close">&times;</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Client Table -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Scanner</th>
+                                        <th>Email</th>
+                                        <th>Subdomain</th>
+                                        <th>Subscription</th>
+                                        <th>Status</th>
+                                        <th>Scans</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="client-logo me-3">AC
+                                                  </div>
+                                                <div>
+                                                    <div class="fw-bold">Acme Corporation</div>
+                                                    <div class="text-muted small">Since May 12, 2025</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>Security Checker</td>
+                                        <td>admin@acmecorp.com</td>
+                                        <td>acme-corp.yourscannerdomain.com</td>
+                                        <td><span class="subscription-badge subscription-pro">Pro</span></td>
+                                        <td><span class="badge bg-success">Active</span></td>
+                                        <td>248 <span class="scan-count">+12</span></td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button class="client-action" data-bs-toggle="tooltip" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="More">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="client-logo me-3">TS</div>
+                                                <div>
+                                                    <div class="fw-bold">TechFlow Solutions</div>
+                                                    <div class="text-muted small">Since Apr 5, 2025</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>TF Security Scanner</td>
+                                        <td>security@techflow.io</td>
+                                        <td>techflow.yourscannerdomain.com</td>
+                                        <td><span class="subscription-badge subscription-basic">Basic</span></td>
+                                        <td><span class="badge bg-success">Active</span></td>
+                                        <td>78 <span class="scan-count">+5</span></td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button class="client-action" data-bs-toggle="tooltip" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="More">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="client-logo me-3">GI</div>
+                                                <div>
+                                                    <div class="fw-bold">Global Innovations</div>
+                                                    <div class="text-muted small">Since Mar 22, 2025</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>Security First</td>
+                                        <td>it@globalinnovations.com</td>
+                                        <td>global-innovations.yourscannerdomain.com</td>
+                                        <td><span class="subscription-badge subscription-enterprise">Enterprise</span></td>
+                                        <td><span class="badge bg-success">Active</span></td>
+                                        <td>512 <span class="scan-count">+34</span></td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button class="client-action" data-bs-toggle="tooltip" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="More">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="client-logo me-3">SS</div>
+                                                <div>
+                                                    <div class="fw-bold">Stellar Services</div>
+                                                    <div class="text-muted small">Since Apr 28, 2025</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>Stellar Secure</td>
+                                        <td>contact@stellarservices.net</td>
+                                        <td>stellar-services.yourscannerdomain.com</td>
+                                        <td><span class="subscription-badge subscription-basic">Basic</span></td>
+                                        <td><span class="badge bg-warning text-dark">Pending</span></td>
+                                        <td>0</td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button class="client-action" data-bs-toggle="tooltip" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="More">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="client-logo me-3">QD</div>
+                                                <div>
+                                                    <div class="fw-bold">Quantum Data</div>
+                                                    <div class="text-muted small">Since Feb 15, 2025</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>Quantum Security</td>
+                                        <td>security@quantumdata.io</td>
+                                        <td>quantum-data.yourscannerdomain.com</td>
+                                        <td><span class="subscription-badge subscription-pro">Pro</span></td>
+                                        <td><span class="badge bg-success">Active</span></td>
+                                        <td>165 <span class="scan-count">+8</span></td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button class="client-action" data-bs-toggle="tooltip" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="More">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="client-logo me-3">BT</div>
+                                                <div>
+                                                    <div class="fw-bold">BlueTech Industries</div>
+                                                    <div class="text-muted small">Since Jan 8, 2025</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>BlueScan</td>
+                                        <td>admin@bluetech.com</td>
+                                        <td>bluetech.yourscannerdomain.com</td>
+                                        <td><span class="subscription-badge subscription-pro">Pro</span></td>
+                                        <td><span class="badge bg-success">Active</span></td>
+                                        <td>203 <span class="scan-count">+15</span></td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button class="client-action" data-bs-toggle="tooltip" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="More">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="client-logo me-3">NH</div>
+                                                <div>
+                                                    <div class="fw-bold">North Healthcare</div>
+                                                    <div class="text-muted small">Since Mar 10, 2025</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>HealthSecure</td>
+                                        <td>it@northhealthcare.org</td>
+                                        <td>north-healthcare.yourscannerdomain.com</td>
+                                        <td><span class="subscription-badge subscription-enterprise">Enterprise</span></td>
+                                        <td><span class="badge bg-success">Active</span></td>
+                                        <td>327 <span class="scan-count">+21</span></td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button class="client-action" data-bs-toggle="tooltip" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="client-action" data-bs-toggle="tooltip" title="More">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <div class="text-muted">
+                        Showing <strong>7</strong> of <strong>42</strong> clients
+                    </div>
+                    
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                
+                <!-- Client Details Modal -->
+                <div class="modal fade" id="clientDetailsModal" tabindex="-1" aria-labelledby="clientDetailsModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="clientDetailsModalLabel">Client Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Business Information</h6>
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <th width="40%">Company Name</th>
+                                                <td>Acme Corporation</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Contact Email</th>
+                                                <td>admin@acmecorp.com</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Contact Phone</th>
+                                                <td>555-123-4567</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Business Domain</th>
+                                                <td>acmecorp.com</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Scanner Information</h6>
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <th width="40%">Scanner Name</th>
+                                                <td>Security Checker</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Subdomain</th>
+                                                <td>acme-corp.yourscannerdomain.com</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Subscription</th>
+                                                <td><span class="subscription-badge subscription-pro">Pro</span></td>
+                                            </tr>
+                                            <tr>
+                                                <th>API Key</th>
+                                                <td><code>ac7d8e1f-23b5-4e7d-9a8c-5f2e3d1b4c7a</code></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Scan Activity</h6>
+                                        <div class="chart-container mt-3" style="height: 200px;">
+                                            <canvas id="clientScanChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Scanner Customization</h6>
+                                        <div class="mt-3">
+                                            <div class="d-flex mb-2">
+                                                <div class="me-2">Primary Color:</div>
+                                                <div style="width: 24px; height: 24px; background-color: #FF6900; border-radius: 4px;"></div>
+                                                <div class="ms-2">#FF6900</div>
+                                            </div>
+                                            
+                                            <div class="d-flex mb-2">
+                                                <div class="me-2">Secondary Color:</div>
+                                                <div style="width: 24px; height: 24px; background-color: #808588; border-radius: 4px;"></div>
+                                                <div class="ms-2">#808588</div>
+                                            </div>
+                                            
+                                            <div class="mt-3">
+                                                <strong>Default Scan Options:</strong>
+                                                <ul class="list-unstyled mt-2">
+                                                    <li><i class="bi bi-check-circle-fill text-success me-2"></i> Network Security</li>
+                                                    <li><i class="bi bi-check-circle-fill text-success me-2"></i> Web Security</li>
+                                                    <li><i class="bi bi-check-circle-fill text-success me-2"></i> Email Security</li>
+                                                    <li><i class="bi bi-x-circle-fill text-danger me-2"></i> System Security</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary">Edit Client</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // View client buttons
+            document.querySelectorAll('.client-action').forEach(button => {
+                if (button.getAttribute('data-bs-toggle') !== 'tooltip') return;
+                
+                if (button.getAttribute('title') === 'View') {
+                    button.addEventListener('click', function() {
+                        var clientDetailsModal = new bootstrap.Modal(document.getElementById('clientDetailsModal'));
+                        clientDetailsModal.show();
+                        
+                        // Initialize chart
+                        if (document.getElementById('clientScanChart')) {
+                            const ctx = document.getElementById('clientScanChart').getContext('2d');
+                            const clientScanChart = new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                                    datasets: [{
+                                        label: 'Scans',
+                                        data: [45, 38, 65, 54, 46],
+                                        borderColor: '#FF6900',
+                                        backgroundColor: 'rgba(255, 105, 0, 0.1)',
+                                        tension: 0.3,
+                                        fill: true
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: false
+                                        }
+                                    },
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            grid: {
+                                                drawBorder: false
+                                            }
+                                        },
+                                        x: {
+                                            grid: {
+                                                display: false
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+            
+            // Filter tag close buttons
+            document.querySelectorAll('.filter-tag .close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', function() {
+                    this.parentElement.remove();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
