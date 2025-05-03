@@ -12,6 +12,35 @@ from datetime import datetime
 # Define database path
 CLIENT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'client_scanner.db')
 
+def update_deployment_status(client_id, status, config_path=None):
+    """Update the deployment status for a client's scanner"""
+    try:
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Update deployment record
+        if config_path:
+            cursor.execute('''
+            UPDATE deployed_scanners
+            SET deploy_status = ?, last_updated = ?, config_path = ?
+            WHERE client_id = ?
+            ''', (status, datetime.now().isoformat(), config_path, client_id))
+        else:
+            cursor.execute('''
+            UPDATE deployed_scanners
+            SET deploy_status = ?, last_updated = ?
+            WHERE client_id = ?
+            ''', (status, datetime.now().isoformat(), client_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return True
+    except Exception as e:
+        logging.error(f"Error updating deployment status: {e}")
+        logging.debug(traceback.format_exc())
+        return False
+        
 def init_client_db():
     """Initialize the database with required tables for client customizations and user management"""
     try:
