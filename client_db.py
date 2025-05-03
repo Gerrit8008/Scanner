@@ -1038,6 +1038,124 @@ def create_billing_record(conn, cursor, client_id, plan_data):
 # Initialize the database when this module is imported
 init_db()
 @with_transaction
+def update_client(conn, cursor, client_id, client_data, user_id):
+    """Update client information"""
+    if not client_id:
+        return {"status": "error", "message": "Client ID is required"}
+    
+    # Verify client exists
+    cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+    if not cursor.fetchone():
+        return {"status": "error", "message": "Client not found"}
+    
+    # Start with clients table updates
+    client_fields = []
+    client_values = []
+    
+    # Map fields to database columns for clients table
+    field_mapping = {
+        'business_name': 'business_name',
+        'business_domain': 'business_domain',
+        'contact_email': 'contact_email',
+        'contact_phone': 'contact_phone',
+        'scanner_name': 'scanner_name',
+        'subscription_level': 'subscription_level',
+        'subscription_status': 'subscription_status',
+        'active': 'active'
+    }
+    
+    for key, db_field in field_mapping.items():
+        if key in client_data:
+            client_fields.append(f"{db_field} = ?")
+            client_values.append(client_data[key])
+    
+    # Always update the updated_at and updated_by fields
+    client_fields.append("updated_at = ?")
+    client_values.append(datetime.now().isoformat())
+    client_fields.append("updated_by = ?")
+    client_values.append(user_id)
+    
+    # Update clients table
+    if client_fields:
+        query = f'''
+        UPDATE clients 
+        SET {', '.join(client_fields)}
+        WHERE id = ?
+        '''
+        client_values.append(client_id)
+        cursor.execute(query, client_values)
+    
+    # Now handle customizations table
+    custom_fields = []
+    custom_values = []
+    
+    # Map fields to database columns for customizations table
+    custom_mapping = {
+        'primary_color': 'primary_color',
+        'secondary_color': 'secondary_color',
+        'logo_path': 'logo_path',
+        'favicon_path': 'favicon_path',
+        'email_subject': 'email_subject',
+        'email_intro': 'email_intro',
+        'email_footer': 'email_footer',
+        'css_override': 'css_override',
+        'html_override': 'html_override'
+    }
+    
+    for key, db_field in custom_mapping.items():
+        if key in client_data:
+            custom_fields.append(f"{db_field} = ?")
+            custom_values.append(client_data[key])
+    
+    # Handle default_scans separately as it needs to be JSON
+    if 'default_scans' in client_data:
+        custom_fields.append("default_scans = ?")
+        custom_values.append(json.dumps(client_data['default_scans']))
+    
+    # Always update last_updated and updated_by
+    custom_fields.append("last_updated = ?")
+    custom_values.append(datetime.now().isoformat())
+    custom_fields.append("updated_by = ?")
+    custom_values.append(user_id)
+    
+    # Check if customization record exists
+    cursor.execute('SELECT id FROM customizations WHERE client_id = ?', (client_id,))
+    customization = cursor.fetchone()
+    
+    if customization and custom_fields:
+        # Update existing record
+        query = f'''
+        UPDATE customizations 
+        SET {', '.join(custom_fields)}
+        WHERE client_id = ?
+        '''
+        custom_values.append(client_id)
+        cursor.execute(query, custom_values)
+    elif custom_fields:
+        # Insert new record
+        fields = [db_field for key, db_field in custom_mapping.items() if key in client_data]
+        if 'default_scans' in client_data:
+            fields.append('default_scans')
+        fields.extend(['client_id', 'last_updated', 'updated_by'])
+        
+        values = custom_values
+        values.append(client_id)
+        values.append(datetime.now().isoformat())
+        values.append(user_id)
+        
+        query = f'''
+        INSERT INTO customizations 
+        ({', '.join(fields)})
+        VALUES ({', '.join(['?'] * len(fields))})
+        '''
+        cursor.execute(query, values)
+    
+    # Log the update
+    log_action(conn, cursor, user_id, 'update', 'client', client_id, client_data)
+    
+    return {"status": "success", "client_id": client_id}
+    
+@with_transaction
 def update_deployment_status(conn, cursor, client_id, status, config_path=None):
     """Update the deployment status for a client scanner"""
     if not client_id:
