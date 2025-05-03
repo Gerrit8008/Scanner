@@ -222,9 +222,6 @@ app, limiter = create_app()
 logger = setup_logging()
 log_system_info()
 
-# Register the new blueprint with the main Flask app
-app.register_blueprint(api_bp)
-
 # Add a route for the customization form
 @app.route('/customize', methods=['GET'])
 def customize_scanner():
@@ -261,10 +258,6 @@ def get_scan_id_from_request():
     
     logging.warning("No scan_id found in session or query parameters")
     return None
-
-def get_domain_from_email(email):
-    """Extract domain from email address for scanning"""
-    return extract_domain_from_email(email)
 
 def scan_gateway_ports(gateway_info):
     """Enhanced gateway port scanning with better error handling"""
@@ -2003,11 +1996,6 @@ def debug_session():
         "test_value_set": session['test_value'],
         "all_keys": list(session.keys())
     })
-
-@app.route('/admin')
-def admin_redirect():
-    """Redirect to admin dashboard"""
-    return redirect(url_for('admin.dashboard'))
 
 @app.route('/admin/')
 def admin_root_redirect():
