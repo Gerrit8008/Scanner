@@ -39,7 +39,7 @@ def admin_required(f):
     decorated_function.__doc__ = f.__doc__
     return decorated_function
 
-@admin_bp.route('/templates/admin/admin-dashboard')
+@admin_bp.route('/dashboard')
 @admin_required
 def dashboard(user):
     """Admin dashboard with summary statistics"""
@@ -51,13 +51,13 @@ def dashboard(user):
     
     # Render dashboard template
     return render_template(
-        'templates_admin/admin-dashboard.html',
+        'admin/admin-dashboard.html',
         user=user,
         summary=summary,
         recent_clients=recent_clients
     )
 
-@admin_bp.route('/templates/admin/client-management')
+@admin_bp.route('/clients')
 @admin_required
 def client_list(user):
     """Client management page"""
@@ -79,14 +79,14 @@ def client_list(user):
     
     # Render client list template
     return render_template(
-        'templates/admin/client-management.html',
+        'admin/client-management.html',
         user=user,
         clients=result['clients'],
         pagination=result['pagination'],
         filters=filters
     )
 
-@admin_bp.route('/admin/clients/<int:client_id>')
+@admin_bp.route('/clients/<int:client_id>')
 @admin_required
 def client_detail(user, client_id):
     """Client detail page"""
@@ -104,7 +104,7 @@ def client_detail(user, client_id):
         client=client
     )
 
-@admin_bp.route('/admin/clients/create', methods=['GET', 'POST'])
+@admin_bp.route('/clients/create', methods=['GET', 'POST'])
 @admin_required
 def client_create(user):
     """Create new client"""
@@ -161,7 +161,7 @@ def client_create(user):
         user=user
     )
 
-@admin_bp.route('/admin/clients/<int:client_id>/edit', methods=['GET', 'POST'])
+@admin_bp.route('/clients/<int:client_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def client_edit(user, client_id):
     """Edit client"""
@@ -228,7 +228,7 @@ def client_edit(user, client_id):
         client=client
     )
 
-@admin_bp.route('/admin/clients/<int:client_id>/delete', methods=['POST'])
+@admin_bp.route('/clients/<int:client_id>/delete', methods=['POST'])
 @admin_required
 def client_delete(user, client_id):
     """Delete client"""
@@ -242,7 +242,7 @@ def client_delete(user, client_id):
     
     return redirect(url_for('admin.client_list'))
 
-@admin_bp.route('/admin/clients/<int:client_id>/regenerate-api-key', methods=['POST'])
+@admin_bp.route('/clients/<int:client_id>/regenerate-api-key', methods=['POST'])
 @admin_required
 def client_regenerate_api_key(user, client_id):
     """Regenerate client API key"""
@@ -261,7 +261,7 @@ def client_regenerate_api_key(user, client_id):
             'message': result.get('message', 'Failed to regenerate API key')
         }), 400
 
-@admin_bp.route('/admin/users')
+@admin_bp.route('/users')
 @admin_required
 def user_list(user):
     """User management page"""
@@ -280,7 +280,7 @@ def user_list(user):
         pagination=users['pagination']
     )
 
-@admin_bp.route('/admin/users/create', methods=['GET', 'POST'])
+@admin_bp.route('/users/create', methods=['GET', 'POST'])
 @admin_required
 def user_create(user):
     """Create new user"""
