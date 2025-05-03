@@ -223,41 +223,110 @@ logger = setup_logging()
 log_system_info()
 
 # Add a route for the customization form
-@app.route('/customize', methods=['GET'])
+@app.route('/customize', methods=['GET', 'POST'])
 def customize_scanner():
-    """Render the scanner customization form with debug info"""
-    try:
-        # Debug logging
-        print("============ CUSTOMIZE DEBUG ============")
-        print(f"Template folder: {app.template_folder}")
-        template_path = os.path.join(app.template_folder, 'admin', 'customization-form.html')
-        print(f"Looking for template at: {template_path}")
-        print(f"Template exists: {os.path.exists(template_path)}")
-        print("=========================================")
-        
-        # Attempt to render template
-        return render_template('admin/customization-form.html')
-    except Exception as e:
-        print(f"Error rendering template: {str(e)}")
-        print(traceback.format_exc())
-        
-        # Return error page
-        return f"""
-        <html>
-            <head><title>Customization Error</title></head>
-            <body>
-                <h1>Error Loading Customization Form</h1>
-                <p>Error: {str(e)}</p>
-                <h2>Debugging Information:</h2>
-                <p>Working Directory: {os.getcwd()}</p>
-                <p>Template Folder: {app.template_folder}</p>
-                <p>Template Path: {os.path.join(app.template_folder, 'admin', 'customization-form.html')}</p>
-                <p>Template Exists: {os.path.exists(os.path.join(app.template_folder, 'admin', 'customization-form.html'))}</p>
-                <pre>{traceback.format_exc()}</pre>
-                <p><a href="/admin/dashboard">Return to Dashboard</a></p>
-            </body>
-        </html>
-        """
+    """Render the scanner customization form"""
+    # Debug information
+    print("============ CUSTOMIZE DEBUG ============")
+    print(f"Template folder: {app.template_folder}")
+    template_path = os.path.join(app.template_folder, 'admin', 'customization-form.html')
+    print(f"Looking for template at: {template_path}")
+    print(f"Template exists: {os.path.exists(template_path)}")
+    print("=========================================")
+    
+    # Check if this is a POST request
+    if request.method == 'POST':
+        try:
+            # Extract form data
+            client_data = {
+                'business_name': request.form.get('business_name', ''),
+                'business_domain': request.form.get('business_domain', ''),
+                'contact_email': request.form.get('contact_email', ''),
+                'contact_phone': request.form.get('contact_phone', ''),
+                'scanner_name': request.form.get('scanner_name', ''),
+                'primary_color': request.form.get('primary_color', '#FF6900'),
+                'secondary_color': request.form.get('secondary_color', '#808588'),
+                'email_subject': request.form.get('email_subject', 'Your Security Scan Report'),
+                'email_intro': request.form.get('email_intro', ''),
+                'subscription': request.form.get('subscription', 'basic'),
+                'default_scans': request.form.getlist('default_scans[]')
+            }
+            
+            # Use admin user ID 1 for scanner creation
+            user_id = 1  
+            
+            # Handle file uploads
+            if 'logo' in request.files and request.files['logo'].filename:
+                logo_file = request.files['logo']
+                logo_filename = secure_filename(f"{uuid.uuid4()}_{logo_file.filename}")
+                logo_path = os.path.join(UPLOAD_FOLDER, logo_filename)
+                logo_file.save(logo_path)
+                client_data['logo_path'] = logo_path
+            
+            if 'favicon' in request.files and request.files['favicon'].filename:
+                favicon_file = request.files['favicon']
+                favicon_filename = secure_filename(f"{uuid.uuid4()}_{favicon_file.filename}")
+                favicon_path = os.path.join(UPLOAD_FOLDER, favicon_filename)
+                favicon_file.save(favicon_path)
+                client_data['favicon_path'] = favicon_path
+            
+            # Create client in database
+            from client_db import create_client
+            result = create_client(client_data, user_id)
+            
+            if not result or result.get('status') != 'success':
+                # Return error page
+                return f"""
+                <html>
+                    <head><title>Error</title></head>
+                    <body>
+                        <h1>Error Creating Scanner</h1>
+                        <p>{result.get('message', 'Unknown error')}</p>
+                        <a href="/customize">Try Again</a>
+                        <a href="/admin/dashboard">Back to Dashboard</a>
+                    </body>
+                </html>
+                """
+            
+            # Generate scanner templates
+            from scanner_template import generate_scanner
+            scanner_result = generate_scanner(result['client_id'], client_data)
+            
+            if not scanner_result:
+                # Return partial success page
+                return f"""
+                <html>
+                    <head><title>Partial Success</title></head>
+                    <body>
+                        <h1>Scanner Created But Templates Failed</h1>
+                        <p>The client was created in the database but we could not generate the scanner templates.</p>
+                        <a href="/admin/dashboard">Back to Dashboard</a>
+                    </body>
+                </html>
+                """
+            
+            # Success! Redirect to dashboard
+            return redirect(url_for('admin.dashboard'))
+            
+        except Exception as e:
+            # Log the error
+            print(f"Error processing form: {str(e)}")
+            
+            # Return error page
+            return f"""
+            <html>
+                <head><title>Error</title></head>
+                <body>
+                    <h1>Error Creating Scanner</h1>
+                    <p>{str(e)}</p>
+                    <a href="/customize">Try Again</a>
+                    <a href="/admin/dashboard">Back to Dashboard</a>
+                </body>
+            </html>
+            """
+    
+    # For GET requests, render the template
+    return render_template('admin/customization-form.html')
 
 # Add a route for the admin dashboard
 @app.route('/admin/dashboard', methods=['GET'])
