@@ -30,6 +30,7 @@ from api import api_bp
 from scanner_router import scanner_bp
 from client_db import init_client_db
 from client_db import CLIENT_DB_PATH
+from setup_admin import configure_admin
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -109,6 +110,9 @@ def create_app():
 
 # Initialize app
 app, limiter = create_app()
+
+# Apply admin configuration
+app = configure_admin(app)
 
 # Register blueprints
 app.register_blueprint(auth_bp)
