@@ -91,35 +91,55 @@ def create_scanner():
         result = create_client(client_data, user_id)
         
         if not result or result.get('status') == 'error':
-            return jsonify({
-                'status': 'error',
-                'message': 'Failed to save client data'
-            }), 500
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                # AJAX request
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Failed to save client data'
+                }), 500
+            else:
+                # Regular form submission
+                return redirect(url_for('customize_scanner', error='Failed to save client data'))
         
         # Generate custom scanner files
         scanner_result = generate_scanner(result['client_id'], client_data)
         
         if not scanner_result:
-            return jsonify({
-                'status': 'error',
-                'message': 'Failed to generate scanner files'
-            }), 500
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                # AJAX request
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Failed to generate scanner files'
+                }), 500
+            else:
+                # Regular form submission
+                return redirect(url_for('customize_scanner', error='Failed to generate scanner files'))
         
         # Return success response
-        return jsonify({
-            'status': 'success',
-            'message': 'Scanner created successfully',
-            'client_id': result['client_id'],
-            'api_key': result['api_key'],
-            'subdomain': result['subdomain'],
-            'scanner_url': f"https://{result['subdomain']}.yourscannerdomain.com"
-        }), 201
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # AJAX request
+            return jsonify({
+                'status': 'success',
+                'message': 'Scanner created successfully',
+                'client_id': result['client_id'],
+                'api_key': result['api_key'],
+                'subdomain': result['subdomain'],
+                'scanner_url': f"https://{result['subdomain']}.yourscannerdomain.com"
+            }), 201
+        else:
+            # Regular form submission
+            return redirect(url_for('admin.dashboard'))
     
     except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': f'Error creating scanner: {str(e)}'
-        }), 500
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # AJAX request
+            return jsonify({
+                'status': 'error',
+                'message': f'Error creating scanner: {str(e)}'
+            }), 500
+        else:
+            # Regular form submission
+            return redirect(url_for('customize_scanner', error=f'Error: {str(e)}'))
 
 @api_bp.route('/api/v1/scan', methods=['POST'])
 @api_key_required
