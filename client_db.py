@@ -543,5 +543,122 @@ def get_user_permissions(conn, cursor, role):
         permissions.extend(role_permissions[role])
     
     return permissions
+
+@with_transaction
+def get_dashboard_summary(conn, cursor):
+    """Get summary statistics for admin dashboard"""
+    summary = {
+        'clients': {
+            'total': 0,
+            'active': 0,
+            'inactive': 0,
+            'pending': 0,
+            'new_this_month': 0
+        },
+        'subscriptions': {
+            'basic': 0,
+            'pro': 0,
+            'enterprise': 0
+        },
+        'scans': {
+            'total': 0,
+            'this_month': 0,
+            'yesterday': 0,
+            'today': 0
+        },
+        'revenue': {
+            'monthly': 0,
+            'yearly': 0,
+            'total': 0
+        }
+    }
+    
+    # Get total client count
+    cursor.execute('SELECT COUNT(*) FROM clients')
+    summary['clients']['total'] = cursor.fetchone()[0]
+    
+    # Get active client count
+    cursor.execute('SELECT COUNT(*) FROM clients WHERE active = 1')
+    summary['clients']['active'] = cursor.fetchone()[0]
+    
+    # Get inactive client count
+    cursor.execute('SELECT COUNT(*) FROM clients WHERE active = 0')
+    summary['clients']['inactive'] = cursor.fetchone()[0]
+    
+    # Get pending client count
+    cursor.execute('''
+    SELECT COUNT(*) FROM clients c
+    JOIN deployed_scanners ds ON c.id = ds.client_id
+    WHERE ds.deploy_status = 'pending' AND c.active = 1
+    ''')
+    summary['clients']['pending'] = cursor.fetchone()[0]
+    
+    # Get new clients this month
+    current_month = datetime.now().strftime('%Y-%m')
+    cursor.execute('''
+    SELECT COUNT(*) FROM clients 
+    WHERE created_at LIKE ? AND active = 1
+    ''', (f'{current_month}%',))
+    summary['clients']['new_this_month'] = cursor.fetchone()[0]
+    
+    # Get subscription counts
+    subscription_levels = ['basic', 'pro', 'enterprise']
+    for level in subscription_levels:
+        cursor.execute('''
+        SELECT COUNT(*) FROM clients 
+        WHERE subscription_level = ? AND active = 1
+        ''', (level,))
+        summary['subscriptions'][level] = cursor.fetchone()[0]
+    
+    # Get scan counts
+    cursor.execute('SELECT COUNT(*) FROM scan_history')
+    summary['scans']['total'] = cursor.fetchone()[0]
+    
+    # Get scans this month
+    cursor.execute('''
+    SELECT COUNT(*) FROM scan_history 
+    WHERE timestamp LIKE ?
+    ''', (f'{current_month}%',))
+    summary['scans']['this_month'] = cursor.fetchone()[0]
+    
+    # Get scans yesterday
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    cursor.execute('''
+    SELECT COUNT(*) FROM scan_history 
+    WHERE timestamp LIKE ?
+    ''', (f'{yesterday}%',))
+    summary['scans']['yesterday'] = cursor.fetchone()[0]
+    
+    # Get scans today
+    today = datetime.now().strftime('%Y-%m-%d')
+    cursor.execute('''
+    SELECT COUNT(*) FROM scan_history 
+    WHERE timestamp LIKE ?
+    ''', (f'{today}%',))
+    summary['scans']['today'] = cursor.fetchone()[0]
+    
+    # Get revenue info if billing is available
+    try:
+        # Monthly recurring revenue
+        cursor.execute('''
+        SELECT SUM(amount) FROM client_billing 
+        WHERE status = 'active' AND billing_cycle = 'monthly'
+        ''')
+        result = cursor.fetchone()
+        summary['revenue']['monthly'] = result[0] if result[0] is not None else 0
+        
+        # Yearly revenue (estimated)
+        summary['revenue']['yearly'] = summary['revenue']['monthly'] * 12
+        
+        # Total revenue (all time)
+        cursor.execute('SELECT SUM(amount) FROM billing_transactions WHERE status = "completed"')
+        result = cursor.fetchone()
+        summary['revenue']['total'] = result[0] if result[0] is not None else 0
+    except:
+        # Table might not exist yet
+        pass
+    
+    return summary
+    
 # Add more enhanced client management functions here
 # ...
