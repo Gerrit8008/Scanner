@@ -85,7 +85,7 @@ def create_app():
     config.init_app(app)
     
     # Use a strong secret key 
-    app.secret_key = app.config.get('SECRET_KEY', 'your_strong_secret_key_here')
+    app.secret_key = os.environ.get('SECRET_KEY', 'your_strong_secret_key_here')
     app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions in files
     app.config['SESSION_PERMANENT'] = True  # Make sessions permanent
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # Sessions last 1 hour
