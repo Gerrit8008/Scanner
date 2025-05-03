@@ -30,7 +30,7 @@ def setup_database():
         return False
     
     logging.info("Creating admin user...")
-    user_result = create_user('test_admin', 'admin@example.com', 'SecurePass123', 'admin')
+    user_result = create_user('admin', 'admin@example.com', 'SecurePass123', 'admin')
     
     if user_result.get("status") != "success":
         logging.error(f"Failed to create admin user: {user_result.get('message', 'Unknown error')}")
