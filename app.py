@@ -1960,7 +1960,7 @@ def debug():
         "Templates Exist": os.path.exists(app.template_folder),
         "Templates Available": os.listdir(app.template_folder) if os.path.exists(app.template_folder) else "N/A",
         "Environment": app.config['ENV'],
-        "Debug Mode": app.config['DEBUG'] = True
+        "Debug Mode": True,
         "Database Path": DB_PATH,
         "Database Connection": "Unknown"
     }
