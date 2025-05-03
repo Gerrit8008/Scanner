@@ -2121,6 +2121,11 @@ def debug_submit():
     except Exception as e:
         return f"Error: {str(e)}"
 
+@app.route('/admin')
+def admin_redirect():
+    """Redirect to admin dashboard"""
+    return redirect(url_for('admin.dashboard'))
+    
 @app.route('/api/service_inquiry', methods=['POST'])
 def api_service_inquiry():
     try:
