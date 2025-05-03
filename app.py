@@ -215,38 +215,6 @@ def log_system_info():
     
     logger.info("-----------------------------")
 
-# Use this updated initialization code
-def create_app():
-    """Create and configure the Flask application"""
-    app = Flask(__name__)
-    config = get_config()
-    config.init_app(app)
-    
-    # Use a strong secret key 
-    app.secret_key = app.config.get('SECRET_KEY', 'your_strong_secret_key_here')
-    app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions in files
-    app.config['SESSION_PERMANENT'] = True  # Make sessions permanent
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # Sessions last 1 hour
-    
-    # Configure CORS
-    CORS(app, supports_credentials=True)
-    
-    # Initialize limiter
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=[f"{app.config.get('RATE_LIMIT_PER_DAY', 200)} per day", 
-                       f"{app.config.get('RATE_LIMIT_PER_HOUR', 50)} per hour"],
-        storage_uri="memory://"
-    )
-    logging.warning("Using in-memory storage for rate limiting. Not recommended for production.")
-    
-    # Initialize database
-    init_db()
-    init_client_db()  # New client database
-    
-    return app, limiter
-
 # Initialize app
 app, limiter = create_app()
 
