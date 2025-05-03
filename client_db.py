@@ -1212,3 +1212,19 @@ def update_deployment_status(conn, cursor, client_id, status, config_path=None):
         ))
     
     return {"status": "success"}
+
+@with_transaction
+def delete_client(conn, cursor, client_id):
+    """Delete a client and all associated data"""
+    if not client_id:
+        return {"status": "error", "message": "Client ID is required"}
+    
+    # Check if client exists
+    cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+    if not cursor.fetchone():
+        return {"status": "error", "message": "Client not found"}
+    
+    # Delete client (cascade will handle related records)
+    cursor.execute('DELETE FROM clients WHERE id = ?', (client_id,))
+    
+    return {"status": "success", "message": "Client deleted successfully"}
