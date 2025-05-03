@@ -1,6 +1,7 @@
 # auth.py
 import os
 import logging
+import uuid  # Added import for uuid
 from flask import Blueprint, request, jsonify, session, redirect, url_for, render_template
 from werkzeug.utils import secure_filename
 from client_db import (
@@ -52,7 +53,7 @@ def login():
             
             # Redirect to appropriate dashboard
             if result['role'] == 'admin':
-                return redirect(url_for('admin.dashboard'))
+                return redirect(url_for('auth.admin_dashboard'))
             else:
                 return redirect(url_for('client.dashboard'))
         else:
@@ -121,24 +122,6 @@ def client_detail(client_id, user):
     return render_template('admin/client-detail.html', client=client_data, user=user)
 
 @auth_bp.route('/admin/clients/<int:client_id>/edit', methods=['GET', 'POST'])
-@admin_required
-def client_edit(client_id, user):
-    if request.method == 'POST':
-        # Get form data
-        client_data = {
-            'business_name': request.form.get('business_name'),
-            'business_domain': request.form.get('business_domain'),
-            'contact_email': request.form.get('contact_email'),
-            'contact_phone': request.form.get('contact_phone'),
-            'scanner_name': request.form.get('scanner_name'),
-            'subscription_level': request.form.get('subscription_level'),
-            'subscription_status': request.form.get('subscription_status'),
-            'primary_color': request.form.get('primary_color'),
-            'secondary_color': request.form.get('secondary_color'),
-            'email_subject': request.form.get('email_subject'),
-            'email_intro': request.form.get('email_intro'),
-            'default_
-            @auth_bp.route('/admin/clients/<int:client_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def client_edit(client_id, user):
     if request.method == 'POST':
