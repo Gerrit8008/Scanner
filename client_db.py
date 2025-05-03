@@ -1281,3 +1281,72 @@ def regenerate_api_key(conn, cursor, client_id):
     log_action(conn, cursor, client_id, 'regenerate_api_key', 'client', client_id, None)
     
     return {"status": "success", "api_key": new_api_key}
+
+@with_transaction
+def list_clients(conn, cursor, page=1, per_page=10, filters=None):
+    """List clients with pagination and filtering options"""
+    offset = (page - 1) * per_page
+    
+    # Start with base query
+    query = '''
+    SELECT c.id, c.business_name, c.business_domain, c.contact_email, 
+           c.subscription_level, c.subscription_status, c.created_at, c.active,
+           ds.subdomain
+    FROM clients c
+    LEFT JOIN deployed_scanners ds ON c.id = ds.client_id
+    '''
+    
+    # Add filter conditions if provided
+    params = []
+    where_clauses = []
+    
+    if filters:
+        if 'subscription' in filters and filters['subscription']:
+            where_clauses.append('c.subscription_level = ?')
+            params.append(filters['subscription'])
+        
+        if 'status' in filters and filters['status']:
+            if filters['status'] == 'active':
+                where_clauses.append('c.active = 1')
+            elif filters['status'] == 'inactive':
+                where_clauses.append('c.active = 0')
+        
+        if 'search' in filters and filters['search']:
+            search_term = f"%{filters['search']}%"
+            where_clauses.append('(c.business_name LIKE ? OR c.business_domain LIKE ? OR c.contact_email LIKE ?)')
+            params.extend([search_term, search_term, search_term])
+    
+    # Construct WHERE clause if needed
+    if where_clauses:
+        query += ' WHERE ' + ' AND '.join(where_clauses)
+    
+    # Add order by and pagination
+    query += ' ORDER BY c.id DESC LIMIT ? OFFSET ?'
+    params.extend([per_page, offset])
+    
+    # Execute query
+    cursor.execute(query, params)
+    clients = [dict(row) for row in cursor.fetchall()]
+    
+    # Count total records for pagination
+    count_query = 'SELECT COUNT(*) FROM clients c'
+    if where_clauses:
+        count_query += ' WHERE ' + ' AND '.join(where_clauses)
+    
+    # Remove pagination params and execute count query
+    cursor.execute(count_query, params[:-2] if params else [])
+    total_count = cursor.fetchone()[0]
+    
+    # Calculate pagination info
+    total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+    
+    return {
+        "status": "success",
+        "clients": clients,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "total_count": total_count
+        }
+    }
