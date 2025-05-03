@@ -11,6 +11,36 @@
 </head>
 <body>
     <script>
+  // Log any errors
+  window.onerror = function(message, source, lineno, colno, error) {
+    console.error('Error:', message, 'at', source, 'line', lineno);
+    alert('JavaScript error: ' + message);
+    return true;
+  };
+
+  // Make fade-in elements visible after load
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, applying animations');
+    
+    // Add a small delay to ensure all resources are loaded
+    setTimeout(function() {
+      // Find all fade-in elements and make them visible
+      document.querySelectorAll('.fade-in').forEach(function(element) {
+        element.style.opacity = '1';
+        element.style.transform = 'translateY(0)';
+      });
+      
+      // Find all scale-in elements and make them visible
+      document.querySelectorAll('.scale-in').forEach(function(element) {
+        element.style.opacity = '1';
+        element.style.transform = 'scale(1)';
+      });
+      
+      console.log('Animations applied');
+    }, 100);
+  });
+</script>
+    <script>
   window.onerror = function(message, source, lineno, colno, error) {
     alert('JavaScript error: ' + message + ' at line ' + lineno);
     console.error('Error details:', error);
