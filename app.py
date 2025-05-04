@@ -231,9 +231,9 @@ log_system_info()
 @app.route('/customize', methods=['GET', 'POST'])
 def customize_scanner():
     """Render the scanner customization form"""
-    try:
-        # Check if this is a POST request
-        if request.method == 'POST':
+    # Check if this is a POST request
+    if request.method == 'POST':
+        try:
             # Extract form data
             client_data = {
                 'business_name': request.form.get('business_name', ''),
@@ -249,9 +249,6 @@ def customize_scanner():
                 'default_scans': request.form.getlist('default_scans[]')
             }
             
-            # Log the received data
-            logging.info(f"Received scanner customization data: {client_data}")
-            
             # Use admin user ID 1 for scanner creation
             user_id = 1  
             
@@ -262,7 +259,6 @@ def customize_scanner():
                 logo_path = os.path.join(UPLOAD_FOLDER, logo_filename)
                 logo_file.save(logo_path)
                 client_data['logo_path'] = logo_path
-                logging.info(f"Logo saved at: {logo_path}")
             
             if 'favicon' in request.files and request.files['favicon'].filename:
                 favicon_file = request.files['favicon']
@@ -270,49 +266,38 @@ def customize_scanner():
                 favicon_path = os.path.join(UPLOAD_FOLDER, favicon_filename)
                 favicon_file.save(favicon_path)
                 client_data['favicon_path'] = favicon_path
-                logging.info(f"Favicon saved at: {favicon_path}")
-            
-            # Import client_db inside the function to avoid circular imports
-            from client_db import create_client
             
             # Create client in database
-            logging.info("Creating client in database...")
+            from client_db import create_client
             result = create_client(client_data, user_id)
             
             if not result or result.get('status') != 'success':
-                error_msg = result.get('message', 'Unknown error') if result else 'Failed to create client'
-                logging.error(f"Error creating scanner: {error_msg}")
-                flash(f"Error creating scanner: {error_msg}", 'danger')
+                # Return error page
+                flash(f"Error creating scanner: {result.get('message', 'Unknown error')}", 'danger')
                 return render_template('admin/customization-form.html')
             
-            # Import scanner_template inside the function to avoid circular imports
-            from scanner_template import generate_scanner
-            
             # Generate scanner templates
-            logging.info(f"Generating scanner templates for client ID: {result['client_id']}")
+            from scanner_template import generate_scanner
             scanner_result = generate_scanner(result['client_id'], client_data)
             
             if not scanner_result:
-                logging.warning("Scanner created but templates could not be generated")
+                # Return partial success page
                 flash("Scanner created but templates could not be generated", 'warning')
                 return redirect(url_for('admin.dashboard'))
             
             # Success! Redirect to dashboard with success message
-            logging.info("Scanner created successfully!")
             flash("Scanner created successfully!", 'success')
             return redirect(url_for('admin.dashboard'))
             
         except Exception as e:
             # Log the error
             logging.error(f"Error processing form: {str(e)}")
-            logging.debug(f"Exception traceback: {traceback.format_exc()}")
             
             # Return error page
             flash(f"Error creating scanner: {str(e)}", 'danger')
             return render_template('admin/customization-form.html')
     
     # For GET requests, render the template
-    logging.info("Rendering customization form")
     return render_template('admin/customization-form.html')
 
 # Add a route for the admin dashboard
