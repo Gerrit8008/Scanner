@@ -64,6 +64,10 @@ from scan import (
     calculate_industry_percentile
 )
 
+# Define upload folder for file uploads
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 # Make sure the directory exists
 os.makedirs(os.path.dirname(CLIENT_DB_PATH), exist_ok=True)
 
