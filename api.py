@@ -440,6 +440,41 @@ def regenerate_client_api_key(client_id):
             'message': f'Error regenerating API key: {str(e)}'
         }), 500
 
+@api_bp.route('/api/process-payment', methods=['POST'])
+def process_payment():
+    """Process payment for scanner subscription"""
+    try:
+        # Get payment details from request
+        payment_data = request.json
+        
+        # Here you would integrate with a payment processor like Stripe
+        # For example:
+        # payment_result = stripe.PaymentIntent.create(
+        #     amount=payment_data['amount'],
+        #     currency='usd',
+        #     payment_method=payment_data['payment_method_id'],
+        #     confirm=True
+        # )
+        
+        # For now, simulate successful payment
+        payment_successful = True
+        
+        if payment_successful:
+            return jsonify({
+                "status": "success",
+                "message": "Payment processed successfully"
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Payment failed"
+            }), 400
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Payment processing error: {str(e)}"
+        }), 500
+
 @api_bp.route('/api/v1/clients/<int:client_id>/delete', methods=['DELETE'])
 def delete_client_api(client_id):
     """API endpoint to delete a client (admin only)"""
