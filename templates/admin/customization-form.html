@@ -279,5 +279,42 @@ window.onerror = function(message, source, lineno, colno, error) {
     return true;
 };
 </script>
+    <!-- New Step for Payment -->
+<div class="scan-step" id="paymentStep">
+    <h3 class="section-title"><i class="bi bi-credit-card me-2"></i>Payment Information</h3>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4>Selected Plan: <span id="selected-plan-name">Basic Plan</span></h4>
+            <p>Price: <span id="selected-plan-price">$49/month</span></p>
+            
+            <!-- Payment form fields would go here -->
+            <div class="mb-3">
+                <label for="card-number" class="form-label">Card Number</label>
+                <input type="text" class="form-control" id="card-number" placeholder="1234 5678 9012 3456">
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <label for="expiry-date" class="form-label">Expiry Date</label>
+                    <input type="text" class="form-control" id="expiry-date" placeholder="MM/YY">
+                </div>
+                <div class="col-md-6">
+                    <label for="cvv" class="form-label">CVV</label>
+                    <input type="text" class="form-control" id="cvv" placeholder="123">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-end">
+        <button type="button" class="btn btn-secondary me-2" id="paymentPrev">
+            <i class="bi bi-arrow-left me-1"></i> Previous
+        </button>
+        <button type="button" class="btn btn-primary" id="paymentNext">
+            Next <i class="bi bi-arrow-right ms-1"></i>
+        </button>
+    </div>
+</div>
 </body>
 </html>
