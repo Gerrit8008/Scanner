@@ -14,7 +14,7 @@ import sys
 import traceback
 import requests
 from datetime import timedelta
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -234,6 +234,9 @@ def customize_scanner():
     # Check if this is a POST request
     if request.method == 'POST':
         try:
+            # Check if payment was processed (from form hidden field)
+            payment_processed = request.form.get('payment_processed', '0')
+            
             # Extract form data
             client_data = {
                 'business_name': request.form.get('business_name', ''),
@@ -249,6 +252,8 @@ def customize_scanner():
                 'default_scans': request.form.getlist('default_scans[]')
             }
             
+            logging.info(f"Received form data: {client_data}")
+            
             # Use admin user ID 1 for scanner creation
             user_id = 1  
             
@@ -259,6 +264,7 @@ def customize_scanner():
                 logo_path = os.path.join(UPLOAD_FOLDER, logo_filename)
                 logo_file.save(logo_path)
                 client_data['logo_path'] = logo_path
+                logging.info(f"Logo saved at {logo_path}")
             
             if 'favicon' in request.files and request.files['favicon'].filename:
                 favicon_file = request.files['favicon']
@@ -266,36 +272,64 @@ def customize_scanner():
                 favicon_path = os.path.join(UPLOAD_FOLDER, favicon_filename)
                 favicon_file.save(favicon_path)
                 client_data['favicon_path'] = favicon_path
+                logging.info(f"Favicon saved at {favicon_path}")
             
             # Create client in database
             from client_db import create_client
+            
+            logging.info("Creating client in database...")
             result = create_client(client_data, user_id)
             
             if not result or result.get('status') != 'success':
-                # Return error page
-                flash(f"Error creating scanner: {result.get('message', 'Unknown error')}", 'danger')
+                error_msg = result.get('message', 'Unknown error') if result else 'Failed to create client'
+                logging.error(f"Error creating client: {error_msg}")
+                flash(f"Error creating scanner: {error_msg}", 'danger')
                 return render_template('admin/customization-form.html')
             
             # Generate scanner templates
             from scanner_template import generate_scanner
+            
+            logging.info(f"Generating scanner templates for client ID: {result['client_id']}")
             scanner_result = generate_scanner(result['client_id'], client_data)
             
             if not scanner_result:
-                # Return partial success page
+                logging.warning("Scanner created but templates could not be generated")
                 flash("Scanner created but templates could not be generated", 'warning')
-                return redirect(url_for('admin.dashboard'))
+            else:
+                logging.info("Scanner templates generated successfully")
+                flash("Scanner created successfully!", 'success')
             
-            # Success! Redirect to dashboard with success message
-            flash("Scanner created successfully!", 'success')
-            return redirect(url_for('admin.dashboard'))
+            # Process payment or handle payment status (only if needed)
+            if payment_processed == '1':
+                logging.info("Payment processed successfully")
+                
+                # If you need to do any additional payment processing, do it here
+                # For example, you might want to update the subscription status in the database
+                
+                try:
+                    # Update any subscription details if needed
+                    pass
+                except Exception as payment_error:
+                    logging.error(f"Payment processing error: {str(payment_error)}")
+                    # Continue anyway since the scanner was created successfully
+            
+            # Always redirect to dashboard after successful client creation
+            logging.info("Redirecting to admin dashboard")
+            return redirect(url_for('admin_dashboard'))  # Make sure this matches your dashboard endpoint name
             
         except Exception as e:
-            # Log the error
+            # Log the full error with traceback
             logging.error(f"Error processing form: {str(e)}")
+            import traceback
+            logging.error(traceback.format_exc())
             
             # Return error page
             flash(f"Error creating scanner: {str(e)}", 'danger')
             return render_template('admin/customization-form.html')
+    
+    # For GET requests, render the template
+    logging.info("Rendering customization form")
+    return render_template('admin/customization-form.html')
     
     # For GET requests, render the template
     return render_template('admin/customization-form.html')
