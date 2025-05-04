@@ -255,20 +255,39 @@
     </script>
     <script>
 // Form submit handling with error checking
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('customizationForm');
+document.getElementById('scanForm').addEventListener('submit', function(e) {
+    e.preventDefault();
     
-    form.addEventListener('submit', function(e) {
-        // Optional: For debugging
-        console.log('Form is being submitted to: ' + this.action);
-        
-        // Add loading indicator
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Creating Scanner...';
-        
-        // Let the form submit normally
+    // Process payment first
+    const paymentData = {
+        amount: selectedPlan === 'basic' ? 4900 : 14900, // in cents
+        card: {
+            number: document.getElementById('card-number').value,
+            exp_month: document.getElementById('expiry-date').value.split('/')[0],
+            exp_year: document.getElementById('expiry-date').value.split('/')[1],
+            cvc: document.getElementById('cvv').value
+        }
+    };
+    
+    // Submit payment
+    fetch('/api/process-payment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(paymentData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // If payment successful, submit the form
+            this.submit();
+        } else {
+            alert('Payment failed: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error processing payment: ' + error.message);
     });
 });
 
