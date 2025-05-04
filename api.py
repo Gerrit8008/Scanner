@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint
 from werkzeug.utils import secure_filename
 import os
 import uuid
@@ -11,7 +11,7 @@ from client_db import (
 from scanner_template import generate_scanner, update_scanner
 
 # Create blueprint for API routes
-api_bp = Blueprint('api', __name__)
+api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 # Directory for file uploads
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
@@ -48,7 +48,7 @@ def api_key_required(f):
     
     return decorated_function
 
-@api_bp.route('/api/create-scanner', methods=['POST'])
+@api_bp.route('/create-scanner', methods=['POST'])
 def create_scanner():
     """API endpoint to create a new customized scanner"""
     try:
@@ -86,7 +86,7 @@ def create_scanner():
                 favicon_path = os.path.join(UPLOAD_FOLDER, favicon_filename)
                 favicon_file.save(favicon_path)
                 client_data['favicon_path'] = favicon_path
-        
+        pass
         # Create client record in the database
         result = create_client(client_data, user_id)
         
@@ -141,7 +141,7 @@ def create_scanner():
             # Regular form submission
             return redirect(url_for('customize_scanner', error=f'Error: {str(e)}'))
 
-@api_bp.route('/api/v1/scan', methods=['POST'])
+@api_bp.route('/v1/scan', methods=['POST'])
 @api_key_required
 def api_scan(client):
     """API endpoint for running scans via API"""
