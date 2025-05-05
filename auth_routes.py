@@ -6,6 +6,7 @@ import os
 import logging
 from datetime import datetime
 from flask import Blueprint
+from client_db import CLIENT_DB_PATH
 
 # Import enhanced authentication functions
 from auth_helper import (
