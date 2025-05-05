@@ -229,6 +229,206 @@ def with_transaction(func):
                 conn.close()
     return wrapper
 
+def get_deployed_scanners_by_client_id(client_id, page=1, per_page=10, filters=None):
+    """Get list of deployed scanners for a client with pagination and filtering"""
+    try:
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Calculate offset for pagination
+        offset = (page - 1) * per_page
+        
+        # Base query
+        query = "SELECT * FROM scanners WHERE client_id = ?"
+        params = [client_id]
+        
+        # Apply filters if provided
+        if filters:
+            if 'status' in filters and filters['status']:
+                query += " AND status = ?"
+                params.append(filters['status'])
+            
+            if 'search' in filters and filters['search']:
+                query += " AND (name LIKE ? OR description LIKE ?)"
+                search_term = f"%{filters['search']}%"
+                params.append(search_term)
+                params.append(search_term)
+        
+        # Add sorting and pagination
+        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        params.append(per_page)
+        params.append(offset)
+        
+        # Execute query for scanners
+        cursor.execute(query, params)
+        scanners = [dict(row) for row in cursor.fetchall()]
+        
+        # Get total count for pagination
+        count_query = "SELECT COUNT(*) FROM scanners WHERE client_id = ?"
+        count_params = [client_id]
+        
+        # Apply the same filters to count query
+        if filters:
+            if 'status' in filters and filters['status']:
+                count_query += " AND status = ?"
+                count_params.append(filters['status'])
+            
+            if 'search' in filters and filters['search']:
+                count_query += " AND (name LIKE ? OR description LIKE ?)"
+                search_term = f"%{filters['search']}%"
+                count_params.append(search_term)
+                count_params.append(search_term)
+        
+        cursor.execute(count_query, count_params)
+        total_count = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        # Calculate pagination metadata
+        total_pages = (total_count + per_page - 1) // per_page  # Ceiling division
+        
+        return {
+            'scanners': scanners,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_count': total_count,
+                'total_pages': total_pages
+            }
+        }
+    except Exception as e:
+        logging.error(f"Error retrieving scanners for client: {e}")
+        return {
+            'scanners': [],
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_count': 0,
+                'total_pages': 0
+            }
+        }
+
+def get_scan_history_by_client_id(client_id, limit=None):
+    """Get scan history for a client"""
+    try:
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Base query
+        query = "SELECT * FROM scans WHERE client_id = ? ORDER BY timestamp DESC"
+        params = [client_id]
+        
+        # Add limit if provided
+        if limit:
+            query += " LIMIT ?"
+            params.append(limit)
+        
+        cursor.execute(query, params)
+        scan_history = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
+        return scan_history
+    except Exception as e:
+        logging.error(f"Error retrieving scan history for client: {e}")
+        return []
+
+def get_scanner_by_id(scanner_id):
+    """Get scanner details by ID"""
+    try:
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT * FROM scanners
+            WHERE id = ?
+        ''', (scanner_id,))
+        
+        scanner = cursor.fetchone()
+        conn.close()
+        
+        if scanner:
+            return dict(scanner)
+        else:
+            return None
+    except Exception as e:
+        logging.error(f"Error retrieving scanner by ID: {e}")
+        return None
+
+def log_scan(client_id, scan_id=None, target=None, scan_type='standard'):
+    """Log a scan to the database"""
+    try:
+        if not scan_id:
+            scan_id = str(uuid.uuid4())
+            
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Get current timestamp
+        timestamp = datetime.datetime.now().isoformat()
+        
+        # Insert scan record
+        cursor.execute('''
+            INSERT INTO scans (
+                scan_id, client_id, timestamp, target, scan_type
+            ) VALUES (?, ?, ?, ?, ?)
+        ''', (scan_id, client_id, timestamp, target, scan_type))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            'status': 'success',
+            'scan_id': scan_id
+        }
+    except Exception as e:
+        logging.error(f"Error logging scan: {e}")
+        return {
+            'status': 'error',
+            'message': f"Failed to log scan: {str(e)}"
+        }
+
+def regenerate_api_key(client_id):
+    """Regenerate API key for a client"""
+    try:
+        # Generate a new API key
+        new_api_key = str(uuid.uuid4())
+        
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Update client record with new API key
+        cursor.execute('''
+            UPDATE clients
+            SET api_key = ?
+            WHERE id = ?
+        ''', (new_api_key, client_id))
+        
+        # Check if update was successful
+        if cursor.rowcount == 0:
+            conn.close()
+            return {
+                'status': 'error',
+                'message': 'Client not found'
+            }
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            'status': 'success',
+            'message': 'API key regenerated successfully',
+            'api_key': new_api_key
+        }
+    except Exception as e:
+        logging.error(f"Error regenerating API key: {e}")
+        return {
+            'status': 'error',
+            'message': f"Failed to regenerate API key: {str(e)}"
+        }
+
 @with_transaction
 def init_client_db(conn, cursor):
     """Initialize the database with required tables and indexes"""
