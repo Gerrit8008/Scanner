@@ -1,0 +1,514 @@
+<!-- templates/admin/user-management.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Scanner Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .sidebar {
+            background-color: #2c3e50;
+            color: white;
+            min-height: 100vh;
+            padding-top: 2rem;
+        }
+        
+        .sidebar-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-link i {
+            margin-right: 0.75rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .user-card {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .user-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .user-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #6c757d;
+        }
+        
+        .role-badge {
+            padding: 0.35em 0.65em;
+            border-radius: 0.25rem;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .role-admin {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        
+        .role-client {
+            background-color: #cff4fc;
+            color: #055160;
+        }
+        
+        .filter-card {
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-mini {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        
+        .table-responsive {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background-color: #f8f9fa;
+        }
+        
+        .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .page-link {
+            color: var(--primary-color);
+        }
+        
+        .user-action {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            color: #6c757d;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .user-action:hover {
+            background-color: rgba(0,0,0,0.05);
+            color: var(--primary-color);
+        }
+        
+        .login-count {
+            width: 24px;
+            height: 24px;
+            background-color: #e9ecef;
+            color: #212529;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 p-0 sidebar">
+                <div class="text-center mb-4">
+                    <h4>Scanner Platform</h4>
+                    <p class="mb-0 small">Admin Panel</p>
+                </div>
+                
+                <div class="px-3">
+                    <a href="/admin/dashboard" class="sidebar-link">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="/admin/clients" class="sidebar-link">
+                        <i class="bi bi-people"></i> Client Management
+                    </a>
+                    <a href="/auth/admin/users" class="sidebar-link active">
+                        <i class="bi bi-person-badge"></i> User Management
+                    </a>
+                    <a href="/customize" class="sidebar-link">
+                        <i class="bi bi-plus-circle"></i> Create Scanner
+                    </a>
+                    <a href="/admin/reports" class="sidebar-link">
+                        <i class="bi bi-file-earmark-text"></i> Reports
+                    </a>
+                    <a href="/admin/settings" class="sidebar-link">
+                        <i class="bi bi-gear"></i> Settings
+                    </a>
+                    
+                    <hr class="my-4">
+                    
+                    <a href="{{ url_for('auth.logout') }}" class="sidebar-link text-danger">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>User Management</h2>
+                    <div>
+                        <a href="{{ url_for('auth.admin_create_user') }}" class="btn btn-primary">
+                            <i class="bi bi-person-plus me-2"></i> Add New User
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Stats Overview -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-people text-primary"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini">{{ pagination.total_count }}</div>
+                                    <div class="text-muted">Total Users</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-person-check text-success"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini" id="activeUsersCount">...</div>
+                                    <div class="text-muted">Active Users</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-calendar-check text-info"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini" id="loginsToday">...</div>
+                                    <div class="text-muted">Logins Today</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-person-plus text-warning"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini" id="newUsersMonth">...</div>
+                                    <div class="text-muted">New This Month</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="card filter-card border-0 shadow-sm">
+                    <div class="card-body">
+                        <form method="get" action="{{ url_for('auth.admin_users') }}">
+                            <div class="row g-3">
+                                <div class="col-md-5">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control border-start-0" name="search" placeholder="Search users..." value="{{ search or '' }}">
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <select class="form-select" name="role">
+                                        <option value="" {% if not role_filter %}selected{% endif %}>All Roles</option>
+                                        <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
+                                        <option value="client" {% if role_filter == 'client' %}selected{% endif %}>Client</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-2">
+                                    <select class="form-select" name="status">
+                                        <option value="all" selected>All Status</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-funnel me-2"></i> Filter
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- User Table -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Email</th>
+                                        <th>Last Login</th>
+                                        <th>Status</th>
+                                        <th>Logins</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if users %}
+                                        {% for user_item in users %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="user-logo me-3">
+                                                        {% if user_item.full_name %}
+                                                            {{ user_item.full_name|truncate(2, True, '') }}
+                                                        {% else %}
+                                                            {{ user_item.username|truncate(2, True, '')|upper }}
+                                                        {% endif %}
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold">{{ user_item.username }}</div>
+                                                        <div class="text-muted small">Since {{ user_item.created_at|default('N/A') }}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="role-badge {% if user_item.role == 'admin' %}role-admin{% else %}role-client{% endif %}">
+                                                    {{ user_item.role|title }}
+                                                </span>
+                                            </td>
+                                            <td>{{ user_item.email }}</td>
+                                            <td>
+                                                {% if user_item.last_login %}
+                                                    {{ user_item.last_login }}
+                                                {% else %}
+                                                    <span class="text-muted">Never</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if user_item.active == 1 %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ user_item.login_count|default(0) }}
+                                            </td>
+                                            <td>
+                                                <div class="d-flex">
+                                                    <a href="{{ url_for('auth.admin_view_user', user_id=user_item.id) }}" class="user-action" data-bs-toggle="tooltip" title="View">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('auth.admin_edit_user', user_id=user_item.id) }}" class="user-action" data-bs-toggle="tooltip" title="Edit">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <button class="user-action" data-bs-toggle="modal" data-bs-target="#deleteUserModal" data-user-id="{{ user_item.id }}" data-username="{{ user_item.username }}" title="Delete">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4">
+                                                <div class="text-muted">
+                                                    <i class="bi bi-people fs-3 d-block mb-3"></i>
+                                                    No users found matching your criteria.
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pagination -->
+                {% if pagination and pagination.total_pages > 1 %}
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <div class="text-muted">
+                        Showing <strong>{{ users|length }}</strong> of <strong>{{ pagination.total_count }}</strong> users
+                    </div>
+                    
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('auth.admin_users', page=pagination.page-1, search=search, role=role_filter) }}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            
+                            {% for page_num in range(1, pagination.total_pages + 1) %}
+                                {% if page_num == pagination.page %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('auth.admin_users', page=page_num, search=search, role=role_filter) }}">{{ page_num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <li class="page-item {% if pagination.page == pagination.total_pages %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('auth.admin_users', page=pagination.page+1, search=search, role=role_filter) }}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+                
+                <!-- Delete User Modal -->
+                <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="deleteUserModalLabel">Confirm User Deletion</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Are you sure you want to delete the user <strong><span id="deleteUserName"></span></strong>?</p>
+                                <p class="text-danger">This action cannot be undone. The user will be deactivated and all active sessions will be terminated.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <form id="deleteUserForm" method="post" action="">
+                                    <button type="submit" class="btn btn-danger">Delete User</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Setup delete user modal
+            const deleteUserModal = document.getElementById('deleteUserModal');
+            if (deleteUserModal) {
+                deleteUserModal.addEventListener('show.bs.modal', function(event) {
+                    const button = event.relatedTarget;
+                    const userId = button.getAttribute('data-user-id');
+                    const username = button.getAttribute('data-username');
+                    
+                    document.getElementById('deleteUserName').textContent = username;
+                    document.getElementById('deleteUserForm').action = `/auth/admin/users/${userId}/delete`;
+                });
+            }
+            
+            // Load login statistics
+            fetch('/auth/api/login-stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const stats = data.data;
+                        
+                        // Update statistics
+                        document.getElementById('activeUsersCount').textContent = stats.active_users;
+                        document.getElementById('loginsToday').textContent = stats.logins_today;
+                        document.getElementById('newUsersMonth').textContent = stats.new_users_month;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading login statistics:', error);
+                });
+        });
+    </script>
+</body>
+</html>
