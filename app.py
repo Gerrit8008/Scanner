@@ -34,6 +34,7 @@ from client_db import CLIENT_DB_PATH
 from setup_admin import configure_admin
 from client import client_bp  
 from flask_login import LoginManager, current_user
+from auth_routes import auth_bp
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
