@@ -460,16 +460,49 @@ def init_client_db(conn, cursor):
 # Run database initialization
 def init_db():
     try:
+        # Run the normal database initialization
         result = init_client_db()
         if result and isinstance(result, dict) and result.get("status") == "success":
             logging.info("Database initialized successfully")
         else:
             # Init may have worked but returned None
             logging.info("Database initialization completed")
+        
+        # Now check for and add the full_name column if needed
+        ensure_full_name_column()
+        
+        return True
     except Exception as e:
         logging.error(f"Error initializing database: {e}")
         logging.debug(traceback.format_exc())
+        return False
 
+def ensure_full_name_column():
+    """Ensure the full_name column exists in the users table"""
+    try:
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if the full_name column exists
+        cursor.execute("PRAGMA table_info(users)")
+        columns = cursor.fetchall()
+        column_names = [column[1] for column in columns]
+        
+        if 'full_name' not in column_names:
+            logging.info("Adding 'full_name' column to users table...")
+            cursor.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
+            conn.commit()
+            logging.info("'full_name' column added successfully")
+        else:
+            logging.info("'full_name' column already exists in users table")
+        
+        conn.close()
+        return True
+    except Exception as e:
+        logging.error(f"Error ensuring full_name column: {e}")
+        logging.debug(traceback.format_exc())
+        return False
+        
 # Enhanced user management functions
 @with_transaction
 def create_user(conn, cursor, username, email, password, role='client', created_by=None):
