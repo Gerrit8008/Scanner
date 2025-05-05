@@ -33,6 +33,7 @@ from client_db import init_client_db
 from client_db import CLIENT_DB_PATH
 from setup_admin import configure_admin
 from client import client_bp  
+from flask_login import current_user
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -229,6 +230,11 @@ app, limiter = create_app()
 logger = setup_logging()
 log_system_info()
 
+@app.errorhandler(404)
+def handle_404(error):
+    # Pass current_user explicitly in the context
+    return render_template('error.html', message="Page not found", current_user=current_user), 404
+    
 @app.route('/routes')
 def list_routes():
     """List all registered routes for debugging"""
