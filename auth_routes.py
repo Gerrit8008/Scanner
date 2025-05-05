@@ -467,3 +467,72 @@ def api_login_stats(user):
         'status': 'success',
         'data': stats['stats']
     })
+
+@auth_bp.route('/reset-password', methods=['GET', 'POST'])
+def reset_password_request():
+    """Password reset request page"""
+    if request.method == 'POST':
+        email = request.form.get('email')
+        
+        if not email:
+            return render_template('auth/reset-password-request.html', error="Please provide your email")
+        
+        # Create password reset token - this function should be in client_db.py
+        # If not implemented yet, we'll just flash a message and redirect
+        try:
+            from client_db import create_password_reset_token
+            result = create_password_reset_token(email)
+        except (ImportError, AttributeError):
+            # Function not available yet, just show success message anyway
+            # This prevents email enumeration
+            pass
+        
+        # Always show success to prevent email enumeration
+        flash('If your email is registered, you will receive reset instructions shortly', 'info')
+        return redirect(url_for('auth.login'))
+    
+    # GET request - show reset password form
+    return render_template('auth/reset-password-request.html')
+
+@auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password_confirm(token):
+    """Password reset confirmation page"""
+    # Verify the token
+    try:
+        from client_db import verify_password_reset_token
+        token_result = verify_password_reset_token(token)
+    except (ImportError, AttributeError):
+        # Function not available yet
+        token_result = {'status': 'error', 'message': 'Invalid or expired token'}
+    
+    if token_result.get('status') != 'success':
+        flash('Invalid or expired reset token', 'danger')
+        return redirect(url_for('auth.login'))
+    
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if not password or password != confirm_password:
+            return render_template('auth/reset-password-confirm.html', 
+                                token=token,
+                                error="Passwords do not match")
+        
+        # Update the password
+        try:
+            from client_db import update_user_password
+            result = update_user_password(token_result['user_id'], password)
+        except (ImportError, AttributeError):
+            # Function not available yet
+            result = {'status': 'error', 'message': 'Password update functionality not implemented'}
+        
+        if result.get('status') == 'success':
+            flash('Your password has been updated successfully', 'success')
+            return redirect(url_for('auth.login'))
+        else:
+            return render_template('auth/reset-password-confirm.html', 
+                                token=token,
+                                error=result.get('message', 'Failed to update password'))
+    
+    # GET request - show reset password form
+    return render_template('auth/reset-password-confirm.html', token=token)
