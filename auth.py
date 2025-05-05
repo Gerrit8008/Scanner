@@ -10,7 +10,7 @@ from client_db import (
 )
 
 # Create blueprint for authentication routes
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 # Login route
 @auth_bp.route('/login', methods=['GET', 'POST'])
