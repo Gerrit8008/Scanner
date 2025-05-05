@@ -2141,11 +2141,6 @@ def debug_session():
         "test_value_set": session['test_value'],
         "all_keys": list(session.keys())
     })
-
-@app.route('/admin/')
-def admin_root_redirect():
-    """Redirect to admin dashboard"""
-    return redirect(url_for('admin.dashboard'))
     
 @app.route('/test_scan')
 def test_scan():
@@ -2240,9 +2235,13 @@ def debug_submit():
         return f"Error: {str(e)}"
 
 @app.route('/admin')
-def admin_redirect():
+def admin_dashboard_redirect():
+    return redirect(url_for('admin.dashboard'))
+
+@app.route('/admin', endpoint='main_admin_redirect')
+def admin_main_redirect():
     """Redirect to admin dashboard"""
-    return redirect(url_for('admin_dashboard'))  # Use endpoint name
+    return redirect(url_for('admin.dashboard'))
 
 @app.errorhandler(500)
 def handle_500(e):
