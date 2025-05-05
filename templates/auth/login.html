@@ -48,6 +48,17 @@
         </div>
         {% endif %}
         
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
         <form method="post" action="{{ url_for('auth.login') }}">
             <input type="hidden" name="next" value="{{ next|default('', true) }}">
             
@@ -70,7 +81,7 @@
         </form>
         
         <div class="text-center mt-3">
-            <a href="#" class="text-muted">Forgot Password?</a>
+            <a href="{{ url_for('auth.reset_password_request') }}" class="text-muted">Forgot Password?</a>
         </div>
     </div>
     
