@@ -123,7 +123,7 @@ app, limiter = create_app()
 app = configure_admin(app)
 
 # Register blueprints
-app.register_blueprint(auth_bp, name='auth')
+app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(scanner_bp)
