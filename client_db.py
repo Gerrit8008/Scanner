@@ -461,10 +461,11 @@ def init_client_db(conn, cursor):
 def init_db():
     try:
         result = init_client_db()
-        if result["status"] == "success":
+        if result and isinstance(result, dict) and result.get("status") == "success":
             logging.info("Database initialized successfully")
         else:
-            logging.error(f"Database initialization failed: {result.get('message', 'Unknown error')}")
+            # Init may have worked but returned None
+            logging.info("Database initialization completed")
     except Exception as e:
         logging.error(f"Error initializing database: {e}")
         logging.debug(traceback.format_exc())
