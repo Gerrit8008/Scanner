@@ -15,14 +15,33 @@ auth_bp = Blueprint('auth', __name__)
 # Login route
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # Check if already logged in
+    session_token = session.get('session_token')
+    if session_token:
+        result = verify_session(session_token)
+        if result['status'] == 'success':
+            user = result['user']
+            # Redirect based on role
+            if user['role'] == 'admin':
+                return redirect(url_for('admin.dashboard'))
+            else:
+                return redirect(url_for('client.dashboard'))
+    
+    # Get 'next' parameter for redirection after login
+    next_url = request.args.get('next', '')
+    
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        remember = request.form.get('remember', False)
+        next_url = request.form.get('next', '')
         
         if not username or not password:
-            return render_template('admin/login.html', error="Please provide username and password")
+            return render_template('auth/login.html', error="Please provide username and password", next=next_url)
             
-        result = authenticate_user(username, password)
+        # Get client IP for security logging
+        ip_address = request.remote_addr
+        result = authenticate_user(username, password, ip_address)
         
         if result['status'] == 'success':
             # Store session token in cookie
@@ -30,16 +49,21 @@ def login():
             session['username'] = result['username']
             session['role'] = result['role']
             
-            # Redirect to appropriate dashboard based on role
-            if result['role'] == 'admin':
+            # Redirect based on next parameter or role
+            if next_url:
+                return redirect(next_url)
+            elif result['role'] == 'admin':
                 return redirect(url_for('admin.dashboard'))
             else:
-                return redirect(url_for('client.dashboard'))  # We need to create this route
+                return redirect(url_for('client.dashboard'))
         else:
-            return render_template('admin/login.html', error=result['message'])
+            return render_template('auth/login.html', error=result['message'], next=next_url)
+    
+    # Detect if this is an admin or client login based on URL
+    role = 'Admin' if '/admin' in request.referrer or '/admin' in next_url else 'Client'
     
     # GET request - show login form
-    return render_template('admin/login.html')
+    return render_template('auth/login.html', role=role, next=next_url)
 
 # Logout route
 @auth_bp.route('/logout')
