@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Management - Scanner Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .sidebar {
+            background-color: #2c3e50;
+            color: white;
+            min-height: 100vh;
+            padding-top: 2rem;
+        }
+        
+        .sidebar-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-link i {
+            margin-right: 0.75rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .card {
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border: none;
+        }
+        
+        .filter-card {
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 1rem 1.25rem;
+        }
+        
+        .scanner-card {
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .scanner-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .client-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #6c757d;
+        }
+        
+        .stat-mini {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        
+        .status-badge {
+            padding: 0.35em 0.65em;
+            border-radius: 0.25rem;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-deployed {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+        
+        .scanner-action {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            color: #6c757d;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .scanner-action:hover {
+            background-color: rgba(0,0,0,0.05);
+            color: var(--primary-color);
+        }
+        
+        .subscription-badge {
+            padding: 0.35em 0.65em;
+            border-radius: 0.25rem;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .subscription-basic {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        
+        .subscription-pro {
+            background-color: #cff4fc;
+            color: #055160;
+        }
+        
+        .subscription-enterprise {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        
+        .filter-tag {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background-color: #e9ecef;
+            color: #495057;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .filter-tag .close {
+            margin-left: 0.5rem;
+            cursor: pointer;
+        }
+        
+        .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .page-link {
+            color: var(--primary-color);
+        }
+        
+        .scanner-stats {
+            font-size: 0.9rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            background-color: #f8f9fa;
+            margin-right: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .scanner-stats i {
+            margin-right: 0.35rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 p-0 sidebar">
+                <div class="text-center mb-4">
+                    <h4>Scanner Platform</h4>
+                    <p class="mb-0 small">Admin Panel</p>
+                </div>
+                
+                <div class="px-3">
+                    <a href="/admin/dashboard" class="sidebar-link">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="/admin/clients" class="sidebar-link">
+                        <i class="bi bi-people"></i> Client Management
+                    </a>
+                    <a href="/admin/scanners" class="sidebar-link active">
+                        <i class="bi bi-shield-check"></i> Scanner Management
+                    </a>
+                    <a href="/customize" class="sidebar-link">
+                        <i class="bi bi-plus-circle"></i> Create Scanner
+                    </a>
+                    <a href="/admin/subscriptions" class="sidebar-link">
+                        <i class="bi bi-credit-card"></i> Subscriptions
+                    </a>
+                    <a href="/admin/reports" class="sidebar-link">
+                        <i class="bi bi-file-earmark-text"></i> Reports
+                    </a>
+                    <a href="/admin/settings" class="sidebar-link">
+                        <i class="bi bi-gear"></i> Settings
+                    </a>
+                    
+                    <hr class="my-4">
+                    
+                    <a href="/logout" class="sidebar-link text-danger">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Scanner Management</h2>
+                    <div>
+                        <a href="/customize" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i> Create New Scanner
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Overview Stats -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-shield-check text-primary"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini">{{ deployed_scanners.pagination.total_count|default('0') }}</div>
+                                    <div class="text-muted">Total Scanners</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-check-circle text-success"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini" id="active-scanners-count">0</div>
+                                    <div class="text-muted">Active Scanners</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-hourglass-split text-warning"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini" id="pending-scanners-count">0</div>
+                                    <div class="text-muted">Pending Deployment</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                                        <i class="bi bi-search text-info"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-mini" id="total-scans-count">0</div>
+                                    <div class="text-muted">Total Scans Today</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Filters -->
+                <div class="card filter-card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0" id="search-scanner" placeholder="Search scanners...">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <select class="form-select" id="status-filter">
+                                    <option value="" selected>All Status</option>
+                                    <option value="deployed">Deployed</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <button class="btn btn-primary w-100" id="apply-filters">
+                                    <i class="bi bi-funnel me-2"></i> Filter
+                                </button>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <button class="btn btn-outline-secondary w-100" id="clear-filters">
+                                    <i class="bi bi-x-circle me-2"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3" id="active-filters">
+                            {% if filters and filters.status %}
+                            <div class="filter-tag" data-filter="status" data-value="{{ filters.status }}">
+                                Status: {{ filters.status|title }} <span class="close">&times;</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if filters and filters.search %}
+                            <div class="filter-tag" data-filter="search" data-value="{{ filters.search }}">
+                                Search: "{{ filters.search }}" <span class="close">&times;</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Scanners Table -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Scanner Name</th>
+                                        <th>Subdomain</th>
+                                        <th>Status</th>
+                                        <th>Created Date</th>
+                                        <th>Stats</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scanners-table">
+                                    {% if deployed_scanners and deployed_scanners.scanners %}
+                                        {% for scanner in deployed_scanners.scanners %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="client-logo me-3">{{ scanner.business_name|truncate(2, True, '') }}</div>
+                                                    <div>
+                                                        <div class="fw-bold">{{ scanner.business_name }}</div>
+                                                        <div class="text-muted small">{{ scanner.business_domain }}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>{{ scanner.scanner_name }}</td>
+                                            <td>
+                                                <a href="https://{{ scanner.subdomain }}.yourscannerdomain.com" target="_blank">
+                                                    {{ scanner.subdomain }}.yourscannerdomain.com
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <span class="status-badge {% if scanner.deploy_status == 'deployed' %}status-deployed{% elif scanner.deploy_status == 'pending' %}status-pending{% else %}status-inactive{% endif %}">
+                                                    {{ scanner.deploy_status|title }}
+                                                </span>
+                                            </td>
+                                            <td>{{ scanner.deploy_date|default(scanner.created_at, true) }}</td>
+                                            <td>
+                                                <div class="scanner-stats">
+                                                    <i class="bi bi-search"></i> {{ scanner.scan_count|default('0') }}
+                                                </div>
+                                                <div class="scanner-stats">
+                                                    <i class="bi bi-clock-history"></i> {{ scanner.last_scan|default('Never') }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex">
+                                                    <a href="/admin/scanners/{{ scanner.id }}/view" class="scanner-action" data-bs-toggle="tooltip" title="View Scanner">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <a href="/admin/scanners/{{ scanner.id }}/edit" class="scanner-action" data-bs-toggle="tooltip" title="Edit Scanner">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a href="/admin/scanners/{{ scanner.id }}/stats" class="scanner-action" data-bs-toggle="tooltip" title="Scanner Stats">
+                                                        <i class="bi bi-graph-up"></i>
+                                                    </a>
+                                                    <button class="scanner-action" data-bs-toggle="modal" data-bs-target="#scannerOptionsModal" data-scanner-id="{{ scanner.id }}" title="More Options">
+                                                        <i class="bi bi-three-dots-vertical"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4">
+                                                <div class="text-muted">
+                                                    <i class="bi bi-search fs-3 d-block mb-3"></i>
+                                                    No scanners found. 
+                                                    <a href="/customize" class="text-primary">Create your first scanner</a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                    
+                                    <!-- Example rows - will be replaced by database data -->
+                                    {% if not deployed_scanners or deployed_scanners.scanners|length == 0 %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="client-logo me-3">AC</div>
+                                                <div>
+                                                    <div class="fw-bold">Acme Corporation</div>
+                                                    <div class="text-muted small">acmecorp.com</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>Security Scanner Pro</td>
+                                        <td>
+                                            <a href="#" target="_blank">
+                                                acme.yourscannerdomain.com
+                                            </a>
+                                        </td>
+                                        <td><span class="status-badge status-deployed">Deployed</span></td>
+                                        <td>May 3, 2025</td>
+                                        <td>
+                                            <div class="scanner-stats">
+                                                <i class="bi bi-search"></i> 53
+                                            </div>
+                                            <div class="scanner-stats">
+                                                <i class="bi bi-clock-history"></i> Today
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="View Scanner">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="Edit Scanner">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="Scanner Stats">
+                                                    <i class="bi bi-graph-up"></i>
+                                                </button>
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="More Options">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="client-logo me-3">GI</div>
+                                                <div>
+                                                    <div class="fw-bold">Global Innovations</div>
+                                                    <div class="text-muted small">globalinnovations.com</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>Enterprise Scanner</td>
+                                        <td>
+                                            <a href="#" target="_blank">
+                                                global-innovations.yourscannerdomain.com
+                                            </a>
+                                        </td>
+                                        <td><span class="status-badge status-deployed">Deployed</span></td>
+                                        <td>April 28, 2025</td>
+                                        <td>
+                                            <div class="scanner-stats">
+                                                <i class="bi bi-search"></i> 128
+                                            </div>
+                                            <div class="scanner-stats">
+                                                <i class="bi bi-clock-history"></i> Yesterday
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="View Scanner">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="Edit Scanner">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="Scanner Stats">
+                                                    <i class="bi bi-graph-up"></i>
+                                                </button>
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="More Options">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="client-logo me-3">SS</div>
+                                                <div>
+                                                    <div class="fw-bold">Stellar Services</div>
+                                                    <div class="text-muted small">stellarservices.net</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>Stellar Security</td>
+                                        <td>
+                                            <a href="#" target="_blank">
+                                                stellar.yourscannerdomain.com
+                                            </a>
+                                        </td>
+                                        <td><span class="status-badge status-pending">Pending</span></td>
+                                        <td>May 2, 2025</td>
+                                        <td>
+                                            <div class="scanner-stats">
+                                                <i class="bi bi-search"></i> 0
+                                            </div>
+                                            <div class="scanner-stats">
+                                                <i class="bi bi-clock-history"></i> Never
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="View Scanner">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="Edit Scanner">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="Scanner Stats">
+                                                    <i class="bi bi-graph-up"></i>
+                                                </button>
+                                                <button class="scanner-action" data-bs-toggle="tooltip" title="More Options">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <div class="text-muted">
+                        Showing <strong>{{ deployed_scanners.scanners|length|default('3') }}</strong> of <strong>{{ deployed_scanners.pagination.total_count|default('3') }}</strong> scanners
+                    </div>
+                    
+                    <nav aria-label="Scanner pagination">
+                        <ul class="pagination">
+                            {% if deployed_scanners and deployed_scanners.pagination %}
+                                {% set current_page = deployed_scanners.pagination.page %}
+                                {% set total_pages = deployed_scanners.pagination.total_pages %}
+                                
+                                <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+                                    <a class="page-link" href="?page={{ current_page - 1 }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                
+                                {% for p in range(1, total_pages + 1) %}
+                                    <li class="page-item {% if p == current_page %}active{% endif %}">
+                                        <a class="page-link" href="?page={{ p }}">{{ p }}</a>
+                                    </li>
+                                {% endfor %}
+                                
+                                <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+                                    <a class="page-link" href="?page={{ current_page + 1 }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scanner Options Modal -->
+    <div class="modal fade" id="scannerOptionsModal" tabindex="-1" aria-labelledby="scannerOptionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="scannerOptionsModalLabel">Scanner Options</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action" id="viewScannerLink">
+                            <i class="bi bi-eye me-2"></i> View Scanner Interface
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" id="editScannerLink">
+                            <i class="bi bi-pencil me-2"></i> Edit Scanner Configuration
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" id="regenerateApiKeyLink">
+                            <i class="bi bi-key me-2"></i> Regenerate API Key
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" id="scanHistoryLink">
+                            <i class="bi bi-clock-history me-2"></i> View Scan History
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" id="downloadConfigLink">
+                            <i class="bi bi-download me-2"></i> Download Scanner Configuration
+                        </a>
+                        <button class="list-group-item list-group-item-action text-danger" id="toggleStatusBtn">
+                            <i class="bi bi-slash-circle me-2"></i> <span id="toggleStatusText">Deactivate Scanner</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- API Key Regeneration Confirmation Modal -->
+    <div class="modal fade" id="regenerateApiKeyModal" tabindex="-1" aria-labelledby="regenerateApiKeyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="regenerateApiKeyModalLabel">Regenerate API Key</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Warning:</strong> Regenerating the API key will invalidate the previous key. Any applications or services using the old key will need to be updated.
+                    </div>
+                    <p>Are you sure you want to regenerate the API key for this scanner?</p>
+                    <div id="apiKeyResult" class="mt-3" style="display: none;">
+                        <div class="alert alert-success">
+                            <p class="mb-2"><strong>New API Key:</strong></p>
+                            <div class="input-group mb-2">
+                                <input type="text" id="newApiKey" class="form-control" readonly>
+                                <button class="btn btn-outline-secondary" type="button" id="copyApiKey">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                            <p class="small text-muted mb-0">Please save this key in a secure location. It will not be shown again.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <form id="regenerateApiKeyForm" method="post">
+                        <input type="hidden" id="regenerateScannerId" name="scanner_id" value="">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger" id="confirmRegenerateApiKey">Regenerate API Key</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toggle Scanner Status Confirmation Modal -->
+    <div class="modal fade" id="toggleStatusModal" tabindex="-1" aria-labelledby="toggleStatusModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="toggleStatusModalLabel">Change Scanner Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning" id="deactivateWarning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Warning:</strong> Deactivating this scanner will make it inaccessible to users until it is reactivated.
+                    </div>
+                    <div class="alert alert-success" id="activateMessage" style="display: none;">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <strong>Note:</strong> Activating this scanner will make it available to users immediately.
+                    </div>
+                    <p id="toggleStatusConfirmText">Are you sure you want to deactivate this scanner?</p>
+                </div>
+                <div class="modal-footer">
+                    <form id="toggleStatusForm" method="post">
+                        <input type="hidden" id="toggleStatusScannerId" name="scanner_id" value="">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning" id="confirmToggleStatus">Deactivate Scanner</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Update status counts
+            updateStatusCounts();
+            
+            // Filter functionality
+            document.getElementById('apply-filters').addEventListener('click', function() {
+                applyFilters();
+            });
+            
+            document.getElementById('clear-filters').addEventListener('click', function() {
+                clearFilters();
+            });
+            
+            // Remove individual filter tags
+            document.querySelectorAll('.filter-tag .close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', function() {
+                    const filterTag = this.parentElement;
+                    const filter = filterTag.getAttribute('data-filter');
+                    const filterInput = document.getElementById(filter + '-filter');
+                    
+                    if (filterInput) {
+                        filterInput.value = '';
+                    } else if (filter === 'search') {
+                        document.getElementById('search-scanner').value = '';
+                    }
+                    
+                    filterTag.remove();
+                    applyFilters();
+                });
+            });
+            
+            // Scanner Options Modal
+            const scannerOptionsModal = document.getElementById('scannerOptionsModal');
+            if (scannerOptionsModal) {
+                scannerOptionsModal.addEventListener('show.bs.modal', function(event) {
+                    const button = event.relatedTarget;
+                    const scannerId = button.getAttribute('data-scanner-id');
+                    const scannerRow = button.closest('tr');
+                    
+                    // Set up links in the modal
+                    document.getElementById('viewScannerLink').href = `/admin/scanners/${scannerId}/view`;
+                    document.getElementById('editScannerLink').href = `/admin/scanners/${scannerId}/edit`;
+                    document.getElementById('scanHistoryLink').href = `/admin/scanners/${scannerId}/stats`;
+                    document.getElementById('downloadConfigLink').href = `/admin/scanners/${scannerId}/download-config`;
+                    
+                    // Set up regenerate API Key functionality
+                    document.getElementById('regenerateApiKeyLink').addEventListener('click', function(e) {
+                        e.preventDefault();
+                        document.getElementById('regenerateScannerId').value = scannerId;
+                        const regenerateModal = new bootstrap.Modal(document.getElementById('regenerateApiKeyModal'));
+                        regenerateModal.show();
+                    });
+                    
+                    // Set up toggle status functionality
+                    const statusBadge = scannerRow.querySelector('.status-badge');
+                    const isActive = statusBadge && statusBadge.classList.contains('status-deployed');
+                    const toggleStatusBtn = document.getElementById('toggleStatusBtn');
+                    const toggleStatusText = document.getElementById('toggleStatusText');
+                    
+                    if (isActive) {
+                        toggleStatusText.textContent = 'Deactivate Scanner';
+                        toggleStatusBtn.addEventListener('click', function() {
+                            document.getElementById('toggleStatusScannerId').value = scannerId;
+                            document.getElementById('toggleStatusConfirmText').textContent = 'Are you sure you want to deactivate this scanner?';
+                            document.getElementById('confirmToggleStatus').textContent = 'Deactivate Scanner';
+                            document.getElementById('confirmToggleStatus').classList.remove('btn-success');
+                            document.getElementById('confirmToggleStatus').classList.add('btn-warning');
+                            document.getElementById('deactivateWarning').style.display = 'block';
+                            document.getElementById('activateMessage').style.display = 'none';
+                            const toggleModal = new bootstrap.Modal(document.getElementById('toggleStatusModal'));
+                            toggleModal.show();
+                        });
+                    } else {
+                        toggleStatusText.textContent = 'Activate Scanner';
+                        toggleStatusBtn.addEventListener('click', function() {
+                            document.getElementById('toggleStatusScannerId').value = scannerId;
+                            document.getElementById('toggleStatusConfirmText').textContent = 'Are you sure you want to activate this scanner?';
+                            document.getElementById('confirmToggleStatus').textContent = 'Activate Scanner';
+                            document.getElementById('confirmToggleStatus').classList.remove('btn-warning');
+                            document.getElementById('confirmToggleStatus').classList.add('btn-success');
+                            document.getElementById('deactivateWarning').style.display = 'none';
+                            document.getElementById('activateMessage').style.display = 'block';
+                            const toggleModal = new bootstrap.Modal(document.getElementById('toggleStatusModal'));
+                            toggleModal.show();
+                        });
+                    }
+                });
+                
+                scannerOptionsModal.addEventListener('hidden.bs.modal', function() {
+                    // Clean up event listeners
+                    document.getElementById('regenerateApiKeyLink').removeEventListener('click', null);
+                    document.getElementById('toggleStatusBtn').removeEventListener('click', null);
+                });
+            }
+            
+            // Regenerate API Key form submission
+            const regenerateApiKeyForm = document.getElementById('regenerateApiKeyForm');
+            if (regenerateApiKeyForm) {
+                regenerateApiKeyForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const scannerId = document.getElementById('regenerateScannerId').value;
+                    const submitBtn = document.getElementById('confirmRegenerateApiKey');
+                    const originalBtnText = submitBtn.textContent;
+                    
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                    
+                    // Make AJAX request to regenerate key
+                    fetch(`/admin/scanners/${scannerId}/regenerate-api-key`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            scanner_id: scannerId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Show new API key
+                            document.getElementById('newApiKey').value = data.api_key;
+                            document.getElementById('apiKeyResult').style.display = 'block';
+                            
+                            // Change button to "Done"
+                            submitBtn.innerHTML = 'Done';
+                            submitBtn.classList.remove('btn-danger');
+                            submitBtn.classList.add('btn-success');
+                            
+                            // Set up clipboard functionality
+                            document.getElementById('copyApiKey').addEventListener('click', function() {
+                                const apiKeyInput = document.getElementById('newApiKey');
+                                apiKeyInput.select();
+                                document.execCommand('copy');
+                                this.innerHTML = '<i class="bi bi-check"></i>';
+                                setTimeout(() => {
+                                    this.innerHTML = '<i class="bi bi-clipboard"></i>';
+                                }, 2000);
+                            });
+                        } else {
+                            // Show error
+                            alert('Error: ' + data.message);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalBtnText;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while regenerating the API key.');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                    });
+                });
+            }
+            
+            // Toggle Scanner Status form submission
+            const toggleStatusForm = document.getElementById('toggleStatusForm');
+            if (toggleStatusForm) {
+                toggleStatusForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const scannerId = document.getElementById('toggleStatusScannerId').value;
+                    const submitBtn = document.getElementById('confirmToggleStatus');
+                    const originalBtnText = submitBtn.textContent;
+                    
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                    
+                    // Make AJAX request to toggle status
+                    fetch(`/admin/scanners/${scannerId}/toggle-status`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            scanner_id: scannerId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Reload the page to see updated status
+                            window.location.reload();
+                        } else {
+                            // Show error
+                            alert('Error: ' + data.message);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalBtnText;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while updating the scanner status.');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                    });
+                });
+            }
+            
+            // Function to apply filters
+            function applyFilters() {
+                const status = document.getElementById('status-filter').value;
+                const search = document.getElementById('search-scanner').value.trim();
+                
+                // Build query string
+                const params = new URLSearchParams();
+                if (status) params.append('status', status);
+                if (search) params.append('search', search);
+                
+                // Redirect with filters
+                window.location.href = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+            }
+            
+            // Function to clear all filters
+            function clearFilters() {
+                document.getElementById('status-filter').value = '';
+                document.getElementById('search-scanner').value = '';
+                document.getElementById('active-filters').innerHTML = '';
+                
+                // Redirect without filters
+                window.location.href = window.location.pathname;
+            }
+            
+            // Function to update status counts
+            function updateStatusCounts() {
+                const rows = document.querySelectorAll('#scanners-table tr');
+                let activeCount = 0;
+                let pendingCount = 0;
+                let totalScansCount = 0;
+                
+                rows.forEach(row => {
+                    const statusBadge = row.querySelector('.status-badge');
+                    if (statusBadge) {
+                        if (statusBadge.classList.contains('status-deployed')) {
+                            activeCount++;
+                        } else if (statusBadge.classList.contains('status-pending')) {
+                            pendingCount++;
+                        }
+                    }
+                    
+                    // Count total scans from scanner stats
+                    const scanStatsEl = row.querySelector('.scanner-stats');
+                    if (scanStatsEl) {
+                        const scanText = scanStatsEl.textContent.trim();
+                        const scanCount = parseInt(scanText.match(/\d+/));
+                        if (!isNaN(scanCount)) {
+                            totalScansCount += scanCount;
+                        }
+                    }
+                });
+                
+                // Update the count elements
+                document.getElementById('active-scanners-count').textContent = activeCount;
+                document.getElementById('pending-scanners-count').textContent = pendingCount;
+                document.getElementById('total-scans-count').textContent = totalScansCount;
+            }
+        });
+    </script>
+</body>
+</html>
