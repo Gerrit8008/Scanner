@@ -7,6 +7,7 @@ from client_db import (
 from werkzeug.utils import secure_filename
 import os
 import logging
+from datetime import datetime
 
 # Define upload folder
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
@@ -56,36 +57,27 @@ def dashboard(user):
         # Get scan history
         scan_history = get_scan_history_by_client_id(user_client['id'], limit=5)
         
+        # Process scan history to add scanner names
+        for scan in scan_history:
+            # Find the scanner name for this scan
+            for scanner in scanners:
+                if scanner.get('id') == scan.get('scanner_id'):
+                    scan['scanner_name'] = scanner.get('scanner_name', 'Default Scanner')
+                    break
+            else:
+                scan['scanner_name'] = 'Unknown Scanner'
+        
         # Count total scans
         total_scans = len(get_scan_history_by_client_id(user_client['id']))
-        
-        # Get recent security alerts (placeholder for now)
-        recent_alerts = []
-        
-        # Calculate scan metrics
-        pending_scans = 0
-        completed_scans = 0
-        
-        # Process scan history to get metrics
-        if isinstance(scan_history, list):
-            for scan in scan_history:
-                status = scan.get('status', '').lower()
-                if status == 'pending':
-                    pending_scans += 1
-                elif status in ['completed', 'finished']:
-                    completed_scans += 1
         
         # Render the dashboard template
         return render_template(
             'client/client-dashboard.html',
             user=user,
-            client=user_client,
+            user_client=user_client,
             scanners=scanners,
             scan_history=scan_history,
-            total_scans=total_scans,
-            pending_scans=pending_scans,
-            completed_scans=completed_scans,
-            recent_alerts=recent_alerts
+            total_scans=total_scans
         )
     except Exception as e:
         logging.error(f"Error in client dashboard: {str(e)}")
@@ -122,10 +114,93 @@ def scanners(user):
     return render_template(
         'client/scanners.html',
         user=user,
-        client=user_client,
+        user_client=user_client,
         scanners=scanners_data.get('scanners', []),
         pagination=scanners_data.get('pagination', {}),
         filters=filters
+    )
+
+@client_bp.route('/scanners/<int:scanner_id>/view')
+@client_required
+def scanner_view(user, scanner_id):
+    """View scanner page"""
+    # Get client info for this user
+    user_client = get_client_by_user_id(user['user_id'])
+    
+    if not user_client:
+        flash('No client account found for this user', 'danger')
+        return redirect(url_for('auth.login'))
+    
+    # Get scanner details
+    scanner = get_scanner_by_id(scanner_id)
+    
+    if not scanner or scanner['client_id'] != user_client['id']:
+        flash('Scanner not found or not authorized', 'danger')
+        return redirect(url_for('client.scanners'))
+    
+    # Render scanner view template
+    return render_template(
+        'client/scanner-view.html',
+        user=user,
+        user_client=user_client,
+        scanner=scanner
+    )
+
+@client_bp.route('/scanners/<int:scanner_id>/edit')
+@client_required
+def scanner_edit(user, scanner_id):
+    """Edit scanner page"""
+    # Get client info for this user
+    user_client = get_client_by_user_id(user['user_id'])
+    
+    if not user_client:
+        flash('No client account found for this user', 'danger')
+        return redirect(url_for('auth.login'))
+    
+    # Get scanner details
+    scanner = get_scanner_by_id(scanner_id)
+    
+    if not scanner or scanner['client_id'] != user_client['id']:
+        flash('Scanner not found or not authorized', 'danger')
+        return redirect(url_for('client.scanners'))
+    
+    # Render scanner edit template
+    return render_template(
+        'client/scanner-edit.html',
+        user=user,
+        user_client=user_client,
+        scanner=scanner
+    )
+
+@client_bp.route('/scanners/<int:scanner_id>/stats')
+@client_required
+def scanner_stats(user, scanner_id):
+    """View scanner statistics"""
+    # Get client info for this user
+    user_client = get_client_by_user_id(user['user_id'])
+    
+    if not user_client:
+        flash('No client account found for this user', 'danger')
+        return redirect(url_for('auth.login'))
+    
+    # Get scanner details
+    scanner = get_scanner_by_id(scanner_id)
+    
+    if not scanner or scanner['client_id'] != user_client['id']:
+        flash('Scanner not found or not authorized', 'danger')
+        return redirect(url_for('client.scanners'))
+    
+    # Get scan history for this scanner
+    from client_db import get_scanner_scan_history
+    scan_history = get_scanner_scan_history(scanner_id)
+    
+    # Render scanner stats template
+    return render_template(
+        'client/scanner-stats.html',
+        user=user,
+        user_client=user_client,
+        scanner=scanner,
+        scan_history=scan_history
     )
 
 @client_bp.route('/scanners/<int:scanner_id>/regenerate-api-key', methods=['POST'])
@@ -153,129 +228,13 @@ def regenerate_scanner_api_key(user, scanner_id):
     # Regenerate the API key
     result = regenerate_api_key(user_client['id'])
     
-    if result['status'] == 'success':
-        return jsonify({
-            'status': 'success',
-            'message': 'API key regenerated successfully',
-            'api_key': result['api_key']
-        })
-    else:
-        return jsonify({
-            'status': 'error',
-            'message': result.get('message', 'Failed to regenerate API key')
-        }), 400
+    return jsonify(result)
 
-@client_bp.route('/scanners/<int:scanner_id>/view')
+@client_bp.route('/reports')
 @client_required
-def scanner_view(user, scanner_id):
-    """View scanner page"""
+def reports(user):
+    """View scan reports page"""
     # Get client info for this user
-    user_client = get_client_by_user_id(user['user_id'])
-    
-    if not user_client:
-        flash('No client account found for this user', 'danger')
-        return redirect(url_for('auth.login'))
-    
-    # Get scanner details
-    scanner = get_scanner_by_id(scanner_id)
-    
-    if not scanner or scanner['client_id'] != user_client['id']:
-        flash('Scanner not found or not authorized', 'danger')
-        return redirect(url_for('client.scanners'))
-    
-    # Render scanner view template
-    return render_template(
-        'client/scanner-view.html',
-        user=user,
-        client=user_client,
-        scanner=scanner
-    )
-
-@client_bp.route('/scanners/<int:scanner_id>/edit', methods=['GET', 'POST'])
-@client_required
-def scanner_edit(user, scanner_id):
-    """Edit scanner page"""
-    # Get client info for this user
-    user_client = get_client_by_user_id(user['user_id'])
-    
-    if not user_client:
-        flash('No client account found for this user', 'danger')
-        return redirect(url_for('auth.login'))
-    
-    # Get scanner details
-    scanner = get_scanner_by_id(scanner_id)
-    
-    if not scanner or scanner['client_id'] != user_client['id']:
-        flash('Scanner not found or not authorized', 'danger')
-        return redirect(url_for('client.scanners'))
-    
-    if request.method == 'POST':
-        # Extract form data
-        scanner_data = {
-            'scanner_name': request.form.get('scanner_name'),
-            'primary_color': request.form.get('primary_color'),
-            'secondary_color': request.form.get('secondary_color'),
-            'email_subject': request.form.get('email_subject'),
-            'email_intro': request.form.get('email_intro'),
-            'default_scans': request.form.getlist('default_scans[]')
-        }
-        
-        # Handle file uploads
-        if 'logo' in request.files and request.files['logo'].filename:
-            logo_file = request.files['logo']
-            logo_filename = secure_filename(f"{user_client['id']}_{logo_file.filename}")
-            logo_path = os.path.join(UPLOAD_FOLDER, logo_filename)
-            logo_file.save(logo_path)
-            scanner_data['logo_path'] = logo_path
-        
-        if 'favicon' in request.files and request.files['favicon'].filename:
-            favicon_file = request.files['favicon']
-            favicon_filename = secure_filename(f"{user_client['id']}_{favicon_file.filename}")
-            favicon_path = os.path.join(UPLOAD_FOLDER, favicon_filename)
-            favicon_file.save(favicon_path)
-            scanner_data['favicon_path'] = favicon_path
-        
-        # Update scanner
-        from scanner_template import update_scanner
-        result = update_scanner(scanner_id, scanner_data)
-        
-        if result:
-            flash('Scanner updated successfully', 'success')
-        else:
-            flash('Failed to update scanner', 'danger')
-        
-        return redirect(url_for('client.scanner_view', scanner_id=scanner_id))
-    
-    # For GET requests, render the form
-    return render_template(
-        'client/scanner-edit.html',
-        user=user,
-        client=user_client,
-        scanner=scanner
-    )
-
-@client_bp.route('/profile')
-@client_required
-def profile(user):
-    """User profile page"""
-    # Get client info
-    user_client = get_client_by_user_id(user['user_id'])
-    
-    if not user_client:
-        flash('No client account found for this user', 'danger')
-        return redirect(url_for('auth.login'))
-    
-    return render_template(
-        'client/profile.html',
-        user=user,
-        client=user_client
-    )
-
-@client_bp.route('/scans')
-@client_required
-def scans(user):
-    """Scan history page"""
-    # Get client info
     user_client = get_client_by_user_id(user['user_id'])
     
     if not user_client:
@@ -284,24 +243,25 @@ def scans(user):
     
     # Get pagination
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
     
     # Get scan history with pagination
     from client_db import get_scan_history
     scan_history_data = get_scan_history(user_client['id'], page, per_page)
     
+    # Render reports template
     return render_template(
-        'client/scans.html',
+        'client/reports.html',
         user=user,
-        client=user_client,
+        user_client=user_client,
         scans=scan_history_data.get('scans', []),
         pagination=scan_history_data.get('pagination', {})
     )
 
-@client_bp.route('/scans/<scan_id>')
+@client_bp.route('/reports/<scan_id>')
 @client_required
-def scan_details(user, scan_id):
-    """View scan details"""
+def report_details(user, scan_id):
+    """View report details"""
     # Get client info
     user_client = get_client_by_user_id(user['user_id'])
     
@@ -314,19 +274,72 @@ def scan_details(user, scan_id):
     scan = get_scan_by_id(scan_id)
     
     if not scan or scan['client_id'] != user_client['id']:
-        flash('Scan not found or not authorized', 'danger')
-        return redirect(url_for('client.scans'))
+        flash('Report not found or not authorized', 'danger')
+        return redirect(url_for('client.reports'))
     
-    # Get scan report if available
+    # Get report HTML
     report_html = None
     if scan.get('report_path') and os.path.exists(scan['report_path']):
-        with open(scan['report_path'], 'r') as file:
-            report_html = file.read()
+        try:
+            with open(scan['report_path'], 'r') as f:
+                report_html = f.read()
+        except Exception as e:
+            logging.error(f"Error reading report file: {e}")
+            flash('Error loading report content', 'danger')
     
+    # Render report details template
     return render_template(
-        'client/scan-details.html',
+        'client/report-details.html',
         user=user,
-        client=user_client,
+        user_client=user_client,
         scan=scan,
         report_html=report_html
     )
+
+@client_bp.route('/settings')
+@client_required
+def settings(user):
+    """User settings page"""
+    # Get client info
+    user_client = get_client_by_user_id(user['user_id'])
+    
+    if not user_client:
+        flash('No client account found for this user', 'danger')
+        return redirect(url_for('auth.login'))
+    
+    # Render settings template
+    return render_template(
+        'client/settings.html',
+        user=user,
+        user_client=user_client
+    )
+
+@client_bp.route('/profile/update', methods=['POST'])
+@client_required
+def update_profile(user):
+    """Update user profile"""
+    # Get client info
+    user_client = get_client_by_user_id(user['user_id'])
+    
+    if not user_client:
+        flash('No client account found for this user', 'danger')
+        return redirect(url_for('auth.login'))
+    
+    # Get form data
+    client_data = {
+        'business_name': request.form.get('business_name'),
+        'business_domain': request.form.get('business_domain'),
+        'contact_email': request.form.get('contact_email'),
+        'contact_phone': request.form.get('contact_phone')
+    }
+    
+    # Update client info
+    from client_db import update_client
+    result = update_client(user_client['id'], client_data, user['user_id'])
+    
+    if result['status'] == 'success':
+        flash('Profile updated successfully', 'success')
+    else:
+        flash(f'Error updating profile: {result.get("message", "Unknown error")}', 'danger')
+    
+    return redirect(url_for('client.settings'))
