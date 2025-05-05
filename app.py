@@ -229,6 +229,11 @@ app, limiter = create_app()
 logger = setup_logging()
 log_system_info()
 
+@app.route('/login')
+def login_redirect():
+    """Redirect to auth login page"""
+    return redirect(url_for('auth.login'))
+    
 # Add a route for the customization form
 @app.route('/customize', methods=['GET', 'POST'])
 def customize_scanner():
