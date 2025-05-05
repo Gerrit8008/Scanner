@@ -60,7 +60,7 @@ def login():
             return render_template('auth/login.html', error=result['message'], next=next_url)
     
     # Detect if this is an admin or client login based on URL
-    role = 'Admin' if '/admin' in request.referrer or '/admin' in next_url else 'Client'
+    role = 'Admin' if (request.referrer and '/admin' in request.referrer) or '/admin' in next_url else 'Client'
     
     # GET request - show login form
     return render_template('auth/login.html', role=role, next=next_url)
