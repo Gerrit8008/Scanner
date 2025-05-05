@@ -432,30 +432,30 @@ def regenerate_api_key(client_id):
 @with_transaction
 def init_client_db(conn, cursor):
     """Initialize the database with required tables and indexes"""
-    
-    # Execute the schema SQL to create tables and indices
-    cursor.executescript(SCHEMA_SQL)
-    
-    # Create admin user if it doesn't exist
-    cursor.execute("SELECT id FROM users WHERE username = 'admin'")
-    admin = cursor.fetchone()
-    
-    if not admin:
-        # Create salt and hash password with better security
-        salt = secrets.token_hex(16)
-        # Default password: admin123 (should be changed immediately)
-        password = 'admin123'
-        password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+    try:
+        # Execute the schema SQL to create tables and indices
+        cursor.executescript(SCHEMA_SQL)
+        logging.info("Database schema initialized successfully.")
         
-        cursor.execute('''
-        INSERT INTO users (username, email, password_hash, salt, role, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ''', ('admin', 'admin@scannerplatform.com', password_hash, salt, 'admin', datetime.now().isoformat()))
+        # Create admin user if it doesn't exist
+        cursor.execute("SELECT id FROM users WHERE username = 'admin'")
+        admin = cursor.fetchone()
         
-        logging.info("Admin user created. Please change the default password.")
-    
-    logging.info(f"Client database initialized at {CLIENT_DB_PATH}")
-    return {"status": "success"}
+        if not admin:
+            # Create salt and hash password with better security
+            salt = secrets.token_hex(16)
+            password = 'admin123'  # Default password (should be changed immediately)
+            password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+            
+            cursor.execute('''
+            INSERT INTO users (username, email, password_hash, salt, role, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''', ('admin', 'admin@scannerplatform.com', password_hash, salt, 'admin', datetime.now().isoformat()))
+            
+            logging.info("Admin user created. Please change the default password.")
+    except sqlite3.DatabaseError as e:
+        logging.error(f"Database error during initialization: {e}")
+        raise
 
 # Run database initialization
 def init_db():
