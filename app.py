@@ -33,7 +33,7 @@ from client_db import init_client_db
 from client_db import CLIENT_DB_PATH
 from setup_admin import configure_admin
 from client import client_bp  
-from flask_login import current_user
+from flask_login import LoginManager, current_user
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -65,6 +65,11 @@ from scan import (
     get_industry_benchmarks,
     calculate_industry_percentile
 )
+
+# After creating the app
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'auth.login'
 
 # Define upload folder for file uploads
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
@@ -1184,7 +1189,18 @@ def run_consolidated_scan(lead_data):
     return scan_results
 
 # ---------------------------- FLASK ROUTES ----------------------------
-
+@login_manager.user_loader
+def load_user(user_id):
+    # This function should return a user object or None
+    # Based on your code structure, you might need to:
+    conn = sqlite3.connect(CLIENT_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    return user if user else None
+    
 @app.route('/')
 def index():
     """Render the home page"""
