@@ -1,0 +1,970 @@
+<!-- templates/client/scanner-stats.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Statistics - Scanner Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .sidebar {
+            background-color: #2c3e50;
+            color: white;
+            min-height: 100vh;
+            padding-top: 2rem;
+        }
+        
+        .sidebar-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-link i {
+            margin-right: 0.75rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .stats-card {
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+        
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0 1rem;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .stat-summary {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-change {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .stat-change.positive {
+            color: #198754;
+        }
+        
+        .stat-change.negative {
+            color: #dc3545;
+        }
+        
+        .table-stats {
+            margin-bottom: 0;
+        }
+        
+        .table-stats th {
+            font-weight: 600;
+            background-color: #f8f9fa;
+        }
+        
+        .severity-badge {
+            padding: 0.35em 0.65em;
+            border-radius: 0.25rem;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .severity-critical {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+        
+        .severity-high {
+            background-color: #ffeeba;
+            color: #856404;
+        }
+        
+        .severity-medium {
+            background-color: #fff3cd;
+            color: #664d03;
+        }
+        
+        .severity-low {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        
+        .date-range-selector {
+            display: flex;
+            align-items: center;
+            background-color: #f8f9fa;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .date-range-item {
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .date-range-item:hover {
+            background-color: #e9ecef;
+        }
+        
+        .date-range-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .trend-indicator {
+            display: inline-flex;
+            margin-left: 0.5rem;
+        }
+        
+        .trend-up {
+            color: #198754;
+        }
+        
+        .trend-down {
+            color: #dc3545;
+        }
+        
+        .risk-score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            position: relative;
+        }
+        
+        .risk-label {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .risk-high {
+            background-color: #dc3545;
+        }
+        
+        .risk-medium {
+            background-color: #fd7e14;
+        }
+        
+        .risk-low {
+            background-color: #28a745;
+        }
+        
+        .heatmap-cell {
+            width: 25px;
+            height: 25px;
+            margin: 2px;
+            border-radius: 2px;
+            display: inline-block;
+        }
+        
+        .heatmap-row {
+            display: flex;
+            margin-bottom: 2px;
+        }
+        
+        .month-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+        
+        .week-label {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 0.75rem;
+            color: #6c757d;
+            height: 100%;
+            margin-right: 5px;
+            transform: rotate(180deg);
+        }
+        
+        .findings-table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 p-0 sidebar">
+                <div class="text-center mb-4">
+                    <h4>Scanner Platform</h4>
+                    <p class="mb-0 small">Client Portal</p>
+                </div>
+                
+                <div class="px-3">
+                    <a href="/client/dashboard" class="sidebar-link">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="/client/scanners" class="sidebar-link active">
+                        <i class="bi bi-shield-check"></i> My Scanners
+                    </a>
+                    <a href="/client/reports" class="sidebar-link">
+                        <i class="bi bi-file-earmark-text"></i> Scan Reports
+                    </a>
+                    <a href="/client/settings" class="sidebar-link">
+                        <i class="bi bi-gear"></i> Settings
+                    </a>
+                    
+                    <hr class="my-4">
+                    
+                    <a href="/logout" class="sidebar-link text-danger">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>Scanner Statistics</h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                <li class="breadcrumb-item"><a href="/client/dashboard">Dashboard</a></li>
+                                <li class="breadcrumb-item"><a href="/client/scanners">Scanners</a></li>
+                                <li class="breadcrumb-item"><a href="/client/scanners/{{ scanner.id }}/view">{{ scanner.scanner_name|default('Scanner Details') }}</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Statistics</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <div>
+                        <a href="/client/scanners/{{ scanner.id }}/view" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Scanner
+                        </a>
+                        <button class="btn btn-outline-primary ms-2" id="downloadReportBtn">
+                            <i class="bi bi-file-earmark-arrow-down me-2"></i>Download Report
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Date Range Selector -->
+                <div class="date-range-selector">
+                    <div class="me-3">
+                        <strong>Time Period:</strong>
+                    </div>
+                    <div class="date-range-item active" data-range="7">Last 7 Days</div>
+                    <div class="date-range-item" data-range="30">Last 30 Days</div>
+                    <div class="date-range-item" data-range="90">Last 3 Months</div>
+                    <div class="date-range-item" data-range="365">Last Year</div>
+                    <div class="date-range-item" data-range="all">All Time</div>
+                </div>
+                
+                <!-- Summary Stats -->
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body stat-summary">
+                                <i class="bi bi-search fs-3 mb-3 text-primary"></i>
+                                <div class="stat-value">{{ scanner.total_scans|default('42') }}</div>
+                                <div class="stat-label">Total Scans</div>
+                                <div class="stat-change positive">
+                                    <i class="bi bi-arrow-up-short"></i> 12% vs. previous period
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body stat-summary">
+                                <i class="bi bi-bug fs-3 mb-3 text-warning"></i>
+                                <div class="stat-value">{{ scanner.vulnerabilities_found|default('18') }}</div>
+                                <div class="stat-label">Vulnerabilities Found</div>
+                                <div class="stat-change negative">
+                                    <i class="bi bi-arrow-up-short"></i> 5% vs. previous period
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body stat-summary">
+                                <i class="bi bi-check-circle fs-3 mb-3 text-success"></i>
+                                <div class="stat-value">{{ scanner.issues_resolved|default('12') }}</div>
+                                <div class="stat-label">Issues Resolved</div>
+                                <div class="stat-change positive">
+                                    <i class="bi bi-arrow-up-short"></i> 20% vs. previous period
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body stat-summary">
+                                <i class="bi bi-shield-check fs-3 mb-3 text-primary"></i>
+                                <div class="stat-value">{{ scanner.avg_score|default('78') }}</div>
+                                <div class="stat-label">Average Security Score</div>
+                                <div class="stat-change positive">
+                                    <i class="bi bi-arrow-up-short"></i> 8 points vs. previous period
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Security Score Trend Chart -->
+                <div class="card stats-card mt-4">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="bi bi-graph-up me-2"></i>Security Score Trend</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="securityScoreChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Scan Activity and Risk Analysis -->
+                <div class="row mt-4">
+                    <div class="col-md-8">
+                        <div class="card stats-card">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Scan Activity</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="scanActivityChart"></canvas>
+                                </div>
+                                <div class="chart-legend">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background-color: rgba(255, 105, 0, 0.7);"></div>
+                                        <span>Scans Performed</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background-color: rgba(220, 53, 69, 0.7);"></div>
+                                        <span>Vulnerabilities Found</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background-color: rgba(40, 167, 69, 0.7);"></div>
+                                        <span>Issues Resolved</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card stats-card">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Current Risk Analysis</h4>
+                            </div>
+                            <div class="card-body text-center py-4">
+                                <div class="risk-score-circle {% if scanner.risk_score|default(78) > 80 %}risk-low{% elif scanner.risk_score|default(78) > 50 %}risk-medium{% else %}risk-high{% endif %}">
+                                    {{ scanner.risk_score|default('78') }}
+                                </div>
+                                <div class="risk-label {% if scanner.risk_score|default(78) > 80 %}text-success{% elif scanner.risk_score|default(78) > 50 %}text-warning{% else %}text-danger{% endif %}">
+                                    {% if scanner.risk_score|default(78) > 80 %}
+                                        Low Risk
+                                    {% elif scanner.risk_score|default(78) > 50 %}
+                                        Medium Risk
+                                    {% else %}
+                                        High Risk
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <h5>Risk Breakdown</h5>
+                                    <div class="progress mb-3" style="height: 20px;">
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ scanner.risk_critical|default(5) }}%" aria-valuenow="{{ scanner.risk_critical|default(5) }}" aria-valuemin="0" aria-valuemax="100">Critical {{ scanner.risk_critical|default(5) }}%</div>
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ scanner.risk_high|default(15) }}%" aria-valuenow="{{ scanner.risk_high|default(15) }}" aria-valuemin="0" aria-valuemax="100">High {{ scanner.risk_high|default(15) }}%</div>
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ scanner.risk_medium|default(25) }}%" aria-valuenow="{{ scanner.risk_medium|default(25) }}" aria-valuemin="0" aria-valuemax="100">Medium {{ scanner.risk_medium|default(25) }}%</div>
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ scanner.risk_low|default(55) }}%" aria-valuenow="{{ scanner.risk_low|default(55) }}" aria-valuemin="0" aria-valuemax="100">Low {{ scanner.risk_low|default(55) }}%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Vulnerability by Category -->
+                <div class="card stats-card mt-4">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Vulnerabilities by Category</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="chart-container">
+                                    <canvas id="categoryChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-stats">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Count</th>
+                                            <th>Trend</th>
+                                            <th>Risk Level</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Network Security</td>
+                                            <td>8</td>
+                                            <td>
+                                                <span class="trend-indicator trend-down">
+                                                    <i class="bi bi-arrow-down-short"></i> 12%
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="severity-badge severity-medium">Medium</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Web Security</td>
+                                            <td>5</td>
+                                            <td>
+                                                <span class="trend-indicator trend-down">
+                                                    <i class="bi bi-arrow-down-short"></i> 8%
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="severity-badge severity-high">High</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Email Security</td>
+                                            <td>3</td>
+                                            <td>
+                                                <span class="trend-indicator trend-up">
+                                                    <i class="bi bi-arrow-up-short"></i> 10%
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="severity-badge severity-medium">Medium</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>System Security</td>
+                                            <td>2</td>
+                                            <td>
+                                                <span class="trend-indicator trend-down">
+                                                    <i class="bi bi-arrow-down-short"></i> 15%
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="severity-badge severity-low">Low</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Scan Heatmap -->
+                <div class="card stats-card mt-4">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="bi bi-calendar-range me-2"></i>Scan Activity Heatmap</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="me-2">
+                                <div class="week-label">Week 1</div>
+                            </div>
+                            <div>
+                                <div class="heatmap-row">
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.1);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.3);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.5);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.7);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.3);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.1);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.0);"></div>
+                                </div>
+                                
+                                <div class="heatmap-row">
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.5);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.7);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.9);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.5);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.3);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.1);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.0);"></div>
+                                </div>
+                                
+                                <div class="heatmap-row">
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.3);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.3);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.5);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.7);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.9);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.5);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.3);"></div>
+                                </div>
+                                
+                                <div class="heatmap-row">
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.1);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.5);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.7);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.9);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.7);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.3);"></div>
+                                    <div class="heatmap-cell" style="background-color: rgba(40, 167, 69, 0.1);"></div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between mt-1">
+                                    <span class="month-label">Jan</span>
+                                    <span class="month-label">Feb</span>
+                                    <span class="month-label">Mar</span>
+                                    <span class="month-label">Apr</span>
+                                    <span class="month-label">May</span>
+                                    <span class="month-label">Jun</span>
+                                    <span class="month-label">Jul</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <div class="d-flex justify-content-center">
+                                <div class="me-4"><i class="bi bi-square-fill" style="color: rgba(40, 167, 69, 0.0);"></i> 0 scans</div>
+                                <div class="me-4"><i class="bi bi-square-fill" style="color: rgba(40, 167, 69, 0.3);"></i> 1-2 scans</div>
+                                <div class="me-4"><i class="bi bi-square-fill" style="color: rgba(40, 167, 69, 0.5);"></i> 3-5 scans</div>
+                                <div class="me-4"><i class="bi bi-square-fill" style="color: rgba(40, 167, 69, 0.7);"></i> 6-9 scans</div>
+                                <div><i class="bi bi-square-fill" style="color: rgba(40, 167, 69, 0.9);"></i> 10+ scans</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Findings Table -->
+                <div class="card stats-card mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="bi bi-list-check me-2"></i>Recent Findings</h4>
+                        <a href="/client/reports" class="btn btn-sm btn-outline-primary">View All Reports</a>
+                    </div>
+                    <div class="card-body findings-table-container">
+                        <table class="table table-hover table-stats">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Finding</th>
+                                    <th>Category</th>
+                                    <th>Severity</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>May 1, 2025</td>
+                                    <td>Outdated SSL/TLS Protocol</td>
+                                    <td>Web Security</td>
+                                    <td><span class="severity-badge severity-high">High</span></td>
+                                    <td><span class="badge bg-warning text-dark">Open</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Apr 25, 2025</td>
+                                    <td>Open RDP Port (3389)</td>
+                                    <td>Network Security</td>
+                                    <td><span class="severity-badge severity-critical">Critical</span></td>
+                                    <td><span class="badge bg-success">Resolved</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Apr 22, 2025</td>
+                                    <td>Missing DMARC Record</td>
+                                    <td>Email Security</td>
+                                    <td><span class="severity-badge severity-medium">Medium</span></td>
+                                    <td><span class="badge bg-warning text-dark">Open</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Apr 18, 2025</td>
+                                    <td>Cross-Site Scripting (XSS) Vulnerability</td>
+                                    <td>Web Security</td>
+                                    <td><span class="severity-badge severity-high">High</span></td>
+                                    <td><span class="badge bg-success">Resolved</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Apr 15, 2025</td>
+                                    <td>Outdated CMS Version</td>
+                                    <td>Web Security</td>
+                                    <td><span class="severity-badge severity-medium">Medium</span></td>
+                                    <td><span class="badge bg-success">Resolved</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Apr 10, 2025</td>
+                                    <td>Missing Security Headers</td>
+                                    <td>Web Security</td>
+                                    <td><span class="severity-badge severity-low">Low</span></td>
+                                    <td><span class="badge bg-warning text-dark">Open</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Download Report Modal -->
+    <div class="modal fade" id="downloadReportModal" tabindex="-1" aria-labelledby="downloadReportModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="downloadReportModalLabel">Download Statistics Report</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Select the format for your statistics report:</p>
+                    
+                    <div class="list-group">
+                        <button type="button" class="list-group-item list-group-item-action" id="downloadPdf">
+                            <i class="bi bi-file-earmark-pdf me-2"></i> PDF Report
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action" id="downloadCsv">
+                            <i class="bi bi-file-earmark-excel me-2"></i> CSV Data Export
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action" id="downloadJson">
+                            <i class="bi bi-file-earmark-code me-2"></i> JSON Data Export
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Security Score Trend Chart
+            const scoreCtx = document.getElementById('securityScoreChart').getContext('2d');
+            const securityScoreChart = new Chart(scoreCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                    datasets: [{
+                        label: 'Security Score',
+                        data: [62, 65, 68, 71, 73, 75, 78],
+                        borderColor: '#FF6900',
+                        backgroundColor: 'rgba(255, 105, 0, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#FF6900',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Security Score'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: 'white',
+                            bodyColor: 'white',
+                            bodyFont: {
+                                size: 14
+                            },
+                            padding: 10,
+                            displayColors: false
+                        }
+                    }
+                }
+            });
+            
+            // Scan Activity Chart
+            const activityCtx = document.getElementById('scanActivityChart').getContext('2d');
+            const scanActivityChart = new Chart(activityCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [
+                        {
+                            label: 'Scans Performed',
+                            data: [8, 10, 12, 12],
+                            backgroundColor: 'rgba(255, 105, 0, 0.7)',
+                            borderColor: 'rgba(255, 105, 0, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Vulnerabilities Found',
+                            data: [6, 5, 4, 3],
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Issues Resolved',
+                            data: [4, 3, 3, 2],
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            borderColor: 'rgba(40, 167, 69, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Count'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: 'white',
+                            bodyColor: 'white',
+                            bodyFont: {
+                                size: 14
+                            },
+                            padding: 10
+                        }
+                    }
+                }
+            });
+            
+            // Category Chart
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            const categoryChart = new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Network Security', 'Web Security', 'Email Security', 'System Security'],
+                    datasets: [{
+                        data: [8, 5, 3, 2],
+                        backgroundColor: [
+                            'rgba(255, 105, 0, 0.7)',
+                            'rgba(220, 53, 69, 0.7)',
+                            'rgba(255, 193, 7, 0.7)',
+                            'rgba(40, 167, 69, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 105, 0, 1)',
+                            'rgba(220, 53, 69, 1)',
+                            'rgba(255, 193, 7, 1)',
+                            'rgba(40, 167, 69, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: 'white',
+                            bodyColor: 'white',
+                            bodyFont: {
+                                size: 14
+                            },
+                            padding: 10
+                        }
+                    }
+                }
+            });
+            
+            // Date Range Selector
+            const dateRangeItems = document.querySelectorAll('.date-range-item');
+            dateRangeItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remove active class from all items
+                    dateRangeItems.forEach(item => item.classList.remove('active'));
+                    
+                    // Add active class to clicked item
+                    this.classList.add('active');
+                    
+                    // Get selected range
+                    const range = this.getAttribute('data-range');
+                    console.log(`Selected range: ${range}`);
+                    
+                    // Here you would update the charts with new data based on the selected range
+                    // For example: fetchChartData(range);
+                });
+            });
+            
+            // Download Report Modal
+            const downloadReportModal = new bootstrap.Modal(document.getElementById('downloadReportModal'));
+            
+            document.getElementById('downloadReportBtn').addEventListener('click', function() {
+                downloadReportModal.show();
+            });
+            
+            // Handle Download Buttons
+            document.getElementById('downloadPdf').addEventListener('click', function() {
+                alert('Downloading PDF report...');
+                // Here you would trigger the PDF download
+                downloadReportModal.hide();
+            });
+            
+            document.getElementById('downloadCsv').addEventListener('click', function() {
+                alert('Downloading CSV data...');
+                // Here you would trigger the CSV download
+                downloadReportModal.hide();
+            });
+            
+            document.getElementById('downloadJson').addEventListener('click', function() {
+                alert('Downloading JSON data...');
+                // Here you would trigger the JSON download
+                downloadReportModal.hide();
+            });
+        });
+    </script>
+</body>
+</html>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Apr 28, 2025</td>
+                                    <td>Missing SPF Record</td>
+                                    <td>Email Security</td>
+                                    <td><span class="severity-badge severity-medium">Medium</span></td>
+                                    <td><span class="badge bg-success">Resolved</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
