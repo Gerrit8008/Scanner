@@ -331,7 +331,151 @@
                             </div>
                         </div>
                     </div>
-                    
+                    <!-- Client Scanners Section -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Deployed Scanners</h5>
+                                    <a href="/customize" class="btn btn-sm btn-outline-primary">Create New Scanner</a>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Client</th>
+                                                    <th>Scanner Name</th>
+                                                    <th>Subdomain</th>
+                                                    <th>Status</th>
+                                                    <th>Created Date</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="deployed-scanners-table">
+                                                <!-- This will be populated with data from the server -->
+                                                {% for scanner in deployed_scanners %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="client-logo me-3">{{ scanner.business_name|truncate(2, True, '') }}</div>
+                                                            <div>
+                                                                <div class="fw-bold">{{ scanner.business_name }}</div>
+                                                                <div class="text-muted small">{{ scanner.business_domain }}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>{{ scanner.scanner_name }}</td>
+                                                    <td>
+                                                        <a href="https://{{ scanner.subdomain }}.yourscannerdomain.com" target="_blank">
+                                                            {{ scanner.subdomain }}.yourscannerdomain.com
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge {% if scanner.deploy_status == 'deployed' %}bg-success{% elif scanner.deploy_status == 'pending' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                                            {{ scanner.deploy_status|capitalize }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ scanner.deploy_date|default(scanner.created_at, true) }}</td>
+                                                        <td>
+                                                            <div class="d-flex">
+                                                                <a href="/admin/scanners/{{ scanner.id }}/view" class="client-action" data-bs-toggle="tooltip" title="View Scanner">
+                                                                <i class="bi bi-eye"></i>
+                                                            </a>
+                                                            <a href="/admin/scanners/{{ scanner.id }}/edit" class="client-action" data-bs-toggle="tooltip" title="Edit Scanner">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </a>
+                                                            <a href="/admin/scanners/{{ scanner.id }}/stats" class="client-action" data-bs-toggle="tooltip" title="Scanner Stats">
+                                                                <i class="bi bi-graph-up"></i>
+                                                            </a>
+                                                            <button class="client-action" data-bs-toggle="modal" data-bs-target="#scannerOptionsModal" data-scanner-id="{{ scanner.id }}" title="More Options">
+                                                                <i class="bi bi-three-dots-vertical"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                            
+                                                <!-- Example row (remove this when you connect to the database) -->
+                                                <tr>
+                                                    <td>
+                                                            <div class="d-flex align-items-center">
+                                                            <div class="client-logo me-3">AC</div>
+                                                            <div>
+                                                                <div class="fw-bold">Acme Corporation</div>
+                                                                <div class="text-muted small">acmecorp.com</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>Security Checker</td>
+                                                    <td>
+                                                        <a href="#" target="_blank">
+                                                            acme-corp.yourscannerdomain.com
+                                                        </a>
+                                                    </td>
+                                                    <td><span class="badge bg-success">Deployed</span></td>
+                                                    <td>May 1, 2025</td>
+                                                    <td>
+                                                        <div class="d-flex">
+                                                            <button class="client-action" data-bs-toggle="tooltip" title="View Scanner">
+                                                                <i class="bi bi-eye"></i>
+                                                            </button>
+                                                            <button class="client-action" data-bs-toggle="tooltip" title="Edit Scanner">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button class="client-action" data-bs-toggle="tooltip" title="Scanner Stats">
+                                                                <i class="bi bi-graph-up"></i>
+                                                            </button>
+                                                            <button class="client-action" data-bs-toggle="tooltip" title="More Options">
+                                                                <i class="bi bi-three-dots-vertical"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scanner Options Modal -->
+                    <div class="modal fade" id="scannerOptionsModal" tabindex="-1" aria-labelledby="scannerOptionsModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="scannerOptionsModalLabel">Scanner Options</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="list-group">
+                                        <a href="#" class="list-group-item list-group-item-action" id="viewScannerLink">
+                                            <i class="bi bi-eye me-2"></i> View Scanner Interface
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action" id="editScannerLink">
+                                            <i class="bi bi-pencil me-2"></i> Edit Scanner Configuration
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action" id="regenerateApiKeyLink">
+                                            <i class="bi bi-key me-2"></i> Regenerate API Key
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action" id="scanHistoryLink">
+                                            <i class="bi bi-clock-history me-2"></i> View Scan History
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action" id="downloadConfigLink">
+                                            <i class="bi bi-download me-2"></i> Download Scanner Configuration
+                                        </a>
+                                        <button class="list-group-item list-group-item-action text-danger" id="deactivateScannerBtn">
+                                            <i class="bi bi-slash-circle me-2"></i> Deactivate Scanner
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col-md-5">
                         <div class="card border-0 shadow-sm">
                             <div class="card-header bg-white">
