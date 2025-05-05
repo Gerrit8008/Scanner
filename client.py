@@ -27,7 +27,7 @@ def client_required(f):
         
         if result['status'] != 'success':
             flash('Please log in to access this page', 'danger')
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('auth.login', next=request.url))
         
         # Add user info to kwargs
         kwargs['user'] = result['user']
