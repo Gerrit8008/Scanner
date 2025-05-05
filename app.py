@@ -2491,6 +2491,7 @@ def api_service_inquiry():
 if __name__ == '__main__':
     # Get port from environment variable or use default
     port = int(os.environ.get('PORT', 5000))
+    direct_db_fix()
     
     # Use 0.0.0.0 to make the app accessible from any IP
     app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_ENV') == 'development')
