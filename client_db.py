@@ -288,6 +288,278 @@ def create_user(conn, cursor, username, email, password, role='client', created_
     
     return {"status": "success", "user_id": user_id}
 
+@with_transaction
+def get_deployed_scanners(conn, cursor, page=1, per_page=10, filters=None):
+    """Get list of deployed scanners with pagination and filtering"""
+    offset = (page - 1) * per_page
+    
+    # Start with base query
+    query = '''
+    SELECT ds.*, c.business_name, c.business_domain, c.scanner_name, c.created_at, c.active
+    FROM deployed_scanners ds
+    JOIN clients c ON ds.client_id = c.id
+    '''
+    
+    # Add filter conditions if provided
+    params = []
+    where_clauses = []
+    
+    if filters:
+        if 'status' in filters and filters['status']:
+            where_clauses.append('ds.deploy_status = ?')
+            params.append(filters['status'])
+        
+        if 'search' in filters and filters['search']:
+            search_term = f"%{filters['search']}%"
+            where_clauses.append('(c.business_name LIKE ? OR c.business_domain LIKE ? OR ds.subdomain LIKE ?)')
+            params.extend([search_term, search_term, search_term])
+    
+    # Construct WHERE clause if needed
+    if where_clauses:
+        query += ' WHERE ' + ' AND '.join(where_clauses)
+    
+    # Add order by and pagination
+    query += ' ORDER BY ds.id DESC LIMIT ? OFFSET ?'
+    params.extend([per_page, offset])
+    
+    # Execute query
+    cursor.execute(query, params)
+    scanners = [dict(row) for row in cursor.fetchall()]
+    
+    # Count total records for pagination
+    count_query = 'SELECT COUNT(*) FROM deployed_scanners ds JOIN clients c ON ds.client_id = c.id'
+    if where_clauses:
+        count_query += ' WHERE ' + ' AND '.join(where_clauses)
+    
+    # Remove pagination params and execute count query
+    cursor.execute(count_query, params[:-2] if params else [])
+    total_count = cursor.fetchone()[0]
+    
+    # Calculate pagination info
+    total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+    
+    return {
+        "status": "success",
+        "scanners": scanners,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "total_count": total_count
+        }
+    }
+
+@with_transaction
+def get_scanner_by_id(conn, cursor, scanner_id):
+    """Get scanner details by ID"""
+    cursor.execute('''
+    SELECT ds.*, c.business_name, c.business_domain, c.scanner_name, c.contact_email,
+           c.api_key, c.active, cu.primary_color, cu.secondary_color, cu.logo_path,
+           cu.favicon_path, cu.email_subject, cu.email_intro, cu.default_scans
+    FROM deployed_scanners ds
+    JOIN clients c ON ds.client_id = c.id
+    LEFT JOIN customizations cu ON c.id = cu.client_id
+    WHERE ds.id = ?
+    ''', (scanner_id,))
+    
+    row = cursor.fetchone()
+    
+    if not row:
+        return None
+    
+    # Convert row to dict
+    scanner = dict(row)
+    
+    # Convert default_scans JSON to list
+    if scanner.get('default_scans'):
+        try:
+            scanner['default_scans'] = json.loads(scanner['default_scans'])
+        except:
+            scanner['default_scans'] = []
+    
+    return scanner
+
+@with_transaction
+def update_scanner_config(conn, cursor, scanner_id, scanner_data, user_id):
+    """Update scanner configuration"""
+    # Get scanner details
+    cursor.execute('SELECT client_id FROM deployed_scanners WHERE id = ?', (scanner_id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        return {"status": "error", "message": "Scanner not found"}
+    
+    client_id = row['client_id']
+    
+    # Update client table if scanner_name is provided
+    if 'scanner_name' in scanner_data and scanner_data['scanner_name']:
+        cursor.execute('''
+        UPDATE clients
+        SET scanner_name = ?, updated_at = ?, updated_by = ?
+        WHERE id = ?
+        ''', (scanner_data['scanner_name'], datetime.now().isoformat(), user_id, client_id))
+    
+    # Update customizations table
+    custom_fields = []
+    custom_values = []
+    
+    # Map fields to database columns for customizations table
+    custom_mapping = {
+        'primary_color': 'primary_color',
+        'secondary_color': 'secondary_color',
+        'logo_path': 'logo_path',
+        'favicon_path': 'favicon_path',
+        'email_subject': 'email_subject',
+        'email_intro': 'email_intro'
+    }
+    
+    for key, db_field in custom_mapping.items():
+        if key in scanner_data:
+            custom_fields.append(f"{db_field} = ?")
+            custom_values.append(scanner_data[key])
+    
+    # Handle default_scans separately as it needs to be JSON
+    if 'default_scans' in scanner_data:
+        custom_fields.append("default_scans = ?")
+        custom_values.append(json.dumps(scanner_data['default_scans']))
+    
+    # Always update last_updated and updated_by
+    custom_fields.append("last_updated = ?")
+    custom_values.append(datetime.now().isoformat())
+    custom_fields.append("updated_by = ?")
+    custom_values.append(user_id)
+    
+    # Check if customization record exists
+    cursor.execute('SELECT id FROM customizations WHERE client_id = ?', (client_id,))
+    customization = cursor.fetchone()
+    
+    if customization and custom_fields:
+        # Update existing record
+        query = f'''
+        UPDATE customizations 
+        SET {', '.join(custom_fields)}
+        WHERE client_id = ?
+        '''
+        custom_values.append(client_id)
+        cursor.execute(query, custom_values)
+    elif custom_fields:
+        # Insert new record
+        fields = [db_field for key, db_field in custom_mapping.items() if key in scanner_data]
+        if 'default_scans' in scanner_data:
+            fields.append('default_scans')
+        fields.extend(['client_id', 'last_updated', 'updated_by'])
+        
+        values = custom_values
+        values.append(client_id)
+        values.append(datetime.now().isoformat())
+        values.append(user_id)
+        
+        query = f'''
+        INSERT INTO customizations 
+        ({', '.join(fields)})
+        VALUES ({', '.join(['?'] * len(fields))})
+        '''
+        cursor.execute(query, values)
+    
+    # Update deployed_scanners table
+    cursor.execute('''
+    UPDATE deployed_scanners
+    SET last_updated = ?
+    WHERE id = ?
+    ''', (datetime.now().isoformat(), scanner_id))
+    
+    # Update scanner files
+    from scanner_template import update_scanner
+    update_scanner(client_id, scanner_data)
+    
+    # Log the update
+    log_action(conn, cursor, user_id, 'update', 'scanner', scanner_id, scanner_data)
+    
+    return {"status": "success", "scanner_id": scanner_id}
+
+@with_transaction
+def update_scanner_status(conn, cursor, scanner_id, status, user_id):
+    """Update scanner status"""
+    # Get scanner details
+    cursor.execute('SELECT client_id FROM deployed_scanners WHERE id = ?', (scanner_id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        return {"status": "error", "message": "Scanner not found"}
+    
+    client_id = row['client_id']
+    
+    # Update status
+    cursor.execute('''
+    UPDATE deployed_scanners
+    SET deploy_status = ?, last_updated = ?
+    WHERE id = ?
+    ''', (status, datetime.now().isoformat(), scanner_id))
+    
+    # Also update client active status if needed
+    if status == 'inactive':
+        cursor.execute('''
+        UPDATE clients
+        SET active = 0, updated_at = ?, updated_by = ?
+        WHERE id = ?
+        ''', (datetime.now().isoformat(), user_id, client_id))
+    elif status == 'deployed':
+        cursor.execute('''
+        UPDATE clients
+        SET active = 1, updated_at = ?, updated_by = ?
+        WHERE id = ?
+        ''', (datetime.now().isoformat(), user_id, client_id))
+    
+    # Log the action
+    log_action(conn, cursor, user_id, 'update_status', 'scanner', scanner_id, {'status': status})
+    
+    return {"status": "success"}
+
+@with_transaction
+def regenerate_scanner_api_key(conn, cursor, scanner_id, user_id):
+    """Regenerate API key for a scanner"""
+    # Get scanner details
+    cursor.execute('SELECT client_id FROM deployed_scanners WHERE id = ?', (scanner_id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        return {"status": "error", "message": "Scanner not found"}
+    
+    client_id = row['client_id']
+    
+    # Use existing regenerate_api_key function
+    result = regenerate_api_key(client_id)
+    
+    if result['status'] == 'success':
+        # Log the action
+        log_action(conn, cursor, user_id, 'regenerate_api_key', 'scanner', scanner_id, None)
+    
+    return result
+
+@with_transaction
+def get_scanner_scan_history(conn, cursor, scanner_id, limit=100):
+    """Get scan history for a specific scanner"""
+    # Get client_id from scanner_id
+    cursor.execute('SELECT client_id FROM deployed_scanners WHERE id = ?', (scanner_id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        return []
+    
+    client_id = row['client_id']
+    
+    # Get scan history for this client
+    cursor.execute('''
+    SELECT * FROM scan_history
+    WHERE client_id = ?
+    ORDER BY timestamp DESC
+    LIMIT ?
+    ''', (client_id, limit))
+    
+    scans = [dict(row) for row in cursor.fetchall()]
+    
+    return scans
+
 # Improved authentication with better security
 @with_transaction
 def authenticate_user(conn, cursor, username_or_email, password, ip_address=None):
