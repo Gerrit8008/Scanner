@@ -30,7 +30,8 @@
             <i class="bi bi-exclamation-triangle-fill error-icon"></i>
             <h1>Oops! Something went wrong</h1>
             <p class="lead">{{ message }}</p>
-            {% if current_user.is_authenticated %}
+            <!-- Check if current_user exists and is defined before using it -->
+            {% if current_user is defined and current_user.is_authenticated %}
                 {% if current_user.role == 'admin' %}
                 <a href="{{ url_for('auth.admin_dashboard') }}" class="btn btn-primary mt-4">Return to Dashboard</a>
                 {% else %}
