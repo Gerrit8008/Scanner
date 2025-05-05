@@ -126,6 +126,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(scanner_bp)
+app.register_blueprint(client_bp) 
 
 # Load environment variables
 load_dotenv()
