@@ -32,6 +32,7 @@ from scanner_router import scanner_bp
 from client_db import init_client_db
 from client_db import CLIENT_DB_PATH
 from setup_admin import configure_admin
+from client import client_bp  
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
