@@ -240,9 +240,6 @@ def log_system_info():
     
     logger.info("-----------------------------")
 
-# Initialize app
-app, limiter = create_app()
-
 # Set up logging and log system info
 logger = setup_logging()
 log_system_info()
