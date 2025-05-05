@@ -242,6 +242,195 @@ def client_delete(user, client_id):
     
     return redirect(url_for('admin.client_list'))
 
+
+@admin_bp.route('/scanners')
+@admin_required
+def scanner_list(user):
+    """Scanner management page"""
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    
+    # Get filter parameters
+    filters = {}
+    if 'status' in request.args:
+        filters['status'] = request.args.get('status')
+    if 'search' in request.args:
+        filters['search'] = request.args.get('search')
+    
+    # Get deployed scanners from the database
+    deployed_scanners = get_deployed_scanners(page, per_page, filters)
+    
+    # Render scanner list template
+    return render_template(
+        'admin/scanner-management.html',
+        user=user,
+        deployed_scanners=deployed_scanners['scanners'],
+        pagination=deployed_scanners['pagination'],
+        filters=filters
+    )
+
+@admin_bp.route('/scanners/<int:scanner_id>/view')
+@admin_required
+def scanner_view(user, scanner_id):
+    """View scanner page"""
+    # Get scanner details
+    scanner = get_scanner_by_id(scanner_id)
+    
+    if not scanner:
+        flash('Scanner not found', 'danger')
+        return redirect(url_for('admin.scanner_list'))
+    
+    # Get the client associated with this scanner
+    client = get_client_by_id(scanner['client_id'])
+    
+    if not client:
+        flash('Client associated with this scanner not found', 'danger')
+        return redirect(url_for('admin.scanner_list'))
+    
+    # Render scanner view template
+    return render_template(
+        'admin/scanner-view.html',
+        user=user,
+        scanner=scanner,
+        client=client
+    )
+
+@admin_bp.route('/scanners/<int:scanner_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def scanner_edit(user, scanner_id):
+    """Edit scanner page"""
+    # Get scanner details
+    scanner = get_scanner_by_id(scanner_id)
+    
+    if not scanner:
+        flash('Scanner not found', 'danger')
+        return redirect(url_for('admin.scanner_list'))
+    
+    # Get the client associated with this scanner
+    client = get_client_by_id(scanner['client_id'])
+    
+    if not client:
+        flash('Client associated with this scanner not found', 'danger')
+        return redirect(url_for('admin.scanner_list'))
+    
+    if request.method == 'POST':
+        # Extract form data
+        scanner_data = {
+            'scanner_name': request.form.get('scanner_name'),
+            'primary_color': request.form.get('primary_color'),
+            'secondary_color': request.form.get('secondary_color'),
+            'email_subject': request.form.get('email_subject'),
+            'email_intro': request.form.get('email_intro'),
+            'default_scans': request.form.getlist('default_scans[]')
+        }
+        
+        # Handle file uploads
+        if 'logo' in request.files and request.files['logo'].filename:
+            logo_file = request.files['logo']
+            logo_filename = secure_filename(f"{client['id']}_{logo_file.filename}")
+            logo_path = os.path.join(UPLOAD_FOLDER, logo_filename)
+            logo_file.save(logo_path)
+            scanner_data['logo_path'] = logo_path
+        
+        if 'favicon' in request.files and request.files['favicon'].filename:
+            favicon_file = request.files['favicon']
+            favicon_filename = secure_filename(f"{client['id']}_{favicon_file.filename}")
+            favicon_path = os.path.join(UPLOAD_FOLDER, favicon_filename)
+            favicon_file.save(favicon_path)
+            scanner_data['favicon_path'] = favicon_path
+        
+        # Update scanner
+        result = update_scanner_config(scanner_id, scanner_data, user['user_id'])
+        
+        if result['status'] == 'success':
+            flash('Scanner updated successfully', 'success')
+            return redirect(url_for('admin.scanner_view', scanner_id=scanner_id))
+        else:
+            flash(f'Failed to update scanner: {result.get("message", "Unknown error")}', 'danger')
+    
+    # Render scanner edit form
+    return render_template(
+        'admin/scanner-edit.html',
+        user=user,
+        scanner=scanner,
+        client=client
+    )
+
+@admin_bp.route('/scanners/<int:scanner_id>/stats')
+@admin_required
+def scanner_stats(user, scanner_id):
+    """Scanner statistics page"""
+    # Get scanner details
+    scanner = get_scanner_by_id(scanner_id)
+    
+    if not scanner:
+        flash('Scanner not found', 'danger')
+        return redirect(url_for('admin.scanner_list'))
+    
+    # Get the client associated with this scanner
+    client = get_client_by_id(scanner['client_id'])
+    
+    if not client:
+        flash('Client associated with this scanner not found', 'danger')
+        return redirect(url_for('admin.scanner_list'))
+    
+    # Get scan history for this scanner
+    scan_history = get_scanner_scan_history(scanner_id)
+    
+    # Render scanner stats template
+    return render_template(
+        'admin/scanner-stats.html',
+        user=user,
+        scanner=scanner,
+        client=client,
+        scan_history=scan_history
+    )
+
+@admin_bp.route('/scanners/<int:scanner_id>/regenerate-api-key', methods=['POST'])
+@admin_required
+def scanner_regenerate_api_key(user, scanner_id):
+    """Regenerate scanner API key"""
+    # Get scanner details
+    scanner = get_scanner_by_id(scanner_id)
+    
+    if not scanner:
+        flash('Scanner not found', 'danger')
+        return redirect(url_for('admin.scanner_list'))
+    
+    # Regenerate API key
+    result = regenerate_scanner_api_key(scanner_id, user['user_id'])
+    
+    if result['status'] == 'success':
+        flash('API key regenerated successfully', 'success')
+    else:
+        flash(f'Failed to regenerate API key: {result.get("message", "Unknown error")}', 'danger')
+    
+    return redirect(url_for('admin.scanner_view', scanner_id=scanner_id))
+
+@admin_bp.route('/scanners/<int:scanner_id>/toggle-status', methods=['POST'])
+@admin_required
+def scanner_toggle_status(user, scanner_id):
+    """Toggle scanner active status"""
+    # Get scanner details
+    scanner = get_scanner_by_id(scanner_id)
+    
+    if not scanner:
+        flash('Scanner not found', 'danger')
+        return redirect(url_for('admin.scanner_list'))
+    
+    # Toggle active status
+    new_status = 'inactive' if scanner['deploy_status'] == 'deployed' else 'deployed'
+    result = update_scanner_status(scanner_id, new_status, user['user_id'])
+    
+    if result['status'] == 'success':
+        status_msg = 'deactivated' if new_status == 'inactive' else 'activated'
+        flash(f'Scanner {status_msg} successfully', 'success')
+    else:
+        flash(f'Failed to update scanner status: {result.get("message", "Unknown error")}', 'danger')
+    
+    return redirect(url_for('admin.scanner_list'))
+
 @admin_bp.route('/clients/<int:client_id>/regenerate-api-key', methods=['POST'])
 @admin_required
 def client_regenerate_api_key(user, client_id):
