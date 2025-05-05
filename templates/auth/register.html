@@ -1,0 +1,429 @@
+<!-- templates/auth/register.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Scanner Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .register-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
+        }
+        
+        .register-form {
+            max-width: 500px;
+            width: 100%;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .logo img {
+            max-width: 150px;
+        }
+        
+        .password-strength {
+            height: 5px;
+            transition: all 0.3s ease;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        
+        .weak {
+            background-color: #dc3545;
+            width: 25%;
+        }
+        
+        .medium {
+            background-color: #ffc107;
+            width: 50%;
+        }
+        
+        .strong {
+            background-color: #28a745;
+            width: 75%;
+        }
+        
+        .very-strong {
+            background-color: #28a745;
+            width: 100%;
+        }
+        
+        .required::after {
+            content: "*";
+            color: red;
+            margin-left: 4px;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 0;
+        }
+        
+        footer {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 1.5rem 0;
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="/" class="text-white text-decoration-none">
+                    <h4 class="mb-0">Security Scanner Platform</h4>
+                </a>
+                <div>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light">Login</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="register-container">
+        <div class="container">
+            <div class="register-form mx-auto">
+                <div class="logo">
+                    <img src="/static/images/logo.png" alt="Scanner Platform" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjUwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjEwIiB5PSIzMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE4IiBmaWxsPSIjMzMzMzMzIj5TY2FubmVyIFBsYXRmb3JtPC90ZXh0Pjwvc3ZnPg==';">
+                    <h4>Create Your Account</h4>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <form method="post" action="{{ url_for('auth.register') }}" id="registerForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="username" class="form-label required">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required value="{{ username if username else '' }}">
+                            <div class="form-text" id="usernameHelp">Choose a unique username with at least 3 characters.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label required">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" required value="{{ email if email else '' }}">
+                            <div class="form-text" id="emailHelp">We'll never share your email with anyone else.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name" value="{{ full_name if full_name else '' }}">
+                        <div class="form-text">Optional. Will be used for display purposes.</div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="password" class="form-label required">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="password-strength" id="passwordStrength"></div>
+                            <div class="form-text" id="passwordHelp">Password must be at least 8 characters.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="confirm_password" class="form-label required">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            <div class="form-text" id="confirmPasswordHelp">Please confirm your password.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="termsCheck" name="terms_check" required>
+                        <label class="form-check-label" for="termsCheck">
+                            I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Create Account</button>
+                    
+                    <div class="text-center mt-3">
+                        <p>Already have an account? <a href="{{ url_for('auth.login') }}">Login</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                    <p class="mb-0">&copy; 2025 Security Scanner Platform. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <p class="mb-0">Need help? Contact support@scannerplatform.com</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Terms and Conditions Modal -->
+    <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="termsModalLabel">Terms and Conditions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h4>1. Account Registration</h4>
+                    <p>By registering for an account, you agree to provide accurate and complete information. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
+                    
+                    <h4>2. User Conduct</h4>
+                    <p>You agree to use our services in compliance with all applicable laws and regulations. Unauthorized use or abuse of our service may result in termination of your account without refund.</p>
+                    
+                    <h4>3. Privacy</h4>
+                    <p>We take your privacy seriously. All personal information is handled in accordance with our Privacy Policy. By registering, you consent to the collection and use of your information as described in the Privacy Policy.</p>
+                    
+                    <h4>4. Service Usage</h4>
+                    <p>Our security scanning tools are provided for legitimate security assessment purposes only. You agree not to use these tools for any malicious activities or to gain unauthorized access to systems.</p>
+                    
+                    <h4>5. Changes to Terms</h4>
+                    <p>We reserve the right to modify these terms at any time. Any changes will be effective immediately upon posting the updated terms on our website. Your continued use of our service constitutes acceptance of the updated terms.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Username availability check
+            const usernameField = document.getElementById('username');
+            const usernameHelp = document.getElementById('usernameHelp');
+            
+            usernameField.addEventListener('blur', function() {
+                if (this.value.length >= 3) {
+                    fetch('/auth/api/check-username', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            username: this.value
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.available) {
+                            usernameHelp.innerHTML = '<span class="text-success">Username is available</span>';
+                            usernameField.classList.remove('is-invalid');
+                            usernameField.classList.add('is-valid');
+                        } else {
+                            usernameHelp.innerHTML = '<span class="text-danger">Username is already taken</span>';
+                            usernameField.classList.remove('is-valid');
+                            usernameField.classList.add('is-invalid');
+                        }
+                    });
+                } else {
+                    usernameHelp.textContent = 'Choose a unique username with at least 3 characters.';
+                    usernameField.classList.remove('is-valid', 'is-invalid');
+                }
+            });
+            
+            // Email availability check
+            const emailField = document.getElementById('email');
+            const emailHelp = document.getElementById('emailHelp');
+            
+            emailField.addEventListener('blur', function() {
+                if (this.value) {
+                    fetch('/auth/api/check-email', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: this.value
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.available) {
+                            emailHelp.innerHTML = '<span class="text-success">Email is available</span>';
+                            emailField.classList.remove('is-invalid');
+                            emailField.classList.add('is-valid');
+                        } else {
+                            emailHelp.innerHTML = '<span class="text-danger">Email is already registered</span>';
+                            emailField.classList.remove('is-valid');
+                            emailField.classList.add('is-invalid');
+                        }
+                    });
+                } else {
+                    emailHelp.textContent = "We'll never share your email with anyone else.";
+                    emailField.classList.remove('is-valid', 'is-invalid');
+                }
+            });
+            
+            // Password strength meter
+            const passwordField = document.getElementById('password');
+            const confirmPasswordField = document.getElementById('confirm_password');
+            const passwordStrength = document.getElementById('passwordStrength');
+            const passwordHelp = document.getElementById('passwordHelp');
+            const confirmPasswordHelp = document.getElementById('confirmPasswordHelp');
+            
+            function checkPasswordStrength(password) {
+                // Remove existing classes
+                passwordStrength.className = 'password-strength';
+                
+                if (!password) {
+                    passwordHelp.textContent = 'Password must be at least 8 characters.';
+                    return;
+                }
+                
+                // Check password strength
+                let strength = 0;
+                
+                // Length check
+                if (password.length >= 8) {
+                    strength += 1;
+                }
+                
+                // Contains uppercase
+                if (/[A-Z]/.test(password)) {
+                    strength += 1;
+                }
+                
+                // Contains lowercase
+                if (/[a-z]/.test(password)) {
+                    strength += 1;
+                }
+                
+                // Contains numbers
+                if (/[0-9]/.test(password)) {
+                    strength += 1;
+                }
+                
+                // Contains special characters
+                if (/[^A-Za-z0-9]/.test(password)) {
+                    strength += 1;
+                }
+                
+                // Set strength class
+                if (strength === 1) {
+                    passwordStrength.classList.add('weak');
+                    passwordHelp.innerHTML = '<span class="text-danger">Weak password</span>';
+                } else if (strength === 2) {
+                    passwordStrength.classList.add('medium');
+                    passwordHelp.innerHTML = '<span class="text-warning">Medium password</span>';
+                } else if (strength === 3 || strength === 4) {
+                    passwordStrength.classList.add('strong');
+                    passwordHelp.innerHTML = '<span class="text-success">Strong password</span>';
+                } else if (strength === 5) {
+                    passwordStrength.classList.add('very-strong');
+                    passwordHelp.innerHTML = '<span class="text-success">Very strong password</span>';
+                }
+            }
+            
+            passwordField.addEventListener('input', function() {
+                checkPasswordStrength(this.value);
+                checkPasswordMatch();
+            });
+            
+            // Password match check
+            function checkPasswordMatch() {
+                const password = passwordField.value;
+                const confirmPassword = confirmPasswordField.value;
+                
+                if (!confirmPassword) {
+                    confirmPasswordHelp.textContent = 'Please confirm your password.';
+                    confirmPasswordField.classList.remove('is-valid', 'is-invalid');
+                    return;
+                }
+                
+                if (password === confirmPassword) {
+                    confirmPasswordHelp.innerHTML = '<span class="text-success">Passwords match</span>';
+                    confirmPasswordField.classList.remove('is-invalid');
+                    confirmPasswordField.classList.add('is-valid');
+                } else {
+                    confirmPasswordHelp.innerHTML = '<span class="text-danger">Passwords do not match</span>';
+                    confirmPasswordField.classList.remove('is-valid');
+                    confirmPasswordField.classList.add('is-invalid');
+                }
+            }
+            
+            confirmPasswordField.addEventListener('input', checkPasswordMatch);
+            
+            // Form validation
+            const registerForm = document.getElementById('registerForm');
+            
+            registerForm.addEventListener('submit', function(e) {
+                let isValid = true;
+                
+                // Username validation
+                if (usernameField.value.length < 3) {
+                    usernameHelp.innerHTML = '<span class="text-danger">Username must be at least 3 characters</span>';
+                    usernameField.classList.add('is-invalid');
+                    isValid = false;
+                }
+                
+                // Email validation
+                if (!emailField.value.includes('@')) {
+                    emailHelp.innerHTML = '<span class="text-danger">Please enter a valid email address</span>';
+                    emailField.classList.add('is-invalid');
+                    isValid = false;
+                }
+                
+                // Password validation
+                if (passwordField.value.length < 8) {
+                    passwordHelp.innerHTML = '<span class="text-danger">Password must be at least 8 characters</span>';
+                    passwordField.classList.add('is-invalid');
+                    isValid = false;
+                }
+                
+                // Password match validation
+                if (passwordField.value !== confirmPasswordField.value) {
+                    confirmPasswordHelp.innerHTML = '<span class="text-danger">Passwords do not match</span>';
+                    confirmPasswordField.classList.add('is-invalid');
+                    isValid = false;
+                }
+                
+                // Terms check
+                const termsCheck = document.getElementById('termsCheck');
+                if (!termsCheck.checked) {
+                    isValid = false;
+                }
+                
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
