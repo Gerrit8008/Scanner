@@ -1,0 +1,501 @@
+<!-- templates/client/scanner-edit.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Scanner - Scanner Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .sidebar {
+            background-color: #2c3e50;
+            color: white;
+            min-height: 100vh;
+            padding-top: 2rem;
+        }
+        
+        .sidebar-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-link i {
+            margin-right: 0.75rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .edit-card {
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .edit-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        
+        .form-label.required:after {
+            content: '*';
+            color: #dc3545;
+            margin-left: 0.25rem;
+        }
+        
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            display: inline-block;
+            vertical-align: middle;
+            border: 1px solid #ced4da;
+        }
+        
+        .preview-container {
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            margin-top: 1rem;
+        }
+        
+        .preview-header {
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            text-align: center;
+        }
+        
+        .preview-logo {
+            max-height: 50px;
+            margin: 0 auto;
+            display: block;
+        }
+        
+        .preview-button {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .file-preview {
+            max-width: 100%;
+            max-height: 100px;
+            margin-top: 0.5rem;
+        }
+        
+        .progress {
+            height: 5px;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 p-0 sidebar">
+                <div class="text-center mb-4">
+                    <h4>Scanner Platform</h4>
+                    <p class="mb-0 small">Client Portal</p>
+                </div>
+                
+                <div class="px-3">
+                    <a href="/client/dashboard" class="sidebar-link">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="/client/scanners" class="sidebar-link active">
+                        <i class="bi bi-shield-check"></i> My Scanners
+                    </a>
+                    <a href="/client/reports" class="sidebar-link">
+                        <i class="bi bi-file-earmark-text"></i> Scan Reports
+                    </a>
+                    <a href="/client/settings" class="sidebar-link">
+                        <i class="bi bi-gear"></i> Settings
+                    </a>
+                    
+                    <hr class="my-4">
+                    
+                    <a href="/logout" class="sidebar-link text-danger">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>Edit Scanner</h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                <li class="breadcrumb-item"><a href="/client/dashboard">Dashboard</a></li>
+                                <li class="breadcrumb-item"><a href="/client/scanners">Scanners</a></li>
+                                <li class="breadcrumb-item"><a href="/client/scanners/{{ scanner.id }}/view">{{ scanner.scanner_name|default('Scanner Details') }}</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Edit</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <div>
+                        <a href="/client/scanners/{{ scanner.id }}/view" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Scanner
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <form method="post" action="/client/scanners/{{ scanner.id }}/edit" enctype="multipart/form-data" id="scannerEditForm">
+                    <!-- Basic Information Card -->
+                    <div class="card edit-card mb-4">
+                        <div class="card-header">
+                            <h4 class="mb-0"><i class="bi bi-info-circle me-2"></i>Basic Information</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="scannerName" class="form-label required">Scanner Name</label>
+                                    <input type="text" class="form-control" id="scannerName" name="scanner_name" value="{{ scanner.scanner_name|default('Security Scanner') }}" required>
+                                    <div class="form-text">This name will appear in the scanner interface and reports.</div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="businessDomain" class="form-label required">Business Domain</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">https://</span>
+                                        <input type="text" class="form-control" id="businessDomain" name="business_domain" value="{{ scanner.business_domain|default('example.com') }}" required>
+                                    </div>
+                                    <div class="form-text">The primary domain that will be scanned by default.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="contactEmail" class="form-label required">Contact Email</label>
+                                    <input type="email" class="form-control" id="contactEmail" name="contact_email" value="{{ scanner.contact_email|default('contact@example.com') }}" required>
+                                    <div class="form-text">Email used for scanner notifications and reports.</div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="contactPhone" class="form-label">Contact Phone</label>
+                                    <input type="tel" class="form-control" id="contactPhone" name="contact_phone" value="{{ scanner.contact_phone|default('') }}">
+                                    <div class="form-text">Optional phone number for account notifications.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Branding Card -->
+                    <div class="card edit-card mb-4">
+                        <div class="card-header">
+                            <h4 class="mb-0"><i class="bi bi-palette me-2"></i>Branding</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <div class="col-md-6 mb-3">
+                                    <label for="primaryColor" class="form-label">Primary Color</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="primaryColor" name="primary_color" value="{{ scanner.primary_color|default('#FF6900') }}">
+                                        <input type="text" class="form-control" id="primaryColorHex" value="{{ scanner.primary_color|default('#FF6900') }}">
+                                    </div>
+                                    <div class="form-text">This color will be used for buttons, headers, and other primary elements.</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="secondaryColor" class="form-label">Secondary Color</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="secondaryColor" name="secondary_color" value="{{ scanner.secondary_color|default('#808588') }}">
+                                        <input type="text" class="form-control" id="secondaryColorHex" value="{{ scanner.secondary_color|default('#808588') }}">
+                                    </div>
+                                    <div class="form-text">This color will be used for secondary elements and accents.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6 mb-3">
+                                    <label for="logoUpload" class="form-label">Company Logo</label>
+                                    <input type="file" class="form-control" id="logoUpload" name="logo" accept="image/*">
+                                    <div class="form-text">Recommended size: 200px × 50px. PNG or SVG with transparent background preferred.</div>
+                                    
+                                    {% if scanner.logo_path %}
+                                    <div class="mt-2">
+                                        <label>Current Logo:</label>
+                                        <div>
+                                            <img src="{{ scanner.logo_path }}" alt="Current Logo" class="file-preview">
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div id="logoPreviewContainer" class="mt-2" style="display: none;">
+                                        <label>New Logo Preview:</label>
+                                        <div>
+                                            <img id="logoPreview" class="file-preview">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="faviconUpload" class="form-label">Favicon</label>
+                                    <input type="file" class="form-control" id="faviconUpload" name="favicon" accept="image/*">
+                                    <div class="form-text">Recommended size: 32px × 32px. ICO, PNG, or SVG format.</div>
+                                    
+                                    {% if scanner.favicon_path %}
+                                    <div class="mt-2">
+                                        <label>Current Favicon:</label>
+                                        <div>
+                                            <img src="{{ scanner.favicon_path }}" alt="Current Favicon" class="file-preview" style="max-height: 32px;">
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div id="faviconPreviewContainer" class="mt-2" style="display: none;">
+                                        <label>New Favicon Preview:</label>
+                                        <div>
+                                            <img id="faviconPreview" class="file-preview" style="max-height: 32px;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <h5>Live Preview</h5>
+                                    <div class="preview-container">
+                                        <div class="preview-header" id="previewHeader" style="background-color: {{ scanner.secondary_color|default('#808588') }};">
+                                            <img src="{{ scanner.logo_path|default('/static/images/logo.png') }}" alt="Logo Preview" class="preview-logo" id="previewLogo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjUwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjEwIiB5PSIzMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE4IiBmaWxsPSJ3aGl0ZSI+Q2xpZW50IExvZ288L3RleHQ+PC9zdmc+'; this.style.maxWidth='150px';">
+                                        </div>
+                                        <div class="text-center my-4">
+                                            <div class="preview-button" id="previewButton" style="background-color: {{ scanner.primary_color|default('#FF6900') }};">
+                                                Start Security Scan
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Email Settings Card -->
+                    <div class="card edit-card mb-4">
+                        <div class="card-header">
+                            <h4 class="mb-0"><i class="bi bi-envelope me-2"></i>Email Settings</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="emailSubject" class="form-label">Email Subject</label>
+                                <input type="text" class="form-control" id="emailSubject" name="email_subject" value="{{ scanner.email_subject|default('Your Security Scan Report') }}">
+                                <div class="form-text">The subject line for emails sent with scan reports.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="emailIntro" class="form-label">Email Introduction</label>
+                                <textarea class="form-control" id="emailIntro" name="email_intro" rows="3">{{ scanner.email_intro|default('Thank you for using our security scanner. Please find your detailed report attached.') }}</textarea>
+                                <div class="form-text">This text will appear at the beginning of report emails.</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Scan Options Card -->
+                    <div class="card edit-card mb-4">
+                        <div class="card-header">
+                            <h4 class="mb-0"><i class="bi bi-gear me-2"></i>Scan Options</h4>
+                        </div>
+                        <div class="card-body">
+                            <p>Select which security scans should be enabled by default:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="networkScan" name="default_scans[]" value="network" 
+                                        {% if scanner.default_scans and 'network' in scanner.default_scans %}checked{% endif %} checked>
+                                        <label class="form-check-label" for="networkScan">
+                                            <strong>Network Vulnerabilities</strong>
+                                        </label>
+                                    </div>
+                                    <p class="text-muted small ms-4">Open ports, misconfigured services, outdated protocols</p>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="webScan" name="default_scans[]" value="web" 
+                                        {% if scanner.default_scans and 'web' in scanner.default_scans %}checked{% endif %} checked>
+                                        <label class="form-check-label" for="webScan">
+                                            <strong>Web Application Vulnerabilities</strong>
+                                        </label>
+                                    </div>
+                                    <p class="text-muted small ms-4">XSS, SQL injection, CSRF, insecure configurations</p>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="emailScan" name="default_scans[]" value="email" 
+                                        {% if scanner.default_scans and 'email' in scanner.default_scans %}checked{% endif %} checked>
+                                        <label class="form-check-label" for="emailScan">
+                                            <strong>Email Security</strong>
+                                        </label>
+                                    </div>
+                                    <p class="text-muted small ms-4">SPF, DKIM, DMARC, email spoofing protection</p>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="systemScan" name="default_scans[]" value="system" 
+                                        {% if scanner.default_scans and 'system' in scanner.default_scans %}checked{% endif %} checked>
+                                        <label class="form-check-label" for="systemScan">
+                                            <strong>System Security</strong>
+                                        </label>
+                                    </div>
+                                    <p class="text-muted small ms-4">OS updates, firewall configuration, system protections</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3 mt-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sslScan" name="default_scans[]" value="ssl" 
+                                    {% if scanner.default_scans and 'ssl' in scanner.default_scans %}checked{% endif %} checked>
+                                    <label class="form-check-label" for="sslScan">
+                                        <strong>SSL/TLS Configuration</strong>
+                                    </label>
+                                </div>
+                                <p class="text-muted small ms-4">Certificate verification, protocol vulnerabilities, cipher suite analysis</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Buttons -->
+                    <div class="d-flex justify-content-between mb-4">
+                        <a href="/client/scanners/{{ scanner.id }}/view" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </a>
+                        <div>
+                            <button type="submit" class="btn btn-primary" id="saveChangesBtn">
+                                <i class="bi bi-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Color picker synchronization
+            const primaryColor = document.getElementById('primaryColor');
+            const secondaryColor = document.getElementById('secondaryColor');
+            const primaryColorHex = document.getElementById('primaryColorHex');
+            const secondaryColorHex = document.getElementById('secondaryColorHex');
+            const previewButton = document.getElementById('previewButton');
+            const previewHeader = document.getElementById('previewHeader');
+            
+            // Update hex input when color picker changes
+            primaryColor.addEventListener('input', function() {
+                primaryColorHex.value = this.value;
+                previewButton.style.backgroundColor = this.value;
+            });
+            
+            secondaryColor.addEventListener('input', function() {
+                secondaryColorHex.value = this.value;
+                previewHeader.style.backgroundColor = this.value;
+            });
+            
+            // Update color picker when hex input changes
+            primaryColorHex.addEventListener('input', function() {
+                primaryColor.value = this.value;
+                previewButton.style.backgroundColor = this.value;
+            });
+            
+            secondaryColorHex.addEventListener('input', function() {
+                secondaryColor.value = this.value;
+                previewHeader.style.backgroundColor = this.value;
+            });
+            
+            // Logo preview
+            const logoUpload = document.getElementById('logoUpload');
+            const logoPreview = document.getElementById('logoPreview');
+            const logoPreviewContainer = document.getElementById('logoPreviewContainer');
+            const previewLogo = document.getElementById('previewLogo');
+            
+            logoUpload.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        logoPreview.src = e.target.result;
+                        logoPreviewContainer.style.display = 'block';
+                        previewLogo.src = e.target.result;
+                    }
+                    
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+            
+            // Favicon preview
+            const faviconUpload = document.getElementById('faviconUpload');
+            const faviconPreview = document.getElementById('faviconPreview');
+            const faviconPreviewContainer = document.getElementById('faviconPreviewContainer');
+            
+            faviconUpload.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        faviconPreview.src = e.target.result;
+                        faviconPreviewContainer.style.display = 'block';
+                    }
+                    
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+            
+            // Form submission with loading state
+            const scannerEditForm = document.getElementById('scannerEditForm');
+            const saveChangesBtn = document.getElementById('saveChangesBtn');
+            
+            scannerEditForm.addEventListener('submit', function(e) {
+                // Show loading state
+                saveChangesBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                saveChangesBtn.disabled = true;
+                
+                // Form will submit normally
+            });
+        });
+    </script>
+</body>
+</html>
