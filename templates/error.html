@@ -30,7 +30,15 @@
             <i class="bi bi-exclamation-triangle-fill error-icon"></i>
             <h1>Oops! Something went wrong</h1>
             <p class="lead">{{ message }}</p>
-            <a href="{{ url_for('client.dashboard') }}" class="btn btn-primary">Return to Dashboard</a>
+            {% if current_user.is_authenticated %}
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('auth.admin_dashboard') }}" class="btn btn-primary mt-4">Return to Dashboard</a>
+                {% else %}
+                <a href="{{ url_for('client.dashboard') }}" class="btn btn-primary mt-4">Return to Dashboard</a>
+                {% endif %}
+            {% else %}
+                <a href="{{ url_for('index') }}" class="btn btn-primary mt-4">Return to Home</a>
+            {% endif %}
         </div>
     </div>
     
