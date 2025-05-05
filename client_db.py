@@ -181,6 +181,30 @@ CREATE INDEX IF NOT EXISTS idx_clients_api_key ON clients(api_key);
 CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(session_token);
 """
 
+def get_client_by_user_id(user_id):
+    """Get client details by user ID"""
+    try:
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Query to get client by user_id
+        cursor.execute('''
+            SELECT * FROM clients
+            WHERE user_id = ?
+        ''', (user_id,))
+        
+        client = cursor.fetchone()
+        conn.close()
+        
+        if client:
+            return dict(client)
+        else:
+            return None
+    except Exception as e:
+        logging.error(f"Error retrieving client by user ID: {e}")
+        return None
+        
 # Helper function for database transactions
 def with_transaction(func):
     """Decorator for database transactions with proper error handling"""
