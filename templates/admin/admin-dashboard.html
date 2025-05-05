@@ -274,6 +274,219 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- User Activity Section -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-8">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">User Activity</h5>
+                                <a href="{{ url_for('auth.admin_users') }}" class="btn btn-sm btn-outline-primary">Manage Users</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 250px;">
+                                    <canvas id="userActivityChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0">User Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 250px;">
+                                    <canvas id="userDistributionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Logins -->
+                <div class="row g-4 mb-4">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0">Recent Logins</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>User</th>
+                                                <th>Email</th>
+                                                <th>Role</th>
+                                                <th>IP Address</th>
+                                                <th>Time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recentLoginsTable">
+                                            <tr>
+                                                    <td colspan="5" class="text-center py-3">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Loading...</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                    <!-- Add this to your existing JavaScript -->
+                    <script>
+                        // Function to format date
+                    function formatDate(dateString) {
+                            const date = new Date(dateString);
+                        return date.toLocaleString();
+                        }
+    
+                        // Function to get user login statistics
+                    function fetchLoginStats() {
+                        fetch('/auth/api/login-stats')
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    const stats = data.data;
+                        
+                                    // Update user activity chart
+                                    const userActivityCtx = document.getElementById('userActivityChart').getContext('2d');
+                                    const userActivityChart = new Chart(userActivityCtx, {
+                                        type: 'bar',
+                                        data: {
+                                        labels: ['Today', 'This Week', 'This Month'],
+                                            datasets: [{
+                                                label: 'Logins',
+                                                data: [stats.logins_today, stats.logins_week, stats.logins_month],
+                                                backgroundColor: [
+                                                    'rgba(255, 105, 0, 0.6)',
+                                                    'rgba(255, 105, 0, 0.4)',
+                                                    'rgba(255, 105, 0, 0.2)'
+                                                ],
+                                                borderColor: [
+                                                    'rgba(255, 105, 0, 1)',
+                                                    'rgba(255, 105, 0, 1)',
+                                                    'rgba(255, 105, 0, 1)'
+                                                ],
+                                                borderWidth: 1
+                                            }, {
+                                                label: 'New Users',
+                                                data: [0, stats.new_users_week, stats.new_users_month],
+                                                backgroundColor: [
+                                                    'rgba(52, 152, 219, 0.6)',
+                                                    'rgba(52, 152, 219, 0.4)',
+                                                    'rgba(52, 152, 219, 0.2)'
+                                                ],
+                                                borderColor: [
+                                                    'rgba(52, 152, 219, 1)',
+                                                    'rgba(52, 152, 219, 1)',
+                                                    'rgba(52, 152, 219, 1)'
+                                                ],
+                                                borderWidth: 1
+                                                }]
+                                            },
+                                        options: {
+                                            responsive: true,
+                                            maintainAspectRatio: false,
+                                            scales: {
+                                                y: {
+                                                    beginAtZero: true,
+                                                    grid: {
+                                                        drawBorder: false
+                                                    }
+                                                },
+                                                x: {
+                                                    grid: {
+                                                        display: false
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+                    
+                                    // Update user distribution chart
+                                    const userDistributionCtx = document.getElementById('userDistributionChart').getContext('2d');
+                    
+                                    // Prepare data from user_roles
+                                    const roleLabels = Object.keys(stats.user_roles).map(role => role.charAt(0).toUpperCase() + role.slice(1));
+                                    const roleData = Object.values(stats.user_roles);
+                    
+                                    const userDistributionChart = new Chart(userDistributionCtx, {
+                                        type: 'doughnut',
+                                        data: {
+                                            labels: roleLabels,
+                                            datasets: [{
+                                                data: roleData,
+                                                backgroundColor: [
+                                                    'rgba(52, 152, 219, 0.8)',
+                                                    'rgba(255, 105, 0, 0.8)',
+                                                    'rgba(46, 204, 113, 0.8)',
+                                                    'rgba(155, 89, 182, 0.8)'
+                                                ],
+                                                borderWidth: 0
+                                            }]
+                                            },
+                                        options: {
+                                            responsive: true,
+                                            maintainAspectRatio: false,
+                                            cutout: '70%',
+                                            plugins: {
+                                                legend: {
+                                                    position: 'bottom'
+                                                }
+                                            }
+                                        }
+                                    });
+                    
+                                    // Update recent logins table
+                                    const recentLoginsTable = document.getElementById('recentLoginsTable');
+                                    recentLoginsTable.innerHTML = '';
+                    
+                                    if (stats.recent_logins && stats.recent_logins.length) {
+                                        stats.recent_logins.forEach(login => {
+                                            const row = document.createElement('tr');
+                            
+                                            row.innerHTML = `
+                                                <td>${login.username}</td>
+                                                <td>${login.email}</td>
+                                                <td><span class="badge ${login.role === 'admin' ? 'bg-dark' : 'bg-info'}">${login.role}</span></td>
+                                                <td>${login.ip_address || 'Unknown'}</td>
+                                                <td>${formatDate(login.created_at)}</td>
+                                            `;
+                            
+                                            recentLoginsTable.appendChild(row);
+                                        });
+                                    } else {
+                                        recentLoginsTable.innerHTML = `
+                                            <tr>
+                                                <td colspan="5" class="text-center py-3">No recent login activity</td>
+                                            </tr>
+                                        `;
+                                    }
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching login statistics:', error);
+                                document.getElementById('recentLoginsTable').innerHTML = `
+                                    <tr>
+                                        <td colspan="5" class="text-center py-3">Error loading login data</td>
+                                    </tr>
+                                `;
+                            });
+                    }
+    
+                    // Load login statistics when the page loads
+                    document.addEventListener('DOMContentLoaded', function() {
+                        fetchLoginStats();
+                    });
+
                 
                 <!-- Recent Clients & Activity -->
                 <div class="row g-4 mb-4">
