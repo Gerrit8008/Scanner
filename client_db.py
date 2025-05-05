@@ -461,38 +461,66 @@ def init_client_db(conn, cursor):
 def init_db():
     """Initialize the database with schema and ensure columns exist"""
     try:
-        # Initialize from schema file
-        with open('schema.sql', 'r') as f:
-            schema = f.read()
+        # Check if the schema.sql file exists
+        if os.path.exists('schema.sql'):
+            logging.info("Initializing database from schema.sql...")
+            
+            # Initialize from schema file
+            with open('schema.sql', 'r') as f:
+                schema = f.read()
+            
+            conn = sqlite3.connect(CLIENT_DB_PATH)
+            conn.executescript(schema)
+            conn.commit()
+            logging.info("Schema executed successfully")
+        else:
+            # If schema file doesn't exist, try to run the init_client_db function
+            logging.info("No schema.sql found, initializing from client_db code...")
+            result = init_client_db()
+            if result and isinstance(result, dict) and result.get("status") == "success":
+                logging.info("Database initialized successfully from client_db")
+            else:
+                logging.info("Database initialization completed from client_db")
         
-        conn = sqlite3.connect(CLIENT_DB_PATH)  # Use CLIENT_DB_PATH instead of DATABASE_PATH
-        conn.executescript(schema)
-        conn.commit()
-        
-        # Now check for and add the full_name column if needed
+        # Now check if the users table exists before trying to add columns
+        conn = sqlite3.connect(CLIENT_DB_PATH)
         cursor = conn.cursor()
         
-        # Check if the full_name column exists
-        cursor.execute("PRAGMA table_info(users)")
-        columns = cursor.fetchall()
-        column_names = [column[1] for column in columns]
+        # Check if users table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        users_table_exists = cursor.fetchone() is not None
         
-        if 'full_name' not in column_names:
-            logging.info("Adding 'full_name' column to users table...")
-            cursor.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
-            conn.commit()
-            logging.info("'full_name' column added successfully")
+        if users_table_exists:
+            # Check if the full_name column exists
+            cursor.execute("PRAGMA table_info(users)")
+            columns = cursor.fetchall()
+            column_names = [column[1] for column in columns]
+            
+            if 'full_name' not in column_names:
+                logging.info("Adding 'full_name' column to users table...")
+                cursor.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
+                conn.commit()
+                logging.info("'full_name' column added successfully")
+        else:
+            logging.info("Users table doesn't exist yet - skipping column check")
         
-        # Check if the user_id column exists in clients table
-        cursor.execute("PRAGMA table_info(clients)")
-        columns = cursor.fetchall()
-        column_names = [column[1] for column in columns]
+        # Check if clients table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='clients'")
+        clients_table_exists = cursor.fetchone() is not None
         
-        if 'user_id' not in column_names:
-            logging.info("Adding 'user_id' column to clients table...")
-            cursor.execute("ALTER TABLE clients ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE")
-            conn.commit()
-            logging.info("'user_id' column added successfully")
+        if clients_table_exists:
+            # Check if the user_id column exists in clients table
+            cursor.execute("PRAGMA table_info(clients)")
+            columns = cursor.fetchall()
+            column_names = [column[1] for column in columns]
+            
+            if 'user_id' not in column_names:
+                logging.info("Adding 'user_id' column to clients table...")
+                cursor.execute("ALTER TABLE clients ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE")
+                conn.commit()
+                logging.info("'user_id' column added successfully")
+        else:
+            logging.info("Clients table doesn't exist yet - skipping column check")
         
         conn.close()
         logging.info("Database initialization completed")
@@ -501,7 +529,6 @@ def init_db():
         logging.error(f"Error initializing database: {e}")
         logging.debug(traceback.format_exc())
         return False
-
 def ensure_full_name_column():
     """Ensure the full_name column exists in the users table"""
     try:
