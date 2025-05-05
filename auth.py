@@ -30,11 +30,11 @@ def login():
             session['username'] = result['username']
             session['role'] = result['role']
             
-            # Redirect to appropriate dashboard
+            # Redirect to appropriate dashboard based on role
             if result['role'] == 'admin':
                 return redirect(url_for('admin.dashboard'))
             else:
-                return redirect(url_for('client.dashboard'))
+                return redirect(url_for('client.dashboard'))  # We need to create this route
         else:
             return render_template('admin/login.html', error=result['message'])
     
