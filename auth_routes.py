@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 import os
 import logging
 from datetime import datetime
+from flask import Blueprint
 
 # Import enhanced authentication functions
 from auth_helper import (
