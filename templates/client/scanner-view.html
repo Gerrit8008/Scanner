@@ -1,0 +1,638 @@
+<!-- templates/client/scanner-view.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Details - Scanner Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .sidebar {
+            background-color: #2c3e50;
+            color: white;
+            min-height: 100vh;
+            padding-top: 2rem;
+        }
+        
+        .sidebar-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-link i {
+            margin-right: 0.75rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .detail-card {
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .detail-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        
+        .status-badge {
+            padding: 0.35em 0.65em;
+            border-radius: 0.25rem;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-deployed {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+        
+        .api-key-container {
+            position: relative;
+        }
+        
+        .copy-button {
+            position: absolute;
+            right: 0;
+            top: 0;
+            border: none;
+            background: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        
+        .copy-button:hover {
+            color: var(--primary-color);
+        }
+        
+        .scanner-action {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            color: #6c757d;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .scanner-action:hover {
+            background-color: rgba(0,0,0,0.05);
+            color: var(--primary-color);
+        }
+        
+        .stats-circle {
+            width: 6rem;
+            height: 6rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem auto;
+            background-color: #f8f9fa;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .color-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        .scanner-embed-code {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .scan-option-badge {
+            display: inline-block;
+            padding: 0.35em 0.65em;
+            border-radius: 0.25rem;
+            font-size: 0.75em;
+            background-color: #e9ecef;
+            color: #495057;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .qr-code-container {
+            text-align: center;
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 p-0 sidebar">
+                <div class="text-center mb-4">
+                    <h4>Scanner Platform</h4>
+                    <p class="mb-0 small">Client Portal</p>
+                </div>
+                
+                <div class="px-3">
+                    <a href="/client/dashboard" class="sidebar-link">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="/client/scanners" class="sidebar-link active">
+                        <i class="bi bi-shield-check"></i> My Scanners
+                    </a>
+                    <a href="/client/reports" class="sidebar-link">
+                        <i class="bi bi-file-earmark-text"></i> Scan Reports
+                    </a>
+                    <a href="/client/settings" class="sidebar-link">
+                        <i class="bi bi-gear"></i> Settings
+                    </a>
+                    
+                    <hr class="my-4">
+                    
+                    <a href="/logout" class="sidebar-link text-danger">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>Scanner Details</h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                <li class="breadcrumb-item"><a href="/client/dashboard">Dashboard</a></li>
+                                <li class="breadcrumb-item"><a href="/client/scanners">Scanners</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">{{ scanner.scanner_name|default('Scanner Details') }}</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <div>
+                        <a href="/client/scanners/{{ scanner.id }}/edit" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-pencil me-2"></i>Edit Scanner
+                        </a>
+                        <a href="{{ scanner.scanner_url|default('https://' ~ scanner.subdomain ~ '.yourscannerdomain.com') }}" target="_blank" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-up-right me-2"></i>Open Scanner
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Scanner Status Card -->
+                <div class="card detail-card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="bi bi-info-circle me-2"></i>Scanner Status</h4>
+                        <span class="status-badge {% if scanner.deploy_status == 'deployed' %}status-deployed{% elif scanner.deploy_status == 'pending' %}status-pending{% else %}status-inactive{% endif %}">
+                            {{ scanner.deploy_status|default('deployed')|title }}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Scanner Name:</strong> {{ scanner.scanner_name|default('Security Scanner') }}</p>
+                                <p><strong>Deployment URL:</strong> <a href="{{ scanner.scanner_url|default('https://' ~ scanner.subdomain ~ '.yourscannerdomain.com') }}" target="_blank">{{ scanner.subdomain|default('subdomain') }}.yourscannerdomain.com</a></p>
+                                <p><strong>Created:</strong> {{ scanner.deploy_date|default(scanner.created_at|default('May 1, 2025')) }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Status:</strong> 
+                                    <span class="status-badge {% if scanner.deploy_status == 'deployed' %}status-deployed{% elif scanner.deploy_status == 'pending' %}status-pending{% else %}status-inactive{% endif %}">
+                                        {{ scanner.deploy_status|default('deployed')|title }}
+                                    </span>
+                                </p>
+                                <p><strong>Last Updated:</strong> {{ scanner.last_updated|default('May 1, 2025') }}</p>
+                                <p><strong>Scanner Type:</strong> {{ scanner.scanner_type|default('Comprehensive Security Scanner') }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <!-- API Key Card -->
+                    <div class="col-lg-6">
+                        <div class="card detail-card h-100">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="bi bi-key me-2"></i>API Key</h4>
+                            </div>
+                            <div class="card-body">
+                                <p>Use this API key to authenticate API requests to your scanner.</p>
+                                
+                                <div class="mb-4">
+                                    <label for="apiKey" class="form-label">Scanner API Key</label>
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control" id="apiKey" value="{{ scanner.api_key|default('ac7d8e1f-23b5-4e7d-9a8c-5f2e3d1b4c7a') }}" readonly>
+                                        <button class="btn btn-outline-secondary" type="button" id="copyApiKey" data-bs-toggle="tooltip" title="Copy API Key">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                    <strong>Keep this key secure.</strong> Anyone with this key can access your scanner API.
+                                </div>
+                                
+                                <form action="/client/scanners/{{ scanner.id }}/regenerate-api-key" method="post" id="regenerateApiKeyForm">
+                                    <button type="button" class="btn btn-warning" id="regenerateApiKeyBtn">
+                                        <i class="bi bi-arrow-repeat me-2"></i>Regenerate API Key
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Stats Card -->
+                    <div class="col-lg-6">
+                        <div class="card detail-card h-100">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="bi bi-graph-up me-2"></i>Quick Stats</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <div class="stats-circle">{{ scanner.total_scans|default('24') }}</div>
+                                        <h5>Total Scans</h5>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stats-circle">{{ scanner.issues_detected|default('8') }}</div>
+                                        <h5>Issues Detected</h5>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stats-circle">{{ scanner.last_7_days|default('5') }}</div>
+                                        <h5>Last 7 Days</h5>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center mt-3">
+                                    <a href="/client/scanners/{{ scanner.id }}/stats" class="btn btn-outline-primary">
+                                        <i class="bi bi-bar-chart me-2"></i>View Detailed Statistics
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Branding and Customization -->
+                <div class="card detail-card mt-4">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="bi bi-palette me-2"></i>Branding and Customization</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <h5>Colors</h5>
+                                <div class="mb-3">
+                                    <strong>Primary Color:</strong>
+                                    <div class="color-box" style="background-color: {{ scanner.primary_color|default('#FF6900') }};"></div>
+                                    <code>{{ scanner.primary_color|default('#FF6900') }}</code>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Secondary Color:</strong>
+                                    <div class="color-box" style="background-color: {{ scanner.secondary_color|default('#808588') }};"></div>
+                                    <code>{{ scanner.secondary_color|default('#808588') }}</code>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <h5>Branding Assets</h5>
+                                <div class="mb-3">
+                                    <strong>Logo:</strong>
+                                    {% if scanner.logo_path %}
+                                        <img src="{{ scanner.logo_path }}" alt="Scanner Logo" class="img-thumbnail ms-2" style="max-height: 50px;">
+                                    {% else %}
+                                        <span class="text-muted ms-2">Default logo used</span>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Favicon:</strong>
+                                    {% if scanner.favicon_path %}
+                                        <img src="{{ scanner.favicon_path }}" alt="Scanner Favicon" class="img-thumbnail ms-2" style="max-height: 32px;">
+                                    {% else %}
+                                        <span class="text-muted ms-2">Default favicon used</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <h5>Email Settings</h5>
+                                <p><strong>Email Subject:</strong> {{ scanner.email_subject|default('Your Security Scan Report') }}</p>
+                                <p><strong>Email Introduction:</strong></p>
+                                <p class="small text-muted">{{ scanner.email_intro|default('Thank you for using our security scanner. Please find your detailed report attached.') }}</p>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <h5>Default Scan Options</h5>
+                                <div>
+                                    {% if scanner.default_scans %}
+                                        {% for scan in scanner.default_scans %}
+                                            <span class="scan-option-badge">{{ scan|title }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="scan-option-badge">Network</span>
+                                        <span class="scan-option-badge">Web</span>
+                                        <span class="scan-option-badge">Email</span>
+                                        <span class="scan-option-badge">System</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Integration Card -->
+                <div class="card detail-card mt-4">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="bi bi-code-slash me-2"></i>Integration Options</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-6 mb-4">
+                                <h5>Embed Scanner Button</h5>
+                                <p>Add this HTML code to your website to embed a scanner button:</p>
+                                
+                                <div class="scanner-embed-code">
+&lt;a href="https://{{ scanner.subdomain|default('subdomain') }}.yourscannerdomain.com" 
+   target="_blank" 
+   style="display: inline-block; 
+          padding: 10px 20px; 
+          background-color: {{ scanner.primary_color|default('#FF6900') }}; 
+          color: white; 
+          text-decoration: none; 
+          border-radius: 5px; 
+          font-weight: bold;"&gt;
+    Run Security Scan
+&lt;/a&gt;</div>
+                                
+                                <button class="btn btn-sm btn-outline-secondary" id="copyEmbedCode">
+                                    <i class="bi bi-clipboard me-2"></i>Copy Code
+                                </button>
+                            </div>
+                            
+                            <div class="col-lg-6 mb-4">
+                                <h5>Scanner QR Code</h5>
+                                <p>Share this QR code to allow quick access to your scanner:</p>
+                                
+                                <div class="qr-code-container">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://{{ scanner.subdomain|default('subdomain') }}.yourscannerdomain.com" alt="Scanner QR Code">
+                                    <div class="mt-2">
+                                        <a href="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://{{ scanner.subdomain|default('subdomain') }}.yourscannerdomain.com" class="btn btn-sm btn-outline-primary" download="scanner-qr-code.png">
+                                            <i class="bi bi-download me-2"></i>Download
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-2">
+                            <h5>API Integration</h5>
+                            <p>Use our API to integrate the scanner with your existing applications:</p>
+                            
+                            <div class="scanner-embed-code">
+# Example Python code to start a scan
+import requests
+
+api_key = "{{ scanner.api_key|default('ac7d8e1f-23b5-4e7d-9a8c-5f2e3d1b4c7a') }}"
+url = "https://api.yourscannerdomain.com/v1/scan"
+
+headers = {
+    "X-API-Key": api_key,
+    "Content-Type": "application/json"
+}
+
+data = {
+    "target": "example.com",
+    "scan_type": "comprehensive"
+}
+
+response = requests.post(url, headers=headers, json=data)
+print(response.json())</div>
+                            
+                            <button class="btn btn-sm btn-outline-secondary mt-2" id="copyApiCode">
+                                <i class="bi bi-clipboard me-2"></i>Copy Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Regenerate API Key Modal -->
+    <div class="modal fade" id="regenerateApiKeyModal" tabindex="-1" aria-labelledby="regenerateApiKeyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="regenerateApiKeyModalLabel">Regenerate API Key</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Warning:</strong> Regenerating the API key will invalidate the previous key. Any applications or services using the old key will need to be updated.
+                    </div>
+                    <p>Are you sure you want to regenerate the API key for this scanner?</p>
+                    <div id="apiKeyResult" class="mt-3" style="display: none;">
+                        <div class="alert alert-success">
+                            <p class="mb-2"><strong>New API Key:</strong></p>
+                            <div class="input-group mb-2">
+                                <input type="text" id="newApiKey" class="form-control" readonly>
+                                <button class="btn btn-outline-secondary" type="button" id="copyNewApiKey">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                            <p class="small text-muted mb-0">Please save this key in a secure location. It will not be shown again.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmRegenerateApiKey">Regenerate API Key</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Copy API Key
+            document.getElementById('copyApiKey').addEventListener('click', function() {
+                const apiKey = document.getElementById('apiKey');
+                apiKey.select();
+                document.execCommand('copy');
+                
+                this.innerHTML = '<i class="bi bi-check"></i>';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="bi bi-clipboard"></i>';
+                }, 2000);
+            });
+            
+            // Copy HTML Embed Code
+            document.getElementById('copyEmbedCode').addEventListener('click', function() {
+                const codeBlock = document.querySelector('.scanner-embed-code');
+                const tempTextarea = document.createElement('textarea');
+                tempTextarea.value = codeBlock.textContent;
+                document.body.appendChild(tempTextarea);
+                tempTextarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempTextarea);
+                
+                this.innerHTML = '<i class="bi bi-check me-2"></i>Copied!';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="bi bi-clipboard me-2"></i>Copy Code';
+                }, 2000);
+            });
+            
+            // Copy API Code
+            document.getElementById('copyApiCode').addEventListener('click', function() {
+                const codeBlock = document.querySelectorAll('.scanner-embed-code')[1];
+                const tempTextarea = document.createElement('textarea');
+                tempTextarea.value = codeBlock.textContent;
+                document.body.appendChild(tempTextarea);
+                tempTextarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempTextarea);
+                
+                this.innerHTML = '<i class="bi bi-check me-2"></i>Copied!';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="bi bi-clipboard me-2"></i>Copy Code';
+                }, 2000);
+            });
+            
+            // Regenerate API Key Modal
+            const regenerateApiKeyModal = new bootstrap.Modal(document.getElementById('regenerateApiKeyModal'));
+            
+            document.getElementById('regenerateApiKeyBtn').addEventListener('click', function() {
+                regenerateApiKeyModal.show();
+            });
+            
+            // Confirm Regenerate API Key
+            document.getElementById('confirmRegenerateApiKey').addEventListener('click', function() {
+                const submitBtn = this;
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                
+                // Make AJAX request to regenerate API key
+                fetch(document.getElementById('regenerateApiKeyForm').action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Show new API key
+                        document.getElementById('newApiKey').value = data.api_key;
+                        document.getElementById('apiKeyResult').style.display = 'block';
+                        
+                        // Update the main API key input
+                        document.getElementById('apiKey').value = data.api_key;
+                        
+                        // Change button to "Done"
+                        submitBtn.innerHTML = 'Done';
+                        submitBtn.classList.remove('btn-danger');
+                        submitBtn.classList.add('btn-success');
+                        
+                        // Set up clipboard functionality for new API key
+                        document.getElementById('copyNewApiKey').addEventListener('click', function() {
+                            const apiKeyInput = document.getElementById('newApiKey');
+                            apiKeyInput.select();
+                            document.execCommand('copy');
+                            this.innerHTML = '<i class="bi bi-check"></i>';
+                            setTimeout(() => {
+                                this.innerHTML = '<i class="bi bi-clipboard"></i>';
+                            }, 2000);
+                        });
+                    } else {
+                        // Show error
+                        alert('Error: ' + data.message);
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while regenerating the API key.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
