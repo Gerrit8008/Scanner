@@ -196,4 +196,6 @@ def scanner_edit(user, scanner_id):
             logo_file.save(logo_path)
             scanner_data['logo_path'] = logo_path
         
-        if 'favicon' in request.files and request.
+        if 'favicon' in request.files and request.files['favicon'].filename:
+            favicon_file = request.files['favicon']
+            # Rest of the code to handle the favicon
