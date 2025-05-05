@@ -82,31 +82,6 @@ if not os.path.exists(CLIENT_DB_PATH):
 # Import database functionality
 from db import init_db, save_scan_results, get_scan_results, save_lead_data, DB_PATH
 
-@app.route('/auth_status')
-def auth_status():
-    """Route to check authentication system status"""
-    return {
-        "status": "ok",
-        "blueprints_registered": list(app.blueprints.keys()),
-        "auth_blueprint": {
-            "registered": "auth" in app.blueprints,
-            "url_prefix": getattr(app.blueprints.get("auth"), "url_prefix", None)
-        }
-    }
-
-# Add this debug route to list all registered routes
-@app.route('/routes')
-def list_routes():
-    """List all registered routes for debugging"""
-    routes = []
-    for rule in app.url_map.iter_rules():
-        routes.append({
-            'endpoint': rule.endpoint,
-            'methods': list(rule.methods),
-            'rule': str(rule)
-        })
-    return jsonify(routes)
-
 # Register blueprints after initializing the app
 def create_app():
     """Create and configure the Flask application"""
@@ -159,6 +134,31 @@ app.register_blueprint(client_bp)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
+
+@app.route('/auth_status')
+def auth_status():
+    """Route to check authentication system status"""
+    return {
+        "status": "ok",
+        "blueprints_registered": list(app.blueprints.keys()),
+        "auth_blueprint": {
+            "registered": "auth" in app.blueprints,
+            "url_prefix": getattr(app.blueprints.get("auth"), "url_prefix", None)
+        }
+    }
+
+# Add this debug route to list all registered routes
+@app.route('/routes')
+def list_routes():
+    """List all registered routes for debugging"""
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods),
+            'rule': str(rule)
+        })
+    return jsonify(routes)
 
 @login_manager.user_loader
 def load_user(user_id):
