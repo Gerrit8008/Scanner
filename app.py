@@ -274,19 +274,7 @@ log_system_info()
 def handle_404(error):
     # Pass current_user explicitly in the context
     return render_template('error.html', message="Page not found", current_user=current_user), 404
-    
-@app.route('/routes')
-def list_routes():
-    """List all registered routes for debugging"""
-    routes = []
-    for rule in app.url_map.iter_rules():
-        routes.append({
-            'endpoint': rule.endpoint,
-            'methods': list(rule.methods),
-            'rule': str(rule)
-        })
-    return jsonify(routes)
-    
+        
 @app.route('/login')
 def login_redirect():
     """Redirect to auth login page"""
