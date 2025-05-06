@@ -1404,15 +1404,98 @@ def emergency_login():
                         <p><a href="/client/dashboard">Go to Client Dashboard</a></p>
                         <p><a href="/">Go to Home</a></p>
                     </div>
-                    
-                    <div class="section">
-                        <h2>Database Info</h2>
-                        <p>Users in database: {user['id']}</p>
-                        <p>Password verification method: {"PBKDF2" if "pbkdf2" in str(password_hash) else "SHA-256"}</p>
-                    </div>
                 </body>
             </html>
             """
+            
+            conn.close()
+            return result
+        except Exception as e:
+            import traceback
+            return f"""
+            <h1>Emergency Login Error</h1>
+            <p>An error occurred: {str(e)}</p>
+            <pre>{traceback.format_exc()}</pre>
+            <form method="post">
+                <label>Username: <input type="text" name="username" value="{username}"></label><br>
+                <label>Password: <input type="password" name="password"></label><br>
+                <button type="submit">Login</button>
+            </form>
+            """
+    
+    # Show login form for GET requests
+    return '''
+    <html>
+        <head>
+            <title>Emergency Login</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    margin: 20px; 
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100vh;
+                }
+                form { 
+                    margin-top: 20px; 
+                    width: 300px;
+                    border: 1px solid #ddd;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
+                h1 { color: #333; }
+                input { 
+                    margin: 5px 0; 
+                    padding: 8px; 
+                    width: 100%; 
+                    box-sizing: border-box;
+                }
+                button { 
+                    padding: 10px 16px; 
+                    background: #4CAF50; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 4px;
+                    cursor: pointer;
+                    width: 100%;
+                    margin-top: 15px;
+                }
+                button:hover {
+                    background: #45a049;
+                }
+                .notice {
+                    margin-top: 20px;
+                    padding: 10px;
+                    background: #fff8e1;
+                    border: 1px solid #ffe0b2;
+                    border-radius: 4px;
+                    width: 300px;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Emergency Login</h1>
+            <form method="post">
+                <div>
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username">
+                </div>
+                <div>
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password">
+                </div>
+                <button type="submit">Login</button>
+            </form>
+            <div class="notice">
+                <p>This is for emergency access in case of authentication issues.</p>
+                <p>Try using <strong>admin</strong> and <strong>admin123</strong> if you're unsure.</p>
+            </div>
+        </body>
+    </html>
+    '''
 
 @app.route('/admin_simplified')
 def admin_simplified():
