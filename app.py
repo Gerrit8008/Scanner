@@ -1322,17 +1322,21 @@ def emergency_login():
                 try:
                     # PBKDF2 method
                     import hashlib
+                    import secrets
                     password_hash = hashlib.pbkdf2_hmac(
                         'sha256', 
                         password.encode(), 
                         user['salt'].encode(), 
                         100000
                     ).hex()
+                    
+                    pw_matches = (password_hash == user['password_hash'])
                 except:
                     # Simple SHA-256 method (fallback)
                     password_hash = hashlib.sha256((password + user['salt']).encode()).hexdigest()
+                    pw_matches = (password_hash == user['password_hash'])
                 
-                if password_hash == user['password_hash']:
+                if pw_matches:
                     # Create session manually
                     import secrets
                     from datetime import datetime, timedelta
@@ -1350,19 +1354,37 @@ def emergency_login():
                     conn.commit()
                     
                     # Store in session
+                    session.clear()  # Clear any old session data
                     session['session_token'] = session_token
                     session['username'] = user['username']
                     session['role'] = user['role']
                     
                     # Redirect based on role
                     if user['role'] == 'admin':
-                        return redirect(url_for('admin.dashboard'))
+                        conn.close()
+                        return f"""
+                        <h1>Emergency Login Successful</h1>
+                        <p>You are logged in as {user['username']} with role {user['role']}.</p>
+                        <p>Session token: {session_token}</p>
+                        <p><a href="/admin/dashboard">Try going to admin dashboard</a></p>
+                        <p>If you still have issues, try this simpler view:</p>
+                        <p><a href="/admin_simplified">Simplified Admin View</a></p>
+                        """
                     else:
-                        return redirect(url_for('client.dashboard'))
+                        conn.close() 
+                        return f"""
+                        <h1>Emergency Login Successful</h1>
+                        <p>You are logged in as {user['username']} with role {user['role']}.</p>
+                        <p><a href="/client/dashboard">Try going to client dashboard</a></p>
+                        """
             
             conn.close()
             
-            return render_template('emergency_login.html', error="Invalid credentials")
+            return """
+            <h1>Invalid Credentials</h1>
+            <p>The username or password is incorrect.</p>
+            <a href="/emergency_login">Try Again</a>
+            """
         except Exception as e:
             return f"""
             <h1>Emergency Login Error</h1>
@@ -1397,6 +1419,116 @@ def emergency_login():
         </body>
     </html>
     '''
+
+@app.route('/admin_simplified')
+def admin_simplified():
+    """Simplified admin view for emergency access"""
+    session_token = session.get('session_token')
+    username = session.get('username', 'Unknown')
+    role = session.get('role', 'Unknown')
+    
+    # Very simple session check
+    if not session_token or role != 'admin':
+        return """
+        <h1>Access Denied</h1>
+        <p>You need to be logged in as an admin.</p>
+        <a href="/emergency_login">Login</a>
+        """
+    
+    try:
+        # Get summary info
+        import sqlite3
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get client count
+        cursor.execute("SELECT COUNT(*) FROM clients")
+        client_count = cursor.fetchone()[0]
+        
+        # Get user count
+        cursor.execute("SELECT COUNT(*) FROM users")
+        user_count = cursor.fetchone()[0]
+        
+        # Get recent clients
+        cursor.execute("SELECT id, business_name, contact_email FROM clients ORDER BY id DESC LIMIT 5")
+        recent_clients = [dict(row) for row in cursor.fetchall()]
+        
+        # Get recent users
+        cursor.execute("SELECT id, username, email, role FROM users ORDER BY id DESC LIMIT 5")
+        recent_users = [dict(row) for row in cursor.fetchall()]
+        
+        conn.close()
+        
+        # Create a simple dashboard HTML
+        return f"""
+        <html>
+            <head>
+                <title>Simplified Admin Dashboard</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                    .card {{ border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 20px; }}
+                    .section {{ margin-bottom: 30px; }}
+                    table {{ width: 100%; border-collapse: collapse; }}
+                    th, td {{ text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }}
+                    th {{ background-color: #f2f2f2; }}
+                </style>
+            </head>
+            <body>
+                <h1>Simplified Admin Dashboard</h1>
+                <p>Logged in as: {username} (Role: {role})</p>
+                
+                <div class="section">
+                    <h2>Summary</h2>
+                    <div style="display: flex; gap: 20px;">
+                        <div class="card">
+                            <h3>Clients</h3>
+                            <p style="font-size: 24px;">{client_count}</p>
+                        </div>
+                        <div class="card">
+                            <h3>Users</h3>
+                            <p style="font-size: 24px;">{user_count}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>Recent Clients</h2>
+                    <table>
+                        <tr>
+                            <th>ID</th>
+                            <th>Business Name</th>
+                            <th>Email</th>
+                        </tr>
+                        {''.join([f'<tr><td>{c["id"]}</td><td>{c["business_name"]}</td><td>{c["contact_email"]}</td></tr>' for c in recent_clients])}
+                    </table>
+                </div>
+                
+                <div class="section">
+                    <h2>Recent Users</h2>
+                    <table>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                        </tr>
+                        {''.join([f'<tr><td>{u["id"]}</td><td>{u["username"]}</td><td>{u["email"]}</td><td>{u["role"]}</td></tr>' for u in recent_users])}
+                    </table>
+                </div>
+                
+                <div>
+                    <a href="/emergency_login">Back to Emergency Login</a>
+                </div>
+            </body>
+        </html>
+        """
+    except Exception as e:
+        return f"""
+        <h1>Error</h1>
+        <p>An error occurred: {str(e)}</p>
+        <a href="/emergency_login">Back to Emergency Login</a>
+        """
         
 @app.route('/')
 def index():
