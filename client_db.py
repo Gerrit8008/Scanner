@@ -973,6 +973,15 @@ def verify_session(session_token, conn=None, cursor=None):
         if not session_token:
             return {"status": "error", "message": "No session token provided"}
         
+        # Handle different parameter combinations
+        # If someone is passing conn and cursor as positional parameters, reassign them properly
+        if isinstance(session_token, str) and conn is not None and not hasattr(conn, 'execute'):
+            # The conn parameter is not a valid connection object
+            # Assuming it's being used incorrectly as conn, cursor positional args
+            # We'll ignore these parameters and create our own connection
+            conn = None
+            cursor = None
+        
         # Create connection if not provided
         if conn is None:
             conn = sqlite3.connect(CLIENT_DB_PATH)
