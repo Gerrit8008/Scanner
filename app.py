@@ -1307,6 +1307,8 @@ def emergency_login():
         try:
             import sqlite3
             import hashlib
+            import secrets
+            from datetime import datetime, timedelta
             
             # Connect directly to database
             conn = sqlite3.connect(CLIENT_DB_PATH)
@@ -1317,108 +1319,100 @@ def emergency_login():
             cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
             user = cursor.fetchone()
             
-            if user:
-                # Try both password hash methods
+            if not user:
+                conn.close()
+                return """
+                <h1>Invalid Credentials</h1>
+                <p>The username or password is incorrect.</p>
+                <a href="/emergency_login">Try Again</a>
+                """
+                
+            # Try password verification
+            try:
+                # PBKDF2 method (newer)
+                password_hash = hashlib.pbkdf2_hmac(
+                    'sha256', 
+                    password.encode(), 
+                    user['salt'].encode(), 
+                    100000
+                ).hex()
+                pw_matches = (password_hash == user['password_hash'])
+            except:
+                # Simple SHA-256 method (older fallback)
                 try:
-                    # PBKDF2 method
-                    import hashlib
-                    import secrets
-                    password_hash = hashlib.pbkdf2_hmac(
-                        'sha256', 
-                        password.encode(), 
-                        user['salt'].encode(), 
-                        100000
-                    ).hex()
-                    
-                    pw_matches = (password_hash == user['password_hash'])
-                except:
-                    # Simple SHA-256 method (fallback)
                     password_hash = hashlib.sha256((password + user['salt']).encode()).hexdigest()
                     pw_matches = (password_hash == user['password_hash'])
-                
-                if pw_matches:
-                    # Create session manually
-                    import secrets
-                    from datetime import datetime, timedelta
-                    
-                    session_token = secrets.token_hex(32)
-                    created_at = datetime.now().isoformat()
-                    expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
-                    
-                    cursor.execute('''
-                    INSERT INTO sessions (
-                        user_id, session_token, created_at, expires_at, ip_address
-                    ) VALUES (?, ?, ?, ?, ?)
-                    ''', (user['id'], session_token, created_at, expires_at, request.remote_addr))
-                    
-                    conn.commit()
-                    
-                    # Store in session
-                    session.clear()  # Clear any old session data
-                    session['session_token'] = session_token
-                    session['username'] = user['username']
-                    session['role'] = user['role']
-                    
-                    # Redirect based on role
-                    if user['role'] == 'admin':
-                        conn.close()
-                        return f"""
-                        <h1>Emergency Login Successful</h1>
-                        <p>You are logged in as {user['username']} with role {user['role']}.</p>
-                        <p>Session token: {session_token}</p>
-                        <p><a href="/admin/dashboard">Try going to admin dashboard</a></p>
-                        <p>If you still have issues, try this simpler view:</p>
-                        <p><a href="/admin_simplified">Simplified Admin View</a></p>
-                        """
-                    else:
-                        conn.close() 
-                        return f"""
-                        <h1>Emergency Login Successful</h1>
-                        <p>You are logged in as {user['username']} with role {user['role']}.</p>
-                        <p><a href="/client/dashboard">Try going to client dashboard</a></p>
-                        """
+                except:
+                    pw_matches = False
             
-            conn.close()
+            if not pw_matches:
+                conn.close()
+                return """
+                <h1>Invalid Credentials</h1>
+                <p>The username or password is incorrect.</p>
+                <a href="/emergency_login">Try Again</a>
+                """
             
-            return """
-            <h1>Invalid Credentials</h1>
-            <p>The username or password is incorrect.</p>
-            <a href="/emergency_login">Try Again</a>
+            # Create session manually
+            session_token = secrets.token_hex(32)
+            created_at = datetime.now().isoformat()
+            expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
+            
+            # Insert new session
+            cursor.execute('''
+            INSERT INTO sessions (
+                user_id, session_token, created_at, expires_at, ip_address
+            ) VALUES (?, ?, ?, ?, ?)
+            ''', (user['id'], session_token, created_at, expires_at, request.remote_addr))
+            
+            conn.commit()
+            
+            # Store in session
+            session.clear()  # Clear any old session data
+            session['session_token'] = session_token
+            session['username'] = user['username']
+            session['role'] = user['role']
+            
+            # Success message with debugging info
+            result = f"""
+            <html>
+                <head>
+                    <title>Emergency Login Successful</title>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }}
+                        h1 {{ color: green; }}
+                        .section {{ margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }}
+                        pre {{ background: #f5f5f5; padding: 10px; overflow-x: auto; }}
+                    </style>
+                </head>
+                <body>
+                    <h1>Emergency Login Successful!</h1>
+                    <div class="section">
+                        <p>You are logged in as <strong>{user['username']}</strong> with role <strong>{user['role']}</strong>.</p>
+                        <p>Session token created: <code>{session_token}</code></p>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>Debugging Information</h2>
+                        <p>Session contains:</p>
+                        <pre>{str(dict(session))}</pre>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>Try Navigation</h2>
+                        <p><a href="/admin/dashboard">Go to Admin Dashboard</a></p>
+                        <p><a href="/client/dashboard">Go to Client Dashboard</a></p>
+                        <p><a href="/">Go to Home</a></p>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>Database Info</h2>
+                        <p>Users in database: {user['id']}</p>
+                        <p>Password verification method: {"PBKDF2" if "pbkdf2" in str(password_hash) else "SHA-256"}</p>
+                    </div>
+                </body>
+            </html>
             """
-        except Exception as e:
-            return f"""
-            <h1>Emergency Login Error</h1>
-            <p>{str(e)}</p>
-            <form method="post">
-                <label>Username: <input type="text" name="username"></label><br>
-                <label>Password: <input type="password" name="password"></label><br>
-                <button type="submit">Login</button>
-            </form>
-            """
-    
-    # Show login form
-    return '''
-    <html>
-        <head>
-            <title>Emergency Login</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                form { margin-top: 20px; }
-                input { margin: 5px 0; padding: 8px; width: 250px; }
-                button { padding: 8px 16px; background: #4CAF50; color: white; border: none; }
-            </style>
-        </head>
-        <body>
-            <h1>Emergency Login</h1>
-            <p>This is for emergency access in case of auth issues.</p>
-            <form method="post">
-                <label>Username: <input type="text" name="username"></label><br>
-                <label>Password: <input type="password" name="password"></label><br>
-                <button type="submit">Login</button>
-            </form>
-        </body>
-    </html>
-    '''
 
 @app.route('/admin_simplified')
 def admin_simplified():
