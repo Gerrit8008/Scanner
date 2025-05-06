@@ -2627,6 +2627,264 @@ def api_service_inquiry():
         logging.error(f"Error processing service inquiry: {e}")
         return jsonify({"status": "error", "message": str(e)})
 
+# Add this route to your app.py file
+
+@app.route('/debug_fix')
+def debug_fix():
+    """Comprehensive debug and fix for redirect loop issues"""
+    output = []
+    try:
+        import sqlite3
+        import uuid
+        import json
+        from datetime import datetime
+        
+        # Define database path
+        CLIENT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'client_scanner.db')
+        output.append(f"Using database: {CLIENT_DB_PATH}")
+        
+        # Connect to the database with row factory
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Display all tables
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [row[0] for row in cursor.fetchall()]
+        output.append(f"Database tables: {', '.join(tables)}")
+        
+        # Check user info
+        cursor.execute("SELECT * FROM users")
+        users = [dict(row) for row in cursor.fetchall()]
+        output.append(f"Found {len(users)} users:")
+        for user in users:
+            output.append(f"User ID: {user.get('id')}, Username: {user.get('username')}, Email: {user.get('email')}, Role: {user.get('role')}")
+        
+        # Check for clients table and structure
+        if 'clients' in tables:
+            cursor.execute("PRAGMA table_info(clients)")
+            columns = cursor.fetchall()
+            column_names = [column[1] for column in columns]
+            output.append(f"Clients table columns: {', '.join(column_names)}")
+            
+            # Check if user_id column exists
+            if 'user_id' not in column_names:
+                output.append("Adding user_id column to clients table...")
+                cursor.execute("ALTER TABLE clients ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE")
+                conn.commit()
+                output.append("user_id column added successfully")
+        else:
+            output.append("Creating clients table...")
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS clients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                business_name TEXT NOT NULL,
+                business_domain TEXT NOT NULL,
+                contact_email TEXT NOT NULL,
+                contact_phone TEXT,
+                scanner_name TEXT,
+                subscription_level TEXT DEFAULT 'basic',
+                subscription_status TEXT DEFAULT 'active',
+                subscription_start TEXT,
+                subscription_end TEXT,
+                api_key TEXT UNIQUE,
+                created_at TEXT,
+                created_by INTEGER,
+                updated_at TEXT,
+                updated_by INTEGER,
+                active BOOLEAN DEFAULT 1,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id),
+                FOREIGN KEY (updated_by) REFERENCES users(id)
+            )
+            ''')
+            conn.commit()
+            output.append("Clients table created successfully")
+        
+        # Check for client records
+        cursor.execute("SELECT * FROM clients")
+        clients = [dict(row) for row in cursor.fetchall()]
+        output.append(f"Found {len(clients)} client records:")
+        for client in clients:
+            output.append(f"Client ID: {client.get('id')}, User ID: {client.get('user_id')}, Business: {client.get('business_name')}")
+        
+        # Specifically look for the admin2 user
+        cursor.execute("SELECT * FROM users WHERE username = 'admin2'")
+        admin2_user = cursor.fetchone()
+        
+        if admin2_user:
+            admin2_user = dict(admin2_user)
+            output.append(f"Found admin2 user with ID: {admin2_user.get('id')}")
+            
+            # Check if admin2 has a client record
+            cursor.execute("SELECT * FROM clients WHERE user_id = ?", (admin2_user.get('id'),))
+            admin2_client = cursor.fetchone()
+            
+            if admin2_client:
+                admin2_client = dict(admin2_client)
+                output.append(f"Found client record for admin2: {admin2_client.get('id')}")
+                
+                # Ensure the client record is properly linked
+                if admin2_client.get('user_id') != admin2_user.get('id'):
+                    output.append(f"Fixing user_id for admin2's client record...")
+                    cursor.execute("UPDATE clients SET user_id = ? WHERE id = ?", 
+                                  (admin2_user.get('id'), admin2_client.get('id')))
+                    conn.commit()
+                    output.append("Fixed user_id for admin2's client record")
+            else:
+                output.append("Creating client record for admin2...")
+                api_key = str(uuid.uuid4())
+                current_time = datetime.now().isoformat()
+                
+                # Create client record for admin2
+                cursor.execute('''
+                INSERT INTO clients (
+                    user_id, 
+                    business_name, 
+                    business_domain, 
+                    contact_email, 
+                    scanner_name, 
+                    subscription_level, 
+                    subscription_status, 
+                    subscription_start, 
+                    api_key, 
+                    created_at, 
+                    created_by, 
+                    active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                ''', (
+                    admin2_user.get('id'),
+                    "Admin2's Business",
+                    "example.com",
+                    admin2_user.get('email'),
+                    "Security Scanner",
+                    "enterprise",
+                    "active",
+                    current_time,
+                    api_key,
+                    current_time,
+                    admin2_user.get('id')
+                ))
+                conn.commit()
+                output.append("Created client record for admin2")
+                
+                # Promote admin2 to admin role
+                cursor.execute("UPDATE users SET role = 'admin' WHERE id = ?", (admin2_user.get('id'),))
+                conn.commit()
+                output.append("Promoted admin2 to admin role")
+        else:
+            output.append("admin2 user not found")
+        
+        # Check for get_client_by_user_id function in client_db.py
+        output.append("Note: If this fix doesn't resolve the issue, please check your client_db.py file")
+        output.append("Ensure the get_client_by_user_id function is correctly querying using the user_id column")
+        output.append("")
+        
+        # Create client records for all users to be safe
+        for user in users:
+            cursor.execute("SELECT * FROM clients WHERE user_id = ?", (user.get('id'),))
+            client = cursor.fetchone()
+            
+            if not client:
+                output.append(f"Creating client record for {user.get('username')}...")
+                api_key = str(uuid.uuid4())
+                current_time = datetime.now().isoformat()
+                
+                subscription_level = 'enterprise' if user.get('role') == 'admin' else 'basic'
+                
+                cursor.execute('''
+                INSERT INTO clients (
+                    user_id, 
+                    business_name, 
+                    business_domain, 
+                    contact_email, 
+                    scanner_name, 
+                    subscription_level, 
+                    subscription_status, 
+                    subscription_start, 
+                    api_key, 
+                    created_at, 
+                    created_by, 
+                    active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                ''', (
+                    user.get('id'),
+                    f"{user.get('username').capitalize()}'s Business",
+                    "example.com",
+                    user.get('email'),
+                    "Security Scanner",
+                    subscription_level,
+                    "active",
+                    current_time,
+                    api_key,
+                    current_time,
+                    user.get('id')
+                ))
+                conn.commit()
+                output.append(f"Created client record for {user.get('username')}")
+        
+        # Final verification
+        cursor.execute('''
+        SELECT u.id as user_id, u.username, u.role, c.id as client_id, c.business_name
+        FROM users u
+        LEFT JOIN clients c ON u.id = c.user_id
+        ''')
+        verification = [dict(row) for row in cursor.fetchall()]
+        
+        output.append("Final verification of user-client associations:")
+        for item in verification:
+            if item.get('client_id'):
+                output.append(f"User '{item.get('username')}' (ID: {item.get('user_id')}) is linked to client '{item.get('business_name')}' (ID: {item.get('client_id')})")
+            else:
+                output.append(f"WARNING: User '{item.get('username')}' (ID: {item.get('user_id')}) has no client record!")
+        
+        conn.close()
+        output.append("")
+        output.append("Fix complete! Please try logging in again.")
+        output.append('<a href="/auth/login" class="btn btn-primary">Go to Login</a>')
+        
+        # Return the results as HTML
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Database Fix Results</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container mt-5">
+                <h1>Database Fix Results</h1>
+                <div class="card">
+                    <div class="card-body">
+                        <pre class="mb-4">{"\n".join(output)}</pre>
+                        <a href="/auth/login" class="btn btn-primary">Go to Login</a>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        '''
+    except Exception as e:
+        output.append(f"Error: {str(e)}")
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Error</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container mt-5">
+                <div class="alert alert-danger">
+                    <h4>Error occurred</h4>
+                    <pre>{"\n".join(output)}</pre>
+                </div>
+            </div>
+        </body>
+        </html>
+        '''
+
 # ---------------------------- MAIN ENTRY POINT ----------------------------
 
 if __name__ == '__main__':
