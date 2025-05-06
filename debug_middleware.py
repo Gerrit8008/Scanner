@@ -1,5 +1,4 @@
-debug_middleware.py
-
+# debug_middleware.py
 from flask import Flask, session, request, jsonify, g
 import time
 import traceback
