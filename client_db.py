@@ -872,96 +872,162 @@ def get_scanner_scan_history(conn, cursor, scanner_id, limit=100):
 
 # Improved authentication with better security
 @with_transaction
-def authenticate_user(conn, cursor, username_or_email, password, ip_address=None):
-    """Authenticate user with improved security and session management"""
-    # Find user by username or email
-    cursor.execute('SELECT * FROM users WHERE username = ? OR email = ?', 
-                  (username_or_email, username_or_email))
-    user = cursor.fetchone()
-    
-    if not user:
-        # Use constant time comparison to prevent timing attacks
-        dummy_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), b'dummy', 100000).hex()
-        secrets.compare_digest(dummy_hash, dummy_hash)  # Constant time comparison
-        return {"status": "error", "message": "Invalid credentials"}
-    
-    # Check if user is active
-    if not user['active']:
-        return {"status": "error", "message": "Account is disabled"}
-    
-    # Verify password with the same algorithm used for storing
-    password_hash = hashlib.pbkdf2_hmac(
-        'sha256', 
-        password.encode(), 
-        user['salt'].encode(), 
-        100000
-    ).hex()
-    
-    if not secrets.compare_digest(password_hash, user['password_hash']):
-        return {"status": "error", "message": "Invalid credentials"}
-    
-    # Create a more secure session token
-    session_token = secrets.token_hex(32)
-    # Set expiration to 24 hours from now
-    expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
-    
-    # Store session with IP address
-    cursor.execute('''
-    INSERT INTO sessions (user_id, session_token, created_at, expires_at, ip_address)
-    VALUES (?, ?, ?, ?, ?)
-    ''', (user['id'], session_token, datetime.now().isoformat(), expires_at, ip_address))
-    
-    # Update last login
-    cursor.execute('UPDATE users SET last_login = ? WHERE id = ?', 
-                  (datetime.now().isoformat(), user['id']))
-    
-    # Log the successful login
-    log_action(conn, cursor, user['id'], 'login', 'user', user['id'], 
-              {'ip_address': ip_address})
-    
-    return {
-        "status": "success",
-        "user_id": user['id'],
-        "username": user['username'],
-        "email": user['email'],
-        "role": user['role'],
-        "session_token": session_token
-    }
-
-@with_transaction
-def verify_session(conn, cursor, session_token):
-    """Verify a session token and return user information"""
-    # Check if session exists and is valid
-    cursor.execute('''
-    SELECT s.*, u.username, u.email, u.role
-    FROM sessions s
-    JOIN users u ON s.user_id = u.id
-    WHERE s.session_token = ? AND s.expires_at > ? AND u.active = 1
-    ''', (session_token, datetime.now().isoformat()))
-    
-    session = cursor.fetchone()
-    
-    if not session:
-        return {"status": "error", "message": "Invalid or expired session"}
-    
-    # Return user info
-    return {
-        "status": "success",
-        "user": {
-            "user_id": session['user_id'],
-            "username": session['username'],
-            "email": session['email'],
-            "role": session['role']
+def authenticate_user(username_or_email, password, ip_address=None):
+    """Authenticate a user with enhanced security"""
+    try:
+        # Connect to database
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Find user by username or email
+        cursor.execute('''
+        SELECT * FROM users 
+        WHERE (username = ? OR email = ?) AND active = 1
+        ''', (username_or_email, username_or_email))
+        
+        user = cursor.fetchone()
+        
+        if not user:
+            # Don't reveal too much info in error message
+            conn.close()
+            return {"status": "error", "message": "Invalid credentials"}
+        
+        # Verify password with the same algorithm used for storing
+        try:
+            # Use pbkdf2_hmac if salt exists (new format)
+            salt = user['salt']
+            stored_hash = user['password_hash']
+            
+            # Compute hash with pbkdf2
+            password_hash = hashlib.pbkdf2_hmac(
+                'sha256', 
+                password.encode(), 
+                salt.encode(), 
+                100000  # Same iterations as used for storing
+            ).hex()
+            
+            password_correct = (password_hash == stored_hash)
+        except:
+            # Fallback to simple hash if pbkdf2 fails
+            password_hash = hashlib.sha256((password + user['salt']).encode()).hexdigest()
+            password_correct = (password_hash == user['password_hash'])
+        
+        if not password_correct:
+            conn.close()
+            return {"status": "error", "message": "Invalid credentials"}
+        
+        # Create a session token
+        session_token = secrets.token_hex(32)
+        created_at = datetime.now().isoformat()
+        expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
+        
+        # Store session in database
+        cursor.execute('''
+        INSERT INTO sessions (
+            user_id, 
+            session_token, 
+            created_at, 
+            expires_at, 
+            ip_address
+        ) VALUES (?, ?, ?, ?, ?)
+        ''', (user['id'], session_token, created_at, expires_at, ip_address))
+        
+        # Update last login timestamp
+        cursor.execute('''
+        UPDATE users 
+        SET last_login = ? 
+        WHERE id = ?
+        ''', (created_at, user['id']))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "status": "success",
+            "user_id": user['id'],
+            "username": user['username'],
+            "email": user['email'],
+            "role": user['role'],
+            "session_token": session_token
         }
-    }
+    
+    except Exception as e:
+        print(f"Authentication error: {e}")
+        return {"status": "error", "message": "Authentication failed due to a system error"}
 
 @with_transaction
-def logout_user(conn, cursor, session_token):
-    """Logout a user by invalidating their session"""
-    # Delete the session
-    cursor.execute('DELETE FROM sessions WHERE session_token = ?', (session_token,))
+def verify_session(session_token):
+    """Verify a session token and return user information"""
+    try:
+        if not session_token:
+            return {"status": "error", "message": "No session token provided"}
+        
+        # Connect to database
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Find the session
+        cursor.execute('''
+        SELECT s.*, u.username, u.email, u.role, u.full_name
+        FROM sessions s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.session_token = ? AND u.active = 1
+        ''', (session_token,))
+        
+        session = cursor.fetchone()
+        
+        if not session:
+            conn.close()
+            return {"status": "error", "message": "Invalid or expired session"}
+        
+        # Check if session is expired
+        now = datetime.now().isoformat()
+        if 'expires_at' in session and session['expires_at'] < now:
+            conn.close()
+            return {"status": "error", "message": "Session expired"}
+        
+        conn.close()
+        
+        # Return success with user info
+        return {
+            "status": "success",
+            "user": {
+                "user_id": session['user_id'],
+                "username": session['username'],
+                "email": session['email'],
+                "role": session['role'],
+                "full_name": session.get('full_name', '')
+            }
+        }
     
-    return {"status": "success"}
+    except Exception as e:
+        print(f"Session verification error: {e}")
+        return {"status": "error", "message": "Session verification failed due to a system error"}
+
+@with_transaction
+def logout_user(session_token):
+    """Logout a user by invalidating their session"""
+    try:
+        if not session_token:
+            return {"status": "error", "message": "No session token provided"}
+        
+        # Connect to database
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Delete the session
+        cursor.execute('DELETE FROM sessions WHERE session_token = ?', (session_token,))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"status": "success"}
+    
+    except Exception as e:
+        print(f"Logout error: {e}")
+        return {"status": "error", "message": "Logout failed due to a system error"}
 
 # Enhanced client management functions
 @with_transaction
