@@ -34,6 +34,7 @@ from setup_admin import configure_admin
 from client import client_bp  
 from flask_login import LoginManager, current_user
 from auth_routes import auth_bp
+from debug_middleware import register_debug_middleware
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -120,7 +121,7 @@ def create_app():
 app, limiter = create_app()
 # Apply admin configuration
 app = configure_admin(app)
-
+register_debug_middleware(app)
 # Register blueprints
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
