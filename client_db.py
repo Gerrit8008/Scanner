@@ -957,16 +957,28 @@ def authenticate_user(username_or_email, password, ip_address=None):
         return {"status": "error", "message": "Authentication failed due to a system error"}
 
 @with_transaction
-def verify_session(session_token):
-    """Verify a session token and return user information"""
+def verify_session(session_token, conn=None, cursor=None):
+    """Verify a session token and return user information
+    
+    Args:
+        session_token (str): The session token to verify
+        conn (sqlite3.Connection, optional): An existing database connection
+        cursor (sqlite3.Cursor, optional): An existing database cursor
+        
+    Returns:
+        dict: Session verification result
+    """
+    close_conn = False
     try:
         if not session_token:
             return {"status": "error", "message": "No session token provided"}
         
-        # Connect to database
-        conn = sqlite3.connect(CLIENT_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Create connection if not provided
+        if conn is None:
+            conn = sqlite3.connect(CLIENT_DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            close_conn = True
         
         # Find the session and join with user data
         cursor.execute('''
@@ -979,13 +991,12 @@ def verify_session(session_token):
         session = cursor.fetchone()
         
         if not session:
-            conn.close()
+            if close_conn and conn:
+                conn.close()
             return {"status": "error", "message": "Invalid or expired session"}
         
-        conn.close()
-        
         # Return success with user info
-        return {
+        result = {
             "status": "success",
             "user": {
                 "user_id": session['user_id'],
@@ -995,11 +1006,20 @@ def verify_session(session_token):
                 "full_name": session.get('full_name', '')
             }
         }
+        
+        # Close the connection if we created it
+        if close_conn and conn:
+            conn.close()
+            
+        return result
     
     except Exception as e:
+        # Close the connection if we created it
+        if close_conn and conn:
+            conn.close()
         print(f"Session verification error: {str(e)}")
-        return {"status": "error", "message": "Session verification failed due to a system error"}
-
+        return {"status": "error", "message": f"Session verification failed: {str(e)}"}
+        
 @with_transaction
 def logout_user(session_token):
     """Logout a user by invalidating their session"""
