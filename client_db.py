@@ -968,7 +968,7 @@ def verify_session(session_token):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Find the session
+        # Find the session and join with user data
         cursor.execute('''
         SELECT s.*, u.username, u.email, u.role, u.full_name
         FROM sessions s
@@ -981,12 +981,6 @@ def verify_session(session_token):
         if not session:
             conn.close()
             return {"status": "error", "message": "Invalid or expired session"}
-        
-        # Check if session is expired
-        now = datetime.now().isoformat()
-        if 'expires_at' in session and session['expires_at'] < now:
-            conn.close()
-            return {"status": "error", "message": "Session expired"}
         
         conn.close()
         
@@ -1003,7 +997,7 @@ def verify_session(session_token):
         }
     
     except Exception as e:
-        print(f"Session verification error: {e}")
+        print(f"Session verification error: {str(e)}")
         return {"status": "error", "message": "Session verification failed due to a system error"}
 
 @with_transaction
