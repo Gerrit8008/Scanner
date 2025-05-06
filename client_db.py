@@ -957,37 +957,24 @@ def authenticate_user(username_or_email, password, ip_address=None):
         return {"status": "error", "message": "Authentication failed due to a system error"}
 
 @with_transaction
-def verify_session(session_token, conn=None, cursor=None):
+def verify_session(session_token, *args):
     """Verify a session token and return user information
     
     Args:
         session_token (str): The session token to verify
-        conn (sqlite3.Connection, optional): An existing database connection
-        cursor (sqlite3.Cursor, optional): An existing database cursor
+        *args: Any additional arguments (ignored)
         
     Returns:
         dict: Session verification result
     """
-    close_conn = False
     try:
         if not session_token:
             return {"status": "error", "message": "No session token provided"}
         
-        # Handle different parameter combinations
-        # If someone is passing conn and cursor as positional parameters, reassign them properly
-        if isinstance(session_token, str) and conn is not None and not hasattr(conn, 'execute'):
-            # The conn parameter is not a valid connection object
-            # Assuming it's being used incorrectly as conn, cursor positional args
-            # We'll ignore these parameters and create our own connection
-            conn = None
-            cursor = None
-        
-        # Create connection if not provided
-        if conn is None:
-            conn = sqlite3.connect(CLIENT_DB_PATH)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            close_conn = True
+        # Create a new connection for each verification
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
         
         # Find the session and join with user data
         cursor.execute('''
@@ -1000,8 +987,7 @@ def verify_session(session_token, conn=None, cursor=None):
         session = cursor.fetchone()
         
         if not session:
-            if close_conn and conn:
-                conn.close()
+            conn.close()
             return {"status": "error", "message": "Invalid or expired session"}
         
         # Return success with user info
@@ -1016,16 +1002,10 @@ def verify_session(session_token, conn=None, cursor=None):
             }
         }
         
-        # Close the connection if we created it
-        if close_conn and conn:
-            conn.close()
-            
+        conn.close()
         return result
     
     except Exception as e:
-        # Close the connection if we created it
-        if close_conn and conn:
-            conn.close()
         print(f"Session verification error: {str(e)}")
         return {"status": "error", "message": f"Session verification failed: {str(e)}"}
         
