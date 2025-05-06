@@ -26,8 +26,8 @@ def register_debug_middleware(app):
     
     @app.before_request
     def debug_before_request():
-        g.request_start_time = time.time()
-        g.request_time = lambda: "%.5fs" % (time.time() - g.request_start_time)
+        # Store the start time in g object
+        g.start_time = time.time()
         
         # Log the request path, method and session info
         app.logger.debug(f"Request: {request.method} {request.path}")
@@ -62,8 +62,13 @@ def register_debug_middleware(app):
     
     @app.after_request
     def debug_after_request(response):
-        # Log response status and time
-        app.logger.debug(f"Response: {response.status_code} in {g.request_time()}")
+        # Calculate request duration
+        if hasattr(g, 'start_time'):
+            duration = time.time() - g.start_time
+            # Log response status and time
+            app.logger.debug(f"Response: {response.status_code} in {duration:.5f}s")
+        else:
+            app.logger.debug(f"Response: {response.status_code}")
         return response
     
     @app.errorhandler(500)
@@ -79,3 +84,5 @@ def register_debug_middleware(app):
             """, 500
         
         return "Server error", 500
+    
+    return app  # Return the app for chaining (optional)
