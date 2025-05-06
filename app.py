@@ -2842,48 +2842,48 @@ def debug_fix():
         conn.close()
         output.append("")
         output.append("Fix complete! Please try logging in again.")
-        output.append('<a href="/auth/login" class="btn btn-primary">Go to Login</a>')
         
-        # Return the results as HTML
-        return f'''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Database Fix Results</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-        </head>
-        <body>
-            <div class="container mt-5">
-                <h1>Database Fix Results</h1>
-                <div class="card">
-                    <div class="card-body">
-                        <pre class="mb-4">{"\n".join(output)}</pre>
-                        <a href="/auth/login" class="btn btn-primary">Go to Login</a>
-                    </div>
-                </div>
-            </div>
-        </body>
-        </html>
-        '''
+        # Return the results as HTML with no f-string backslashes
+        html_output = "<!DOCTYPE html>\n"
+        html_output += "<html>\n"
+        html_output += "<head>\n"
+        html_output += "    <title>Database Fix Results</title>\n"
+        html_output += "    <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n"
+        html_output += "</head>\n"
+        html_output += "<body>\n"
+        html_output += "    <div class=\"container mt-5\">\n"
+        html_output += "        <h1>Database Fix Results</h1>\n"
+        html_output += "        <div class=\"card\">\n"
+        html_output += "            <div class=\"card-body\">\n"
+        html_output += "                <pre class=\"mb-4\">" + "\n".join(output) + "</pre>\n"
+        html_output += "                <a href=\"/auth/login\" class=\"btn btn-primary\">Go to Login</a>\n"
+        html_output += "            </div>\n"
+        html_output += "        </div>\n"
+        html_output += "    </div>\n"
+        html_output += "</body>\n"
+        html_output += "</html>"
+        
+        return html_output
     except Exception as e:
         output.append(f"Error: {str(e)}")
-        return f'''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Error</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-        </head>
-        <body>
-            <div class="container mt-5">
-                <div class="alert alert-danger">
-                    <h4>Error occurred</h4>
-                    <pre>{"\n".join(output)}</pre>
-                </div>
-            </div>
-        </body>
-        </html>
-        '''
+        
+        html_error = "<!DOCTYPE html>\n"
+        html_error += "<html>\n"
+        html_error += "<head>\n"
+        html_error += "    <title>Error</title>\n"
+        html_error += "    <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n"
+        html_error += "</head>\n"
+        html_error += "<body>\n"
+        html_error += "    <div class=\"container mt-5\">\n"
+        html_error += "        <div class=\"alert alert-danger\">\n"
+        html_error += "            <h4>Error occurred</h4>\n"
+        html_error += "            <pre>" + "\n".join(output) + "</pre>\n"
+        html_error += "        </div>\n"
+        html_error += "    </div>\n"
+        html_error += "</body>\n"
+        html_error += "</html>"
+        
+        return html_error
 
 # ---------------------------- MAIN ENTRY POINT ----------------------------
 
