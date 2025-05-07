@@ -1,6 +1,3 @@
-# Save this as auth_hotfix.py in your application directory
-# This file contains a direct hotfix for the authentication system
-
 def register_auth_hotfix(app):
     """Register the authentication hotfix with the Flask app"""
     @app.before_first_request
