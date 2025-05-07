@@ -1,3 +1,5 @@
+# Save this as fix_auth.py
+
 import os
 import sqlite3
 import secrets
@@ -7,16 +9,22 @@ from datetime import datetime, timedelta
 # Define database path
 CLIENT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'client_scanner.db')
 
-def authenticate_user(username_or_email, password, ip_address=None, user_agent=None, remember=False):
+def authenticate_user(conn, cursor, username_or_email, password, ip_address=None, user_agent=None):
     """
-    Updated authenticate_user function that accepts all parameters
+    Fixed authenticate_user with proper handling of all parameters
+    
+    Args:
+        conn: Database connection
+        cursor: Database cursor
+        username_or_email: Username or email for login
+        password: Password for login
+        ip_address: IP address of the request (optional)
+        user_agent: User agent string (optional)
+        
+    Returns:
+        dict: Authentication result
     """
     try:
-        # Connect to database
-        conn = sqlite3.connect(CLIENT_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
         # Find user by username or email
         cursor.execute('''
         SELECT * FROM users 
@@ -26,38 +34,38 @@ def authenticate_user(username_or_email, password, ip_address=None, user_agent=N
         user = cursor.fetchone()
         
         if not user:
-            conn.close()
             return {"status": "error", "message": "Invalid credentials"}
         
         # Verify password
-        salt = user['salt']
-        stored_hash = user['password_hash']
-        
-        # Compute hash with pbkdf2
         try:
+            # Use pbkdf2_hmac if salt exists (new format)
+            salt = user['salt']
+            stored_hash = user['password_hash']
+            
+            # Compute hash with pbkdf2
             password_hash = hashlib.pbkdf2_hmac(
                 'sha256', 
                 password.encode(), 
                 salt.encode(), 
                 100000  # Same iterations as used for storing
             ).hex()
-        except:
+            
+            password_correct = (password_hash == stored_hash)
+        except Exception as pw_error:
             # Fallback to simple hash if pbkdf2 fails
-            password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+            try:
+                password_hash = hashlib.sha256((password + user['salt']).encode()).hexdigest()
+                password_correct = (password_hash == user['password_hash'])
+            except Exception as fallback_error:
+                password_correct = False
         
-        if password_hash != stored_hash:
-            conn.close()
+        if not password_correct:
             return {"status": "error", "message": "Invalid credentials"}
         
         # Create a session token
         session_token = secrets.token_hex(32)
         created_at = datetime.now().isoformat()
-        
-        # Set expiration based on remember flag
-        if remember:
-            expires_at = (datetime.now() + timedelta(days=30)).isoformat()
-        else:
-            expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
+        expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
         
         # Store session in database
         cursor.execute('''
@@ -78,9 +86,7 @@ def authenticate_user(username_or_email, password, ip_address=None, user_agent=N
         WHERE id = ?
         ''', (created_at, user['id']))
         
-        conn.commit()
-        conn.close()
-        
+        # Return successful authentication result
         return {
             "status": "success",
             "user_id": user['id'],
@@ -94,35 +100,38 @@ def authenticate_user(username_or_email, password, ip_address=None, user_agent=N
         print(f"Authentication error: {e}")
         return {"status": "error", "message": f"Authentication failed: {str(e)}"}
 
-# Function to verify and update auth.py
-def update_auth_file():
-    """Update the auth.py file with the correct function signature"""
-    auth_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'auth.py')
+# Add a wrapper function that handles the database connection itself
+def authenticate_user_wrapper(username_or_email, password, ip_address=None, user_agent=None):
+    """
+    Wrapper for authenticate_user that handles database connection
     
-    if os.path.exists(auth_file):
-        with open(auth_file, 'r') as f:
-            content = f.read()
+    This function has the same signature as the original authenticate_user function
+    but takes care of creating and closing the database connection.
+    """
+    try:
+        # Connect to database
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
         
-        # Replace the authenticate_user import
-        if 'from client_db import authenticate_user' in content:
-            content = content.replace(
-                'from client_db import authenticate_user', 
-                '# Import the fixed authenticate_user function\nfrom fix_auth import authenticate_user'
-            )
-            
-            with open(auth_file, 'w') as f:
-                f.write(content)
-            
-            print(f"Updated {auth_file} to use the fixed authenticate_user function")
-            return True
-    return False
+        # Call the actual authenticate function
+        result = authenticate_user(conn, cursor, username_or_email, password, ip_address, user_agent)
+        
+        # Commit changes if successful
+        if result['status'] == 'success':
+            conn.commit()
+        
+        # Close connection
+        conn.close()
+        
+        return result
+        
+    except Exception as e:
+        print(f"Authentication wrapper error: {e}")
+        return {"status": "error", "message": f"Authentication failed: {str(e)}"}
 
-# Run the function
+# Test the function with direct usage
 if __name__ == "__main__":
-    print("Fixing authenticate_user function...")
-    updated = update_auth_file()
-    
-    if updated:
-        print("Auth file updated successfully!")
-    else:
-        print("Couldn't update auth.py. You may need to manually fix the function signature.")
+    # Test authentication with admin user
+    result = authenticate_user_wrapper('admin', 'admin123')
+    print(f"Authentication result: {result}")
