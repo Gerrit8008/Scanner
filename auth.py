@@ -21,11 +21,14 @@ def login():
         result = verify_session(session_token)
         if result['status'] == 'success':
             user = result['user']
-            # Redirect based on role
-            if user['role'] == 'admin':
-                return redirect(url_for('admin.dashboard'))
-            else:
-                return redirect(url_for('client.dashboard'))
+            if request.method == 'POST':
+                username = request.form.get('username')
+                password = request.form.get('password')
+                    # Redirect based on role
+                    if user['role'] == 'admin':
+                        return redirect(url_for('admin.dashboard'))
+                    else:
+                        return redirect(url_for('client.dashboard'))
     
     # Get 'next' parameter for redirection after login
     next_url = request.args.get('next', '')
@@ -41,7 +44,7 @@ def login():
             
         # Get client IP for security logging
         ip_address = request.remote_addr
-        result = authenticate_user(username, password, ip_address)
+        result = authenticate_user(username, password)
         
         if result['status'] == 'success':
             # Store session token in cookie
