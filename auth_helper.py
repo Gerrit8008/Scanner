@@ -277,57 +277,6 @@ def authenticate_user(username_or_email, password, ip_address=None):
         logger.error(f"Authentication error: {str(e)}")
         return {"status": "error", "message": f"Authentication failed: {str(e)}"}
 
-def verify_session(session_token):
-    """
-    Verify a session token and return user information
-    
-    Args:
-        session_token (str): Session token
-        
-    Returns:
-        dict: Session verification result
-    """
-    try:
-        if not session_token:
-            return {"status": "error", "message": "No session token provided"}
-        
-        # Connect to database
-        conn = sqlite3.connect(CLIENT_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        # Find the session and join with user data
-        cursor.execute('''
-        SELECT s.*, u.username, u.email, u.role, u.full_name
-        FROM sessions s
-        JOIN users u ON s.user_id = u.id
-        WHERE s.session_token = ? AND s.expires_at > ? AND u.active = 1
-        ''', (session_token, datetime.now().isoformat()))
-        
-        session = cursor.fetchone()
-        
-        if not session:
-            conn.close()
-            return {"status": "error", "message": "Invalid or expired session"}
-        
-        conn.close()
-        
-        # Return success with user info
-        return {
-            "status": "success",
-            "user": {
-                "user_id": session['user_id'],
-                "username": session['username'],
-                "email": session['email'],
-                "role": session['role'],
-                "full_name": session['full_name']
-            }
-        }
-    
-    except Exception as e:
-        logger.error(f"Session verification error: {str(e)}")
-        return {"status": "error", "message": f"Session verification failed: {str(e)}"}
-
 def logout_user(session_token):
     """
     Logout a user by invalidating their session
