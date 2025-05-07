@@ -171,6 +171,18 @@ def login():
     
     # GET request - show login form
     return render_template('auth/login.html', role=role, next=next_url)
+
+
+# Initialize tables when the blueprint is registered
+@auth_bp.before_app_first_request
+def initialize_tables():
+    """Initialize user tables before first request"""
+    try:
+        init_user_tables()
+        logging.info("User tables initialized successfully")
+    except Exception as e:
+        logging.error(f"Error initializing user tables: {str(e)}")
+
 # Logout route
 @auth_bp.route('/logout')
 def logout():
