@@ -37,6 +37,7 @@ from debug_middleware import register_debug_middleware
 from auth_helper import create_user
 from auth import auth_bp
 from auth_hotfix import register_auth_hotfix
+from emergency_access import emergency_bp
 
 # Import scan functionality
 from scan import (
@@ -134,6 +135,7 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(scanner_bp)
 app.register_blueprint(client_bp) 
+app.register_blueprint(emergency_bp)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
