@@ -204,7 +204,23 @@ def get_client_by_user_id(user_id):
     except Exception as e:
         logging.error(f"Error retrieving client by user ID: {e}")
         return None
-        
+
+def backup_database():
+    """Create a backup of the database"""
+    import shutil
+    from datetime import datetime
+    
+    backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_path = os.path.join(backup_dir, f'client_scanner_{timestamp}.db')
+    
+    shutil.copy2(CLIENT_DB_PATH, backup_path)
+    logging.info(f"Database backup created at: {backup_path}")
+    
+    return backup_path
+
 # Helper function for database transactions
 def with_transaction(func):
     """Decorator for database transactions with proper error handling"""
@@ -873,10 +889,10 @@ def get_scanner_scan_history(conn, cursor, scanner_id, limit=100):
 # Improved authentication with better security
 @with_transaction
 def authenticate_user(username_or_email, password, ip_address=None, user_agent=None):
-    """Authenticate a user with enhanced security and debug logging"""
+    """
+    Fixed authenticate_user function for main application
+    """
     try:
-        logging.debug(f"Authentication attempt for: {username_or_email} from IP: {ip_address}")
-        
         # Connect to database
         conn = sqlite3.connect(CLIENT_DB_PATH)
         conn.row_factory = sqlite3.Row
@@ -891,74 +907,54 @@ def authenticate_user(username_or_email, password, ip_address=None, user_agent=N
         user = cursor.fetchone()
         
         if not user:
-            logging.warning(f"Authentication failed: User not found: {username_or_email}")
             conn.close()
             return {"status": "error", "message": "Invalid credentials"}
         
         # Verify password
         try:
-            # Use pbkdf2_hmac if salt exists (new format)
+            # Use pbkdf2_hmac if salt exists
             salt = user['salt']
             stored_hash = user['password_hash']
             
-            # Log for debugging (don't log this in production)
-            logging.debug(f"Authenticating {user['username']} (ID: {user['id']}) with salt: {salt[:5]}...")
-            
-            # Compute hash with pbkdf2
             password_hash = hashlib.pbkdf2_hmac(
                 'sha256', 
                 password.encode(), 
                 salt.encode(), 
-                100000  # Same iterations as used for storing
+                100000
             ).hex()
             
             password_correct = (password_hash == stored_hash)
-            logging.debug(f"Password verification result: {password_correct}")
         except Exception as pw_error:
-            # Fallback to simple hash if pbkdf2 fails
-            logging.warning(f"Error in password verification with pbkdf2: {pw_error}, falling back to simple hash")
+            logging.warning(f"Password verification error: {pw_error}")
             try:
+                # Fallback to simple hash if needed
                 password_hash = hashlib.sha256((password + user['salt']).encode()).hexdigest()
                 password_correct = (password_hash == user['password_hash'])
-                logging.debug(f"Fallback password verification result: {password_correct}")
-            except Exception as fallback_error:
-                logging.error(f"Error in fallback password verification: {fallback_error}")
+            except:
                 password_correct = False
         
         if not password_correct:
-            logging.warning(f"Authentication failed: Invalid password for user: {user['username']}")
             conn.close()
             return {"status": "error", "message": "Invalid credentials"}
         
-        # Create a session token
+        # Create session token
         session_token = secrets.token_hex(32)
         created_at = datetime.now().isoformat()
         expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
         
-        logging.debug(f"Creating session for user {user['username']} (ID: {user['id']})")
-        
-        # Store session in database
+        # Store session
         cursor.execute('''
         INSERT INTO sessions (
-            user_id, 
-            session_token, 
-            created_at, 
-            expires_at, 
-            ip_address
+            user_id, session_token, created_at, expires_at, ip_address
         ) VALUES (?, ?, ?, ?, ?)
         ''', (user['id'], session_token, created_at, expires_at, ip_address))
         
         # Update last login timestamp
         cursor.execute('''
-        UPDATE users 
-        SET last_login = ? 
-        WHERE id = ?
+        UPDATE users SET last_login = ? WHERE id = ?
         ''', (created_at, user['id']))
         
         conn.commit()
-        
-        logging.info(f"Authentication successful for user: {user['username']} (ID: {user['id']}) from IP: {ip_address}")
-        
         conn.close()
         
         return {
@@ -972,24 +968,22 @@ def authenticate_user(username_or_email, password, ip_address=None, user_agent=N
     
     except Exception as e:
         logging.error(f"Authentication error: {e}")
-        logging.debug(traceback.format_exc())
-        return {"status": "error", "message": "Authentication failed due to a system error"}
+        return {"status": "error", "message": f"Authentication failed: {str(e)}"}
 
 def verify_session(session_token):
-    """Verify a session token with enhanced debug logging"""
+    """Verify session token and return user info"""
     try:
         if not session_token:
-            logging.debug("verify_session called with empty token")
             return {"status": "error", "message": "No session token provided"}
         
-        # Create a new connection for each verification
+        # Connect to database
         conn = sqlite3.connect(CLIENT_DB_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Find the session and join with user data
+        # Find session and join with user data
         cursor.execute('''
-        SELECT s.*, u.username, u.email, u.role, u.full_name, u.id as user_id
+        SELECT s.*, u.username, u.email, u.role, u.id as user_id
         FROM sessions s
         JOIN users u ON s.user_id = u.id
         WHERE s.session_token = ? AND u.active = 1
@@ -998,41 +992,26 @@ def verify_session(session_token):
         session = cursor.fetchone()
         
         if not session:
-            logging.debug(f"No valid session found for token (partial): {session_token[:10]}...")
             conn.close()
+            logging.warning(f"Session token not found in database: {session_token}")
             return {"status": "error", "message": "Invalid or expired session"}
         
-        # Check if session is expired
-        import datetime
-        if 'expires_at' in session and session['expires_at']:
-            try:
-                expires_at = datetime.datetime.fromisoformat(session['expires_at'])
-                now = datetime.datetime.now()
-                if now > expires_at:
-                    logging.debug(f"Session expired: {expires_at} (now: {now})")
-                    conn.close()
-                    return {"status": "error", "message": "Session expired"}
-            except Exception as date_err:
-                logging.warning(f"Error parsing session expiry: {date_err}")
-        
-        # Return success with user info
+        # Return user info
         result = {
             "status": "success",
             "user": {
                 "user_id": session['user_id'],
                 "username": session['username'],
                 "email": session['email'],
-                "role": session['role'],
-                "full_name": session.get('full_name', '')
+                "role": session['role']
             }
         }
         
-        logging.debug(f"Session verified successfully for {session['username']} (role: {session['role']})")
         conn.close()
         return result
     
     except Exception as e:
-        logging.error(f"Session verification error: {str(e)}")
+        logging.error(f"Session verification error: {e}")
         return {"status": "error", "message": f"Session verification failed: {str(e)}"}
         
 @with_transaction
