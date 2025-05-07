@@ -38,7 +38,6 @@ from auth_helper import create_user
 from auth import auth_bp
 from auth_hotfix import register_auth_hotfix
 from emergency_access import emergency_bp
-
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -1427,7 +1426,7 @@ def emergency_login():
             session['username'] = user['username']
             session['role'] = user['role']
             
-            # Success message with debugging info
+            # Success message with next steps
             result = f"""
             <html>
                 <head>
@@ -1436,24 +1435,16 @@ def emergency_login():
                         body {{ font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }}
                         h1 {{ color: green; }}
                         .section {{ margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }}
-                        pre {{ background: #f5f5f5; padding: 10px; overflow-x: auto; }}
                     </style>
                 </head>
                 <body>
                     <h1>Emergency Login Successful!</h1>
                     <div class="section">
                         <p>You are logged in as <strong>{user['username']}</strong> with role <strong>{user['role']}</strong>.</p>
-                        <p>Session token created: <code>{session_token}</code></p>
                     </div>
                     
                     <div class="section">
-                        <h2>Debugging Information</h2>
-                        <p>Session contains:</p>
-                        <pre>{str(dict(session))}</pre>
-                    </div>
-                    
-                    <div class="section">
-                        <h2>Try Navigation</h2>
+                        <h2>Next Steps</h2>
                         <p><a href="/admin/dashboard">Go to Admin Dashboard</a></p>
                         <p><a href="/client/dashboard">Go to Client Dashboard</a></p>
                         <p><a href="/">Go to Home</a></p>
