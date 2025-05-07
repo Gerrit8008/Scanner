@@ -14,7 +14,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Database path from your existing code
-from client_db import CLIENT_DB_PATH
+from client_db import CLIENT_DB_PATH, verify_session
+from auth_helper import (
+    create_user, authenticate_user, logout_user,
+    get_all_users, get_user_by_id, update_user, delete_user,
+    get_login_stats, init_user_tables
+)
 
 def hash_password(password, salt=None):
     """
