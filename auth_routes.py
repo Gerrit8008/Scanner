@@ -153,6 +153,10 @@ def login():
             if remember:
                 session.permanent = True
             
+            # Debug logging to verify redirect logic
+            app.logger.debug(f"Login successful for user {username}, role: {result['role']}")
+            app.logger.debug(f"Redirecting to: {next_url if next_url else 'default based on role'}")
+            
             # Redirect based on next parameter or role
             if next_url:
                 return redirect(next_url)
@@ -168,7 +172,6 @@ def login():
     
     # GET request - show login form
     return render_template('auth/login.html', role=role, next=next_url)
-
 # Logout route
 @auth_bp.route('/logout')
 def logout():
