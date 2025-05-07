@@ -825,7 +825,6 @@ def get_login_stats():
 def initialize_tables():
     """Initialize user tables before first request"""
     try:
-        init_user_tables()
         logging.info("User tables initialized successfully")
     except Exception as e:
         logging.error(f"Error initializing user tables: {str(e)}")
