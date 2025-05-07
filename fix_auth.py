@@ -5,6 +5,7 @@ import sqlite3
 import secrets
 import hashlib
 from datetime import datetime, timedelta
+from fix_auth import authenticate_user_wrapper as authenticate_user
 
 # Define database path
 CLIENT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'client_scanner.db')
