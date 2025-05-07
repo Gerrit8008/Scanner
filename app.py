@@ -23,18 +23,19 @@ from config import get_config
 from dotenv import load_dotenv
 from flask import Blueprint
 from api import api_bp  # Import the new API blueprint
-from client_db import init_client_db
+from client_db import init_client_db, CLIENT_DB_PATH
 from scanner_router import scanner_bp
 from auth import auth_bp
 from admin import admin_bp
 from api import api_bp
 from scanner_router import scanner_bp
-from client_db import CLIENT_DB_PATH
 from setup_admin import configure_admin
 from client import client_bp  
 from flask_login import LoginManager, current_user
 from auth_routes import auth_bp
 from debug_middleware import register_debug_middleware
+from auth_helper import create_user
+
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -114,6 +115,7 @@ def create_app():
     # Initialize database
     init_db()
     init_client_db()  # Initialize client database
+    create_user("admin", "admin@example.com", "admin123", "admin")
     
     return app, limiter
 
