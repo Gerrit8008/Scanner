@@ -873,8 +873,10 @@ def get_scanner_scan_history(conn, cursor, scanner_id, limit=100):
 # Improved authentication with better security
 @with_transaction
 def authenticate_user(username_or_email, password, ip_address=None):
-    """Authenticate a user with enhanced security"""
+    """Authenticate a user with enhanced security and debug logging"""
     try:
+        logging.debug(f"Authentication attempt for: {username_or_email} from IP: {ip_address}")
+        
         # Connect to database
         conn = sqlite3.connect(CLIENT_DB_PATH)
         conn.row_factory = sqlite3.Row
@@ -889,15 +891,18 @@ def authenticate_user(username_or_email, password, ip_address=None):
         user = cursor.fetchone()
         
         if not user:
-            # Don't reveal too much info in error message
+            logging.warning(f"Authentication failed: User not found: {username_or_email}")
             conn.close()
             return {"status": "error", "message": "Invalid credentials"}
         
-        # Verify password with the same algorithm used for storing
+        # Verify password
         try:
             # Use pbkdf2_hmac if salt exists (new format)
             salt = user['salt']
             stored_hash = user['password_hash']
+            
+            # Log for debugging (don't log this in production)
+            logging.debug(f"Authenticating {user['username']} (ID: {user['id']}) with salt: {salt[:5]}...")
             
             # Compute hash with pbkdf2
             password_hash = hashlib.pbkdf2_hmac(
@@ -908,12 +913,20 @@ def authenticate_user(username_or_email, password, ip_address=None):
             ).hex()
             
             password_correct = (password_hash == stored_hash)
-        except:
+            logging.debug(f"Password verification result: {password_correct}")
+        except Exception as pw_error:
             # Fallback to simple hash if pbkdf2 fails
-            password_hash = hashlib.sha256((password + user['salt']).encode()).hexdigest()
-            password_correct = (password_hash == user['password_hash'])
+            logging.warning(f"Error in password verification with pbkdf2: {pw_error}, falling back to simple hash")
+            try:
+                password_hash = hashlib.sha256((password + user['salt']).encode()).hexdigest()
+                password_correct = (password_hash == user['password_hash'])
+                logging.debug(f"Fallback password verification result: {password_correct}")
+            except Exception as fallback_error:
+                logging.error(f"Error in fallback password verification: {fallback_error}")
+                password_correct = False
         
         if not password_correct:
+            logging.warning(f"Authentication failed: Invalid password for user: {user['username']}")
             conn.close()
             return {"status": "error", "message": "Invalid credentials"}
         
@@ -921,6 +934,8 @@ def authenticate_user(username_or_email, password, ip_address=None):
         session_token = secrets.token_hex(32)
         created_at = datetime.now().isoformat()
         expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
+        
+        logging.debug(f"Creating session for user {user['username']} (ID: {user['id']})")
         
         # Store session in database
         cursor.execute('''
@@ -941,6 +956,9 @@ def authenticate_user(username_or_email, password, ip_address=None):
         ''', (created_at, user['id']))
         
         conn.commit()
+        
+        logging.info(f"Authentication successful for user: {user['username']} (ID: {user['id']}) from IP: {ip_address}")
+        
         conn.close()
         
         return {
@@ -953,7 +971,8 @@ def authenticate_user(username_or_email, password, ip_address=None):
         }
     
     except Exception as e:
-        print(f"Authentication error: {e}")
+        logging.error(f"Authentication error: {e}")
+        logging.debug(traceback.format_exc())
         return {"status": "error", "message": "Authentication failed due to a system error"}
 
 def verify_session(session_token):
