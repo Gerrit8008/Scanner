@@ -16,6 +16,17 @@ from auth_helper import (
 # Create blueprint for authentication routes
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
+
+# Initialize tables when the blueprint is registered
+@auth_bp.before_app_first_request
+def initialize_tables():
+    """Initialize user tables before first request"""
+    try:
+        init_user_tables()
+        logging.info("User tables initialized successfully")
+    except Exception as e:
+        logging.error(f"Error initializing user tables: {str(e)}")
+        
 # Make sure the user tables exist
 init_user_tables()
 
@@ -171,17 +182,6 @@ def login():
     
     # GET request - show login form
     return render_template('auth/login.html', role=role, next=next_url)
-
-
-# Initialize tables when the blueprint is registered
-@auth_bp.before_app_first_request
-def initialize_tables():
-    """Initialize user tables before first request"""
-    try:
-        init_user_tables()
-        logging.info("User tables initialized successfully")
-    except Exception as e:
-        logging.error(f"Error initializing user tables: {str(e)}")
 
 # Logout route
 @auth_bp.route('/logout')
