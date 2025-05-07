@@ -141,9 +141,9 @@
                     
                     <hr class="my-4">
                     
-                    <a href="{{ url_for('auth.logout') }}" class="sidebar-link text-danger">
-                        <i class="bi bi-box-arrow-right"></i> Logout
-                    </a>
+                    <form method="post" action="{{ url_for('auth.logout') }}">
+                        <button type="submit" class="btn btn-link">Logout</button>
+                    </form>
                 </div>
             </div>
             
