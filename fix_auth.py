@@ -14,7 +14,7 @@ CLIENT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'clien
 
 def authenticate_user(username_or_email, password, ip_address=None, user_agent=None):
     """
-    Fixed authenticate_user function that properly handles all parameters
+    Fixed authenticate_user function that handles authentication properly
     
     Args:
         username_or_email: Username or email for login
@@ -122,6 +122,7 @@ def apply_authentication_fix():
         # Replace the authenticate_user function with our fixed version
         client_db.authenticate_user = authenticate_user
         
+        logger.info("Authentication fix applied successfully")
         return True
     except Exception as e:
         logger.error(f"Failed to apply authentication fix: {e}")
@@ -133,6 +134,42 @@ def create_admin_user(password="admin123"):
         # Connect to database
         conn = sqlite3.connect(CLIENT_DB_PATH)
         cursor = conn.cursor()
+        
+        # Check if users table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        if not cursor.fetchone():
+            # Create users table
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                role TEXT DEFAULT 'client',
+                full_name TEXT,
+                created_at TEXT,
+                last_login TEXT,
+                active INTEGER DEFAULT 1
+            )
+            ''')
+            
+        # Check if sessions table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'")
+        if not cursor.fetchone():
+            # Create sessions table
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                session_token TEXT UNIQUE NOT NULL,
+                created_at TEXT,
+                expires_at TEXT,
+                ip_address TEXT,
+                user_agent TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            ''')
         
         # Check if admin user exists
         cursor.execute("SELECT id FROM users WHERE username = 'admin'")
@@ -155,9 +192,11 @@ def create_admin_user(password="admin123"):
             UPDATE users SET 
                 password_hash = ?, 
                 salt = ?,
-                role = 'admin'
+                role = 'admin',
+                active = 1
             WHERE username = 'admin'
             ''', (password_hash, salt))
+            logger.info("Updated existing admin user")
         else:
             # Create new admin user
             cursor.execute('''
@@ -172,6 +211,7 @@ def create_admin_user(password="admin123"):
                 active
             ) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
             ''', ('admin', 'admin@example.com', password_hash, salt, 'admin', 'System Administrator', current_time))
+            logger.info("Created new admin user")
         
         conn.commit()
         conn.close()
@@ -181,11 +221,3 @@ def create_admin_user(password="admin123"):
     except Exception as e:
         logger.error(f"Error creating admin user: {e}")
         return False
-
-if __name__ == "__main__":
-    # Test the fix
-    apply_authentication_fix()
-    create_admin_user()
-    print("Authentication fix applied and admin user created/updated")
-    print("Username: admin")
-    print("Password: admin123")
