@@ -956,32 +956,11 @@ def authenticate_user(username_or_email, password, ip_address=None):
         print(f"Authentication error: {e}")
         return {"status": "error", "message": "Authentication failed due to a system error"}
 
-@with_transaction
-def verify_session(session_token, *args, **kwargs):
-    """Verify a session token and return user information
-    
-    Args:
-        session_token: The session token to verify (can be str or any type)
-        *args: Any additional positional arguments (ignored)
-        **kwargs: Any additional keyword arguments (ignored)
-        
-    Returns:
-        dict: Session verification result
-    """
+def verify_session(session_token):
+    """Verify a session token with enhanced debug logging"""
     try:
-        # If session_token is not a string (e.g., a connection object was passed first),
-        # extract the actual token from args if possible
-        actual_token = None
-        if isinstance(session_token, str):
-            actual_token = session_token
-        elif args and isinstance(args[0], str):
-            actual_token = args[0]
-        elif 'session_token' in kwargs and isinstance(kwargs['session_token'], str):
-            actual_token = kwargs['session_token']
-        else:
-            return {"status": "error", "message": "No valid session token provided"}
-        
-        if not actual_token:
+        if not session_token:
+            logging.debug("verify_session called with empty token")
             return {"status": "error", "message": "No session token provided"}
         
         # Create a new connection for each verification
@@ -991,17 +970,31 @@ def verify_session(session_token, *args, **kwargs):
         
         # Find the session and join with user data
         cursor.execute('''
-        SELECT s.*, u.username, u.email, u.role, u.full_name
+        SELECT s.*, u.username, u.email, u.role, u.full_name, u.id as user_id
         FROM sessions s
         JOIN users u ON s.user_id = u.id
         WHERE s.session_token = ? AND u.active = 1
-        ''', (actual_token,))
+        ''', (session_token,))
         
         session = cursor.fetchone()
         
         if not session:
+            logging.debug(f"No valid session found for token (partial): {session_token[:10]}...")
             conn.close()
             return {"status": "error", "message": "Invalid or expired session"}
+        
+        # Check if session is expired
+        import datetime
+        if 'expires_at' in session and session['expires_at']:
+            try:
+                expires_at = datetime.datetime.fromisoformat(session['expires_at'])
+                now = datetime.datetime.now()
+                if now > expires_at:
+                    logging.debug(f"Session expired: {expires_at} (now: {now})")
+                    conn.close()
+                    return {"status": "error", "message": "Session expired"}
+            except Exception as date_err:
+                logging.warning(f"Error parsing session expiry: {date_err}")
         
         # Return success with user info
         result = {
@@ -1015,12 +1008,14 @@ def verify_session(session_token, *args, **kwargs):
             }
         }
         
+        logging.debug(f"Session verified successfully for {session['username']} (role: {session['role']})")
         conn.close()
         return result
     
     except Exception as e:
-        print(f"Session verification error: {str(e)}")
+        logging.error(f"Session verification error: {str(e)}")
         return {"status": "error", "message": f"Session verification failed: {str(e)}"}
+        
 @with_transaction
 def logout_user(session_token):
     """Logout a user by invalidating their session"""
