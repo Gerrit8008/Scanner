@@ -520,10 +520,10 @@ def customize_scanner():
     return render_template('admin/customization-form.html')
 
 # Add a route for the admin dashboard
-@app.route('/admin/dashboard', methods=['GET'])
-def admin_dashboard():
-    """Render the admin dashboard"""
-    return render_template('admin/admin-dashboard.html')
+#@app.route('/admin/dashboard', methods=['GET'])
+#def admin_dashboard():
+    #"""Render the admin dashboard"""
+    #return render_template('admin/admin-dashboard.html')
 
 # Log registered routes
 @app.before_first_request
