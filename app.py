@@ -2795,6 +2795,25 @@ def api_service_inquiry():
     except Exception as e:
         logging.error(f"Error processing service inquiry: {e}")
         return jsonify({"status": "error", "message": str(e)})
+
+def check_route_conflicts():
+    """Check for conflicting routes in registered blueprints"""
+    routes = {}
+    for rule in app.url_map.iter_rules():
+        endpoint = rule.endpoint
+        path = str(rule)
+        if path in routes:
+            logging.warning(f"Route conflict found: {path} is registered by both {routes[path]} and {endpoint}")
+        else:
+            routes[path] = endpoint
+            
+    # Print all routes for debugging
+    logging.info("All registered routes:")
+    for path, endpoint in sorted(routes.items()):
+        logging.info(f"  {path} -> {endpoint}")
+        
+# Call this function after all blueprints are registered
+check_route_conflicts()
         
 # ---------------------------- MAIN ENTRY POINT ----------------------------
 
