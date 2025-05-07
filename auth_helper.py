@@ -821,6 +821,15 @@ def get_login_stats():
         logger.error(f"Error getting login stats: {str(e)}")
         return {"status": "error", "message": f"Failed to get login stats: {str(e)}"}
 
+@auth_bp.before_app_first_request
+def initialize_tables():
+    """Initialize user tables before first request"""
+    try:
+        init_user_tables()
+        logging.info("User tables initialized successfully")
+    except Exception as e:
+        logging.error(f"Error initializing user tables: {str(e)}")
+        
 # Additional database initialization function for user tables
 def init_user_tables():
     """Initialize database tables for user management"""
