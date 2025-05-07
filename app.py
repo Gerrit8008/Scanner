@@ -36,7 +36,8 @@ from auth_routes import auth_bp
 from debug_middleware import register_debug_middleware
 from auth_helper import create_user
 from auth import auth_bp
-import auth_hotfix
+from auth_hotfix import register_auth_hotfix
+
 # Import scan functionality
 from scan import (
     extract_domain_from_email,
@@ -91,7 +92,7 @@ def create_app():
     # Specify multiple template folders
     app = Flask(__name__, template_folder='templates')
 
-    auth_hotfix.register_auth_hotfix(app)
+    register_auth_hotfix(app)
     
     config = get_config()
     config.init_app(app)
