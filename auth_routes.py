@@ -154,8 +154,9 @@ def login():
                 session.permanent = True
             
             # Debug logging to verify redirect logic
-            app.logger.debug(f"Login successful for user {username}, role: {result['role']}")
-            app.logger.debug(f"Redirecting to: {next_url if next_url else 'default based on role'}")
+            import logging
+            logging.debug(f"Login successful for user {username}, role: {result['role']}")
+            logging.debug(f"Redirecting to: {next_url if next_url else 'default based on role'}")
             
             # Redirect based on next parameter or role
             if next_url:
