@@ -134,6 +134,24 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
 
+@app.before_request
+def debug_auth_flow():
+    """Debug middleware specifically for authentication flow"""
+    if request.path.startswith('/auth/login'):
+        app.logger.debug(f"Auth request: {request.method} {request.path}")
+        app.logger.debug(f"Session data: {session}")
+        app.logger.debug(f"Form data: {request.form}")
+        app.logger.debug(f"Args: {request.args}")
+
+@app.after_request
+def debug_auth_response(response):
+    """Debug middleware for authentication responses"""
+    if request.path.startswith('/auth/login'):
+        app.logger.debug(f"Auth response: {response.status_code}")
+        if response.status_code in (301, 302, 303, 307, 308):
+            app.logger.debug(f"Redirect location: {response.location}")
+    return response
+    
 @app.route('/auth_status')
 def auth_status():
     """Route to check authentication system status"""
