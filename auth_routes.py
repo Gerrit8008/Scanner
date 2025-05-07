@@ -7,7 +7,11 @@ import logging
 from datetime import datetime
 from flask import Blueprint
 from client_db import CLIENT_DB_PATH, verify_session
-
+from auth_helper import (
+    create_user, authenticate_user, logout_user,
+    get_all_users, get_user_by_id, update_user, delete_user,
+    get_login_stats, init_user_tables  # Make sure init_user_tables is imported here
+)
 
 # Create blueprint for authentication routes
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
