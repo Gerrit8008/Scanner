@@ -134,6 +134,34 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
 
+def ensure_users_table():
+    try:
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Create users table if not exists
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            role TEXT DEFAULT 'client',
+            full_name TEXT,
+            created_at TEXT,
+            last_login TEXT,
+            active INTEGER DEFAULT 1
+        )
+        ''')
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error ensuring users table: {e}")
+        return False
+        
 @app.before_request
 def debug_auth_flow():
     """Debug middleware specifically for authentication flow"""
