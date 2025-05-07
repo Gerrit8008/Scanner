@@ -821,14 +821,12 @@ def get_login_stats():
         logger.error(f"Error getting login stats: {str(e)}")
         return {"status": "error", "message": f"Failed to get login stats: {str(e)}"}
 
-@auth_bp.before_app_first_request
-def initialize_tables():
-    """Initialize user tables before first request"""
+def init_user_tables():
+    """Initialize database tables for user management"""
     try:
-        logging.info("User tables initialized successfully")
-    except Exception as e:
-        logging.error(f"Error initializing user tables: {str(e)}")
-
+        conn = sqlite3.connect(CLIENT_DB_PATH)
+        cursor = conn.cursor()
+        
         # Users table
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -846,93 +844,7 @@ def initialize_tables():
         )
         ''')
         
-        # Sessions table
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            session_token TEXT UNIQUE NOT NULL,
-            created_at TEXT,
-            expires_at TEXT,
-            ip_address TEXT,
-            user_agent TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-        ''')
-        
-        # Audit log table
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS audit_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            action TEXT NOT NULL,
-            entity_type TEXT NOT NULL,
-            entity_id INTEGER NOT NULL,
-            changes TEXT,
-            timestamp TEXT NOT NULL,
-            ip_address TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-        )
-        ''')
-        
-        # User profiles table
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_profiles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            phone TEXT,
-            address TEXT,
-            company TEXT,
-            position TEXT,
-            profile_image TEXT,
-            preferences TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-        ''')
-        
-        # Create indexes
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(session_token)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_audit_user_id ON audit_log(user_id)')
-        
-        # Create default admin user if none exists
-        cursor.execute('SELECT COUNT(*) FROM users WHERE role = "admin"')
-        admin_count = cursor.fetchone()[0]
-        
-        if admin_count == 0:
-            # Create a default admin user
-            password_hash, salt = hash_password('admin123')
-            created_at = datetime.now().isoformat()
-            
-            cursor.execute('''
-            INSERT INTO users (
-                username, 
-                email,
-                password_hash,
-                salt,
-                role,
-                full_name,
-                created_at,
-                active
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-            ''', ('admin', 'admin@example.com', password_hash, salt, 'admin', 'System Admin', created_at))
-            
-            # Log admin creation
-            admin_id = cursor.lastrowid
-            cursor.execute('''
-            INSERT INTO audit_log (
-                user_id,
-                action,
-                entity_type,
-                entity_id,
-                changes,
-                timestamp
-            ) VALUES (?, ?, ?, ?, ?, ?)
-            ''', (admin_id, 'system_init', 'user', admin_id, '{"message": "Default admin user created"}', created_at))
-            
-            logger.info("Created default admin user")
+        # Create other tables...
         
         conn.commit()
         conn.close()
@@ -941,3 +853,12 @@ def initialize_tables():
     except Exception as e:
         logger.error(f"Error initializing user tables: {str(e)}")
         return False
+
+@auth_bp.before_app_first_request
+def initialize_tables():
+    """Initialize user tables before first request"""
+    try:
+        init_user_tables()
+        logging.info("User tables initialized successfully")
+    except Exception as e:
+        logging.error(f"Error initializing user tables: {str(e)}")
