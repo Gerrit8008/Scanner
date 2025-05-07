@@ -852,13 +852,4 @@ def init_user_tables():
     
     except Exception as e:
         logger.error(f"Error initializing user tables: {str(e)}")
-        return False
-
-@auth_bp.before_app_first_request
-def initialize_tables():
-    """Initialize user tables before first request"""
-    try:
-        init_user_tables()
-        logging.info("User tables initialized successfully")
-    except Exception as e:
-        logging.error(f"Error initializing user tables: {str(e)}")
+        return Falses
