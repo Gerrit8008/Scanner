@@ -41,6 +41,8 @@ def login():
             
         # Get client IP for security logging
         ip_address = request.remote_addr
+        
+        # Fixed line: only passing username and password to authenticate_user
         result = authenticate_user(username, password)
         
         if result['status'] == 'success':
@@ -78,6 +80,7 @@ def logout():
 
 # Password reset request route
 @auth_bp.route('/reset-password', methods=['GET', 'POST'])
+
 def reset_password_request():
     if request.method == 'POST':
         email = request.form.get('email')
@@ -98,6 +101,7 @@ def reset_password_request():
 
 # Password reset confirmation route
 @auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+
 def reset_password_confirm(token):
     # Verify the token
     from client_db import verify_password_reset_token
