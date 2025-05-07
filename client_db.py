@@ -872,7 +872,7 @@ def get_scanner_scan_history(conn, cursor, scanner_id, limit=100):
 
 # Improved authentication with better security
 @with_transaction
-def authenticate_user(username_or_email, password, ip_address=None):
+def authenticate_user(username_or_email, password, ip_address=None, user_agent=None):
     """Authenticate a user with enhanced security and debug logging"""
     try:
         logging.debug(f"Authentication attempt for: {username_or_email} from IP: {ip_address}")
