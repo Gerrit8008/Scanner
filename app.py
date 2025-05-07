@@ -92,7 +92,7 @@ def create_app():
     # Specify multiple template folders
     app = Flask(__name__, template_folder='templates')
 
-    register_auth_hotfix(app)
+    app = register_auth_hotfix(app)
     
     config = get_config()
     config.init_app(app)
