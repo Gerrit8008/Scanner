@@ -21,14 +21,11 @@ def login():
         result = verify_session(session_token)
         if result['status'] == 'success':
             user = result['user']
-            if request.method == 'POST':
-                username = request.form.get('username')
-                password = request.form.get('password')
-                    # Redirect based on role
-                    if user['role'] == 'admin':
-                        return redirect(url_for('admin.dashboard'))
-                    else:
-                        return redirect(url_for('client.dashboard'))
+            # Redirect based on role
+            if user['role'] == 'admin':
+                return redirect(url_for('admin.dashboard'))
+            else:
+                return redirect(url_for('client.dashboard'))
     
     # Get 'next' parameter for redirection after login
     next_url = request.args.get('next', '')
