@@ -829,14 +829,7 @@ def initialize_tables():
         logging.info("User tables initialized successfully")
     except Exception as e:
         logging.error(f"Error initializing user tables: {str(e)}")
-        
-# Additional database initialization function for user tables
-def init_user_tables():
-    """Initialize database tables for user management"""
-    try:
-        conn = sqlite3.connect(CLIENT_DB_PATH)
-        cursor = conn.cursor()
-        
+
         # Users table
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
